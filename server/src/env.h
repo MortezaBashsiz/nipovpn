@@ -4,4 +4,5 @@
 #define CONFIG_SSL_KEY "/etc/nipovpn/ssl.key"
 #define CONFIG_SSL_CERT "/etc/nipovpn/ssl.cert"
 #define CONFIG_LOG_LEVEL 1
+#define CONFIG_LOG_FILE "/var/log/niposerver/nipo.log";
 #define CONFIG_THREADS 1
