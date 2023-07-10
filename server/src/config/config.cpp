@@ -54,9 +54,13 @@ returnMsgCode Config::validate(){
 		result.message	= "[ERROR]: specified config logFile file does not exists or is not readable : " + config.logFile + "\n";
 		result.code = 1;
 	};
-	// if ((!isdigit(config.port)) || (config.port > 65535 || config.port < 1)){
-	// 	result.message	= "[ERROR]: specified config port is not correct, it must be an integer from 1 to 65535 : " + config.port + "\n";
-	// 	result.code = 1;
-	// }
+	if(config.port > 65535 || config.port < 1){
+		result.message	= "[ERROR]: specified config port is not correct, it must be an integer from 1 to 65535 : " + to_string(config.port) + "\n";
+		result.code = 1;
+	};
+	if(!isIPAddress(config.ip)){
+		result.message	= "[ERROR]: specified config IPv4 is not correct, it must be like an IP address : " + config.ip + "\n";
+		result.code = 1;
+	};
 	return result;
 };
