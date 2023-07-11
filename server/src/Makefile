@@ -2,8 +2,8 @@
 # Makefile for many UNIX compilers using the
 # "standard" command name CC
 #
-CC=gcc
-CFLAGS=-lstdc++ -g -ljsoncpp
+CC=g++
+CFLAGS=-g -ljsoncpp
 all: main.cpp general.cpp net/net.cpp config/config.cpp log/log.cpp
 	$(CC) $(CFLAGS) -o niposerver main.cpp general.cpp net/net.cpp config/config.cpp log/log.cpp
 run:
