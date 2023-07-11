@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "config/config.hpp"
-#include "log/log.hpp"
-#include "net/net.hpp"
+#include "config.hpp"
+#include "log.hpp"
+#include "net.hpp"
 #include "env.hpp"
