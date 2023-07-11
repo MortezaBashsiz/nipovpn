@@ -10,7 +10,7 @@ Log::~Log(){
 };
 
 bool Log::write(string message, int level, string type){
-	if (level >= log.level){
+	if (level <= log.level){
 		time_t now = time(0);
 		auto time = std::time(nullptr);
 		auto localtime = *std::localtime(&time);

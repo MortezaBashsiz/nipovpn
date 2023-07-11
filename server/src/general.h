@@ -5,14 +5,19 @@
 
 using namespace std;
 
-struct returnMsgCode {
+struct returnMsgCode{
 	int code;
 	string message;
 };
+
+struct mainArgs{
+	string configPath;
+};
+
 
 bool fileExists(string filePath);
 bool isInteger(string number);
 vector<string> split(const string &str, char delim);
 bool isIPAddress(string ipaddress);
-void validateMainArgs(int argc, char* argv[]);
+mainArgs validateMainArgs(int argc, char* argv[]);
 
