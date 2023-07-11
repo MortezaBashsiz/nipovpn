@@ -16,23 +16,29 @@ Config::Config(string file){
 	ifstream configFile(file, ifstream::binary);
 	Json::Reader readerJson;
 	Json::Value configJson;
-	readerJson.parse(configFile, configJson);
-	config.ip 			= configJson["ip"].asString();
-	config.port 		= configJson["port"].asInt();
-	config.sslKey 	= configJson["sslKey"].asString();
-	config.sslCert 	= configJson["sslCert"].asString();
-	config.logLevel	= configJson["logLevel"].asInt();
-	config.logFile	= configJson["logFile"].asString();
-	config.threads 	= configJson["threads"].asInt();
-	int usersSize 	= sizeof(configJson["users"])/sizeof(configJson["users"][0]);
-	for (int item 	= 0; item <= usersSize; item += 1){
-		config.users[item].token = configJson["users"][item]["token"].asString();
-		config.users[item].srcIp = configJson["users"][item]["srcIp"].asString();
-		config.users[item].endpoint = configJson["users"][item]["endpoint"].asString();
+	try{
+		readerJson.parse(configFile, configJson);
+		config.ip 			= configJson["ip"].asString();
+		config.port 		= configJson["port"].asInt();
+		config.sslKey 	= configJson["sslKey"].asString();
+		config.sslCert 	= configJson["sslCert"].asString();
+		config.logLevel	= configJson["logLevel"].asInt();
+		config.logFile	= configJson["logFile"].asString();
+		config.threads 	= configJson["threads"].asInt();
+		for (int item 	= 0; item < CONFIG_MAX_USER_COUNT; item += 1){
+			if (configJson["users"][item]["token"].asString() != ""){
+				config.users[item].token = configJson["users"][item]["token"].asString();
+				config.users[item].srcIp = configJson["users"][item]["srcIp"].asString();
+				config.users[item].endpoint = configJson["users"][item]["endpoint"].asString();
+			};
+		};
+	}	catch (const exception& error) {
+		cout << "[ERROR]: specified config file is not in json format : " << error.what() << endl;
+		exit(1);
 	};
 	returnMsgCode result = validate();
 	if (result.code != 0){
-		cout << result.message;
+		cout << result.message << endl;
 		exit(result.code);
 	};
 };
@@ -42,25 +48,44 @@ Config::~Config(){
 
 returnMsgCode Config::validate(){
 	returnMsgCode result;
-	if (! fileExists(config.sslKey)){
-		result.message	= "[ERROR]: specified config sslKey file does not exists or is not readable : " + config.sslKey + "\n";
+	if((! isInteger(to_string(config.port))) || (isInteger(to_string(config.port)) && (config.port > 65535 || config.port < 1))){
+		result.message	= "[ERROR]: specified config port is not correct, it must be an integer from 1 to 65535 : " + to_string(config.port);
 		result.code = 1;
+		return result;
+	};
+	if (! isInteger(to_string(config.threads))){
+		result.message	= "[ERROR]: specified config threads must be an integer : " + to_string(config.threads);
+		result.code = 1;
+		return result;
+	};
+	if(! isIPAddress(config.ip)){
+		result.message	= "[ERROR]: specified config IPv4 is not correct, it must be like an IP address : " + config.ip;
+		result.code = 1;
+		return result;
+	};
+	if (! fileExists(config.sslKey)){
+		result.message	= "[ERROR]: specified config sslKey file does not exists or is not readable : " + config.sslKey;
+		result.code = 1;
+		return result;
 	};
 	if (! fileExists(config.sslCert)){
-		result.message	= "[ERROR]: specified config sslCert file does not exists or is not readable : " + config.sslCert + "\n";
+		result.message	= "[ERROR]: specified config sslCert file does not exists or is not readable : " + config.sslCert;
 		result.code = 1;
+		return result;
 	};
 	if (! fileExists(config.logFile)){
-		result.message	= "[ERROR]: specified config logFile file does not exists or is not readable : " + config.logFile + "\n";
+		result.message	= "[ERROR]: specified config logFile file does not exists or is not readable : " + config.logFile;
 		result.code = 1;
+		return result;
 	};
-	if(config.port > 65535 || config.port < 1){
-		result.message	= "[ERROR]: specified config port is not correct, it must be an integer from 1 to 65535 : " + to_string(config.port) + "\n";
-		result.code = 1;
-	};
-	if(!isIPAddress(config.ip)){
-		result.message	= "[ERROR]: specified config IPv4 is not correct, it must be like an IP address : " + config.ip + "\n";
-		result.code = 1;
+	for (int item = 0; item < CONFIG_MAX_USER_COUNT; item += 1){
+		if (config.users[item].token != ""){
+			if(!isIPAddress(config.users[item].srcIp)){
+				result.message	= "[ERROR]: specified config IPv4 for users is not correct or no user is defined, it must be like an IP address : " + config.users[item].srcIp;
+				result.code = 1;
+				break;
+			};
+		};
 	};
 	return result;
 };

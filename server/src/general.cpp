@@ -43,3 +43,16 @@ bool isIPAddress(string ipaddress){
 	};
 	return true;
 };
+
+void validateMainArgs(int argc, char* argv[]){
+	if (argc != 2){
+		cout << "[ERROR]: no config file specified, you must specify a config file" << endl;
+		exit(1);
+	} else {
+		string filePath = argv[1];
+		if (! fileExists(filePath)){
+			cout << "[ERROR]: specified config file does not exists: " << filePath << endl;
+			exit(1);
+		};
+	};
+};

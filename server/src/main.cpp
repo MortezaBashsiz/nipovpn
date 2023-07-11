@@ -1,7 +1,9 @@
 #include "main.h"
 
-int main(){
-	Config nipoConfig("/home/morteza/data/git/MortezaBashsiz/nipovpn/files/config/nipoServerConfig.json");
+int main(int argc=0, char* argv[]={0}){
+	validateMainArgs(argc, argv);
+	string configPath = argv[1];
+	Config nipoConfig(configPath);
 	Log nipoLog(nipoConfig.config.logFile, nipoConfig.config.logLevel);
 
 	// bool result = nipoLog.write("bbbb", 1, nipoLog.type.warn);
