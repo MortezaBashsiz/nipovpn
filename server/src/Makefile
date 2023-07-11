@@ -4,12 +4,10 @@
 #
 CC=g++
 CFLAGS=-g -ljsoncpp
+INCLUDEPATH=../../files/include
 all: main.cpp general.cpp net/net.cpp config/config.cpp log/log.cpp
-	$(CC) $(CFLAGS) -o niposerver main.cpp general.cpp net/net.cpp config/config.cpp log/log.cpp
+	$(CC) -I$(INCLUDEPATH) $(CFLAGS) -o niposerver main.cpp general.cpp net/net.cpp config/config.cpp log/log.cpp
 run:
-	./niposerver
-allrun: main.cpp general.cpp general.cpp net/net.cpp config/config.cpp log/log.cpp
-	$(CC) $(CFLAGS) -o niposerver main.cpp general.cpp net/net.cpp config/config.cpp log/log.cpp
 	./niposerver
 clean:
 	rm niposerver
