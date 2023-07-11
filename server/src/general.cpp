@@ -1,4 +1,4 @@
-#include "general.h"
+#include "general.hpp"
 
 bool fileExists(string filePath){
 	ifstream file;

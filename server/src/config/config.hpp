@@ -3,8 +3,8 @@
 #include <json/value.h>
 #include <json/json.h>
 
-#include "../env.h"
-#include "../general.h"
+#include "../env.hpp"
+#include "../general.hpp"
 
 using namespace std;
 

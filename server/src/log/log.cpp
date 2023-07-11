@@ -1,4 +1,4 @@
-#include "log.h"
+#include "log.hpp"
 
 Log::Log(string file, int level){
 	log.file	= file;

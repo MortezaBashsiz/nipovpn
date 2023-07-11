@@ -1,4 +1,4 @@
-#include "main.h"
+#include "main.hpp"
 
 int main(int argc=0, char* argv[]={0}){
 	mainArgs mainArgs = validateMainArgs(argc, argv);
