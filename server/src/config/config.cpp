@@ -47,36 +47,30 @@ Config::~Config(){
 };
 
 returnMsgCode Config::validate(){
-	returnMsgCode result;
+	returnMsgCode result{0,"OK"};
 	if((! isInteger(to_string(config.port))) || (isInteger(to_string(config.port)) && (config.port > 65535 || config.port < 1))){
 		result.message	= "[ERROR]: specified config port is not correct, it must be an integer from 1 to 65535 : " + to_string(config.port);
 		result.code = 1;
-		return result;
 	};
 	if (! isInteger(to_string(config.threads))){
 		result.message	= "[ERROR]: specified config threads must be an integer : " + to_string(config.threads);
 		result.code = 1;
-		return result;
 	};
 	if(! isIPAddress(config.ip)){
 		result.message	= "[ERROR]: specified config IPv4 is not correct, it must be like an IP address : " + config.ip;
 		result.code = 1;
-		return result;
 	};
 	if (! fileExists(config.sslKey)){
 		result.message	= "[ERROR]: specified config sslKey file does not exists or is not readable : " + config.sslKey;
 		result.code = 1;
-		return result;
 	};
 	if (! fileExists(config.sslCert)){
 		result.message	= "[ERROR]: specified config sslCert file does not exists or is not readable : " + config.sslCert;
 		result.code = 1;
-		return result;
 	};
 	if (! fileExists(config.logFile)){
 		result.message	= "[ERROR]: specified config logFile file does not exists or is not readable : " + config.logFile;
 		result.code = 1;
-		return result;
 	};
 	for (int item = 0; item < CONFIG_MAX_USER_COUNT; item += 1){
 		if (config.users[item].token != ""){
