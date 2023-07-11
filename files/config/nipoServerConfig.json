@@ -1,19 +1,20 @@
 {
-	"ip"  : "0.0.0.0" ,
-	"port" : 443 ,
-	"sslKey": "/etc/nipoIran/ssl.key" ,
-	"sslCert": "/etc/nipoIran/ssl.cert" ,
-	"logLevel": 1 ,
-	"threads": 4 ,
+	"ip": "0.0.0.0",
+	"port": 443,
+	"sslKey": "/etc/niposerver/ssl.key",
+	"sslCert": "/etc/niposerver/ssl.cert",
+	"logLevel": 1,
+	"logFile": "/var/log/niposerver/nipo.log",
+	"threads": 4,
 	"users": [
 		{
-			"token": "d4226b03-80ad-47e2-86ee-d3f6f700e066" ,
-			"srcIp": "127.0.0.1" ,
+			"token": "d4226b03-80ad-47e2-86ee-d3f6f700e066",
+			"srcIp": "127.0.0.1",
 			"endpoint": "/api01"
 		},
 		{
-			"token": "47df0731-685a-4fe2-8ffc-75861b1d7854" ,
-			"srcIp": "0.0.0.0" ,
+			"token": "47df0731-685a-4fe2-8ffc-75861b1d7854",
+			"srcIp": "0.0.0.0",
 			"endpoint": "/api02"
 		}
 	]
