@@ -8,12 +8,14 @@
 	"threads": 4,
 	"users": [
 		{
-			"token": "d4226b03-80ad-47e2-86ee-d3f6f700e066",
+			"encryption": "AES_256",
+			"token": "pait8phii5aithoh3zoh6ood0Leo6ooyohg7sahteth8EiBohs8oneeMaeniel7chee1Sioth2thohy6chiem5ki3eiwahnah6looseix9eeghiecei3xoh8wae3oPhehaeYeM5iejaa7Mahthiekeidi2thai0xoNohxeXahz1yuzuaGh5uNu7ailish9aafiezeiSh3ahcha4Peivi1ephie0oochee5yiepauMeiJeiv4kiefi7reiweyie8n",
 			"srcIp": "127.0.0.1",
 			"endpoint": "/api01"
 		},
 		{
-			"token": "47df0731-685a-4fe2-8ffc-75861b1d7854",
+			"encryption": "AES_256",
+			"token": "ieGeeReewae0oongoolaej9gie8phai2Oig6phie1Tai9il7Bie2viehie1vu1Noh8keeWahkah6vieph5Ohph1lahp3lia8chae0choosagh9eeghooJee4eingeb4od0imiechohy3taiG0exahx5iequuiphoolahfue5ua8ceita8jaoquah4Ushin2eeNgu9ohp8nooda7ui1Aan2OGh5chaech1ahphaej4Oagh6ieS5ep9feiB7eitiet",
 			"srcIp": "0.0.0.0",
 			"endpoint": "/api02"
 		}
