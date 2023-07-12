@@ -47,12 +47,12 @@ bool isIPAddress(string ipaddress){
 mainArgs validateMainArgs(int argc, char* argv[]){
 	mainArgs mainArgs{"null"};
 	if (argc != 2){
-		cout << "[ERROR]: no config file specified, you must specify a config file" << endl;
+		cerr << "[ERROR]: no config file specified, you must specify a config file" << endl;
 		exit(1);
 	} else {
 		mainArgs.configPath = argv[1];
 		if (! fileExists(mainArgs.configPath)){
-			cout << "[ERROR]: specified config file does not exists: " << mainArgs.configPath << endl;
+			cerr << "[ERROR]: specified config file does not exists: " << mainArgs.configPath << endl;
 			exit(1);
 		};
 	};

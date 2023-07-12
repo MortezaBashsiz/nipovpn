@@ -1,3 +1,6 @@
+#ifndef GENERAL_HPP
+#define GENERAL_HPP
+
 #include <vector>
 #include <fstream>
 #include <iostream>
@@ -21,3 +24,4 @@ vector<string> split(const string &str, char delim);
 bool isIPAddress(string ipaddress);
 mainArgs validateMainArgs(int argc, char* argv[]);
 
+#endif // GENERAL_HPP

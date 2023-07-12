@@ -1,3 +1,6 @@
+#ifndef CONFIG_HPP
+#define CONFIG_HPP
+
 #include <fstream>
 #include <iostream>
 #include <json/value.h>
@@ -37,3 +40,4 @@ class Config{
 		~Config();
 };
 
+#endif // CONFIG_HPP

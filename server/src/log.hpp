@@ -1,3 +1,6 @@
+#ifndef LOG_HPP
+#define LOG_HPP
+
 #include <fstream>
 #include <iostream>
 #include <ctime>
@@ -31,3 +34,5 @@ class Log{
 		~Log();
 		bool write(string message, int level, string type);
 };
+
+#endif // LOG_HPP

@@ -33,12 +33,12 @@ Config::Config(string file){
 			};
 		};
 	}	catch (const exception& error) {
-		cout << "[ERROR]: specified config file is not in json format : " << error.what() << endl;
+		cerr << "[ERROR]: specified config file is not in json format : " << error.what() << endl;
 		exit(1);
 	};
 	returnMsgCode result = validate();
 	if (result.code != 0){
-		cout << result.message << endl;
+		cerr << result.message << endl;
 		exit(result.code);
 	};
 };
