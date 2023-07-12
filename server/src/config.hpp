@@ -14,6 +14,7 @@ using namespace std;
 class Config{
 	private:
 		struct userStruct{
+			string encryption;
 			string token;
 			string srcIp;
 			string endpoint;
@@ -27,7 +28,8 @@ class Config{
 			string logFile;
 			int threads;
 			userStruct users[CONFIG_MAX_USER_COUNT]{
-				"a30929e7-284a-448c-a7f1-e91b986cd8f5",
+				"AES_256"
+				"Bah9aefai8ShoowieXilaij9Eibee6Uax0ief8dooze2yeesa7fu7Kaexohlaz2Kaghas8kai0ro6uoshaofuYae9eorohZ3AipheixaBaif2ughaithoahuat5bai2peja3ul6aeyoothuur0Kah8Ujeede2wai4vahb9saceiceiGh7Ohke5wiex9abaisieGhoayie7ushie9ahM5pheimaevahchixooBoojuB4eediel5aemus1noopheeZ",
 				"0.0.0.0",
 				"api01"
 			};

@@ -27,6 +27,7 @@ Config::Config(string file){
 		config.threads 	= configJson["threads"].asInt();
 		for (int item 	= 0; item < CONFIG_MAX_USER_COUNT; item += 1){
 			if (configJson["users"][item]["token"].asString() != ""){
+				config.users[item].encryption = configJson["users"][item]["encryption"].asString();
 				config.users[item].token = configJson["users"][item]["token"].asString();
 				config.users[item].srcIp = configJson["users"][item]["srcIp"].asString();
 				config.users[item].endpoint = configJson["users"][item]["endpoint"].asString();
