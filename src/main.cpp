@@ -9,13 +9,16 @@ int main(int argc=0, char* argv[]=0){
 	Log nipoLog(nipoConfig.config.logFile, nipoConfig.config.logLevel);
 	
 	if ( mainArgs.runMode == "server" ){
+		nipoLog.write("nipovpn starting in server mode", nipoLog.levelInfo, nipoLog.type.info);
 		try {
-  	  server s(nipoConfig.config.ip, std::to_string(nipoConfig.config.port), nipoConfig.config.webDir);
-  	  s.run();
-  	}
-  	catch (std::exception& e) {
-  	  std::cerr << "exception: " << e.what() << "\n";
-  	}
+			server nipoServer(nipoConfig.config.ip, std::to_string(nipoConfig.config.port), nipoConfig.config.webDir);
+			nipoServer.run();
+		}
+		catch (std::exception& e) {
+			nipoLog.write(e.what(), nipoLog.levelError, nipoLog.type.error);
+			std::cerr << "exception: " << e.what() << "\n";
+			exit(1);
+		}
 	}
-  return 0;
+	return 0;
 };

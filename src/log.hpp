@@ -16,6 +16,12 @@ class Log{
 			int level;
 		};
 	public:
+		enum logLevels{
+			levelInfo = 1,
+			levelWarn = 2,
+			levelError = 3,
+			levelDebug = 4
+		};
 		const struct typeStruct{ 
 			string info;
 			string warn;
@@ -30,7 +36,7 @@ class Log{
 		logStruct log;
 		Log(string file, int level);
 		~Log();
-		bool write(string message, int level, string type);
+		void write(string message, int level, string type);
 };
 
 #endif // LOG_HPP

@@ -6,6 +6,8 @@
 #include <set>
 #include <asio.hpp>
 
+#include "log.hpp"
+
 using namespace std;
 
 const std::string statusStringOk = "HTTP/1.0 200 OK\r\n";
@@ -163,20 +165,20 @@ class connectionManager
 };
 
 class server {
-public:
-	server(const server&) = delete;
-	server& operator=(const server&) = delete;
-	explicit server(const std::string& address, const std::string& port, const std::string& docRoot);
-	void run();
-
-private:
-	void doAccept();
-	void doAwaitStop();
-	asio::io_context io_context_;
-	asio::signal_set signals_;
-	asio::ip::tcp::acceptor acceptor_;
-	connectionManager connectionManager_;
-	requestHandler requestHandler_;
+	public:
+		server(const server&) = delete;
+		server& operator=(const server&) = delete;
+		explicit server(const std::string& address, const std::string& port, const std::string& docRoot);
+		void run();
+	
+	private:
+		void doAccept();
+		void doAwaitStop();
+		asio::io_context io_context_;
+		asio::signal_set signals_;
+		asio::ip::tcp::acceptor acceptor_;
+		connectionManager connectionManager_;
+		requestHandler requestHandler_;
 };
 
 #endif // NET_HPP

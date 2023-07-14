@@ -552,14 +552,12 @@ server::server(const std::string& address, const std::string& port,
 #endif // defined(SIGQUIT)
 
   doAwaitStop();
-
   asio::ip::tcp::resolver resolver(io_context_);
   asio::ip::tcp::endpoint endpoint = *resolver.resolve(address, port).begin();
   acceptor_.open(endpoint.protocol());
   acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true));
   acceptor_.bind(endpoint);
   acceptor_.listen();
-
   doAccept();
 };
 

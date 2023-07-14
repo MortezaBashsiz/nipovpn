@@ -4,7 +4,7 @@
 	"webDir": "/var/lib/niposerver",
 	"sslKey": "/etc/niposerver/ssl.key",
 	"sslCert": "/etc/niposerver/ssl.cert",
-	"logLevel": 1,
+	"logLevel": 4,
 	"logFile": "/var/log/niposerver/nipo.log",
 	"threads": 4,
 	"users": [

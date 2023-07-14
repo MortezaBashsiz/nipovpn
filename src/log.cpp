@@ -2,14 +2,14 @@
 
 Log::Log(string file, int level){
 	log.file	= file;
-	log.level= level;
+	log.level = level;
 };
 
 Log::~Log(){
 
 };
 
-bool Log::write(string message, int level, string type){
+void Log::write(string message, int level, string type){
 	if (level <= log.level){
 		time_t now = time(0);
 		auto time = std::time(nullptr);
@@ -25,11 +25,9 @@ bool Log::write(string message, int level, string type){
 			file << line;
 			cout << line;
 			file.close();
-			return true;
 		} else {
 			cerr << "[ERROR]: Exception openning log file : " << log.file << "\n";
-			return false;
+			exit(1);
 		}
 	}
-  return true;
 };
