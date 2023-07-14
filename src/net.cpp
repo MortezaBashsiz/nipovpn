@@ -455,20 +455,23 @@ void connection::doWrite() {
       });
 }
 
-connectionManager::connectionManager(){
+connectionManager::connectionManager(Config nipoConfig) : nipoLog(nipoConfig){
 }
 
 void connectionManager::start(connectionPtr c) {
+  nipoLog.write("nipovpn started connectionManager", nipoLog.levelInfo);
   connections_.insert(c);
   c->start();
 }
 
 void connectionManager::stop(connectionPtr c) {
+  nipoLog.write("nipovpn stopped connectionManager", nipoLog.levelInfo);
   connections_.erase(c);
   c->stop();
 }
 
 void connectionManager::stopAll() {
+  nipoLog.write("nipovpn stopped All connectionManager", nipoLog.levelInfo);
   for (auto c: connections_)
     c->stop();
   connections_.clear();
@@ -478,7 +481,7 @@ server::server(Config nipoConfig)
   : io_context_(1),
     signals_(io_context_),
     acceptor_(io_context_),
-    connectionManager_(),
+    connectionManager_(nipoConfig),
     requestHandler_(nipoConfig.config.webDir),
     nipoLog(nipoConfig) {
 

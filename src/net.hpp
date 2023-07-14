@@ -156,10 +156,11 @@ class connectionManager
 	public:
 		connectionManager(const connectionManager&) = delete;
 		connectionManager& operator=(const connectionManager&) = delete;
-		connectionManager();
+		connectionManager(Config nipoConfig);
 		void start(connectionPtr c);
 		void stop(connectionPtr c);
 		void stopAll();
+		Log nipoLog;
 	
 	private:
 		std::set<connectionPtr> connections_;
@@ -171,7 +172,6 @@ class server {
 		server& operator=(const server&) = delete;
 		explicit server(Config nipoConfig);
 		void run();
-		Config nipoConfig;
 		Log nipoLog;
 	
 	private:
