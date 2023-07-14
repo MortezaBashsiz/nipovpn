@@ -27,16 +27,17 @@ class Log{
 			string warn;
 			string error;
 			string debug;
-		} type {
+		} type = {
 			"INFO",
 			"WARN",
 			"ERROR",
-			"DEBUG",
+			"DEBUG"
 		};
 		logStruct log;
 		Log(string file, int level);
 		~Log();
-		void write(string message, int level, string type);
+		string logLevelToString(int level);
+		void write(string message, int level);
 };
 
 #endif // LOG_HPP

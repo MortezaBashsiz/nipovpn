@@ -9,7 +9,22 @@ Log::~Log(){
 
 };
 
-void Log::write(string message, int level, string type){
+string Log::logLevelToString(int level) {
+	switch (level){
+		case levelInfo:
+			return type.info;
+		case levelWarn:
+			return type.warn;
+		case levelError:
+			return type.error;
+		case levelDebug:
+			return type.debug;
+		default:
+			return type.info;
+	};
+};
+
+void Log::write(string message, int level){
 	if (level <= log.level){
 		time_t now = time(0);
 		auto time = std::time(nullptr);
@@ -17,8 +32,7 @@ void Log::write(string message, int level, string type){
 		ostringstream oss;
 		oss << std::put_time(&localtime, "%Y-%m-%d_%H:%M:%S");
 		auto timeStr = oss.str();
-		string line = timeStr + ", [" + type + "], " + message + "\n";
-
+		string line = timeStr + ", [" + logLevelToString(level) + "], " + message + "\n";
 		ofstream file(log.file,  file.out | file.app);
 		file.exceptions ( std::ifstream::badbit );
 		if (file.is_open()){
