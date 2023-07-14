@@ -7,8 +7,6 @@
 #include <sstream>
 #include <iomanip>
 
-#include "env.hpp"
-
 using namespace std;
 
 class Log{

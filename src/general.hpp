@@ -14,6 +14,7 @@ struct returnMsgCode{
 };
 
 struct mainArgs{
+	string runMode;
 	string configPath;
 };
 

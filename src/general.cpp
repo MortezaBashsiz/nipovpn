@@ -45,12 +45,20 @@ bool isIPAddress(string ipaddress){
 };
 
 mainArgs validateMainArgs(int argc, char* argv[]){
-	mainArgs mainArgs{"null"};
-	if (argc != 2){
-		cerr << "[ERROR]: no config file specified, you must specify a config file" << endl;
+	mainArgs mainArgs{"null","null"};
+	if (argc != 3){
+		cerr << "[ERROR]: not enough arguments specified" << endl;
+		cerr << "[ERROR]: run like this: " << endl;
+		cerr << "[ERROR]: nipovpn [server/client] CPNFIGPATH  " << endl;
 		exit(1);
 	} else {
-		mainArgs.configPath = argv[1];
+		if (std::string(argv[1]) == "server" || std::string(argv[1]) == "client"){
+			mainArgs.runMode = argv[1];
+		} else {
+			cerr << "[ERROR]: specified argument is not correct and must be server or client: " << mainArgs.runMode << endl;
+			exit(1);
+		};
+		mainArgs.configPath = argv[2];
 		if (! fileExists(mainArgs.configPath)){
 			cerr << "[ERROR]: specified config file does not exists: " << mainArgs.configPath << endl;
 			exit(1);

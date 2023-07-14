@@ -5,6 +5,7 @@ using namespace std;
 Config::Config(){
 	config.ip 			= 	CONFIG_IP;
 	config.port 		= 	CONFIG_PORT;
+	config.webDir		=		CONFIG_WEB_DIR;
 	config.sslKey 	= 	CONFIG_SSL_KEY;
 	config.sslCert 	= 	CONFIG_SSL_CERT;
 	config.logLevel	= 	CONFIG_LOG_LEVEL;
