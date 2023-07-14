@@ -4,18 +4,7 @@
 #include <fstream>
 #include <sstream>
 
-const std::string statusStringOk = "HTTP/1.0 200 OK\r\n";
-const std::string statusStringBadRequest = "HTTP/1.0 400 Bad Request\r\n";
-const std::string statusStringUnauthorized = "HTTP/1.0 401 Unauthorized\r\n";
-const std::string statusStringForbidden = "HTTP/1.0 403 Forbidden\r\n";
-const std::string statusStringNotFound = "HTTP/1.0 404 Not Found\r\n";
-const std::string statusStringInternalServerError = "HTTP/1.0 500 Internal Server Error\r\n";
-const std::string statusStringServiceUnavailable = "HTTP/1.0 503 Service Unavailable\r\n";
-
-const char miscNameValueSeparator[] = { ':', ' ' };
-const char miscCrlf[] = { '\r', '\n' };
-
-asio::const_buffer statusToBuffer(response::statusType status){
+asio::const_buffer statusToBuffer(response::statusType status) {
 	switch (status){
 	case response::ok:
 		return asio::buffer(statusStringOk);
@@ -36,7 +25,7 @@ asio::const_buffer statusToBuffer(response::statusType status){
 	};
 };
 
-std::string statusToString(response::statusType status){
+std::string statusToString(response::statusType status) {
 	switch (status){
 	case response::ok:
 		return statusStringOk;
@@ -57,7 +46,7 @@ std::string statusToString(response::statusType status){
 	};
 };
 
-std::vector<asio::const_buffer> response::toBuffers(){
+std::vector<asio::const_buffer> response::toBuffers() {
 	std::vector<asio::const_buffer> buffers;
 	buffers.push_back(statusToBuffer(status));
 	for (std::size_t i = 0; i < headers.size(); ++i){
@@ -73,8 +62,7 @@ std::vector<asio::const_buffer> response::toBuffers(){
 };
 
 
-response response::stockResponse(response::statusType status)
-{
+response response::stockResponse(response::statusType status) {
 	response resp;
 	resp.status = status;
 	resp.responseBody.content = statusToString(status);
@@ -106,8 +94,7 @@ std::string mimeExtensionToType(const std::string& extension) {
 requestHandler::requestHandler(const std::string& docRoot) : docRoot_(docRoot){
 }
 
-void requestHandler::handleRequest(const request& req, response& resp)
-{
+void requestHandler::handleRequest(const request& req, response& resp) {
 	std::string requestPath;
 	if (!urlDecode(req.uri, requestPath)) {
 		resp = response::stockResponse(response::badRequest);
@@ -174,18 +161,14 @@ bool requestHandler::urlDecode(const std::string& in, std::string& out) {
 	return true;
 }
 
-requestParser::requestParser()
-  : state_(methodStart)
-{
+requestParser::requestParser() : state_(methodStart) {
 }
 
-void requestParser::reset()
-{
+void requestParser::reset() {
   state_ = methodStart;
 }
 
-requestParser::resultType requestParser::consume(request& req, char input)
-{
+requestParser::resultType requestParser::consume(request& req, char input) {
   switch (state_)
   {
   case methodStart:
@@ -442,18 +425,15 @@ requestParser::resultType requestParser::consume(request& req, char input)
   }
 }
 
-bool requestParser::isChar(int c)
-{
+bool requestParser::isChar(int c) {
   return c >= 0 && c <= 127;
 }
 
-bool requestParser::isCtl(int c)
-{
+bool requestParser::isCtl(int c) {
   return (c >= 0 && c <= 31) || (c == 127);
 }
 
-bool requestParser::isTspecial(int c)
-{
+bool requestParser::isTspecial(int c) {
   switch (c)
   {
   case '(': case ')': case '<': case '>': case '@':
@@ -466,8 +446,7 @@ bool requestParser::isTspecial(int c)
   }
 }
 
-bool requestParser::isDigit(int c)
-{
+bool requestParser::isDigit(int c) {
   return c >= '0' && c <= '9';
 }
 
@@ -475,22 +454,18 @@ connection::connection(asio::ip::tcp::socket socket,
     connectionManager& manager, requestHandler& handler)
   : socket_(std::move(socket)),
     connectionManager_(manager),
-    requestHandler_(handler)
-{
+    requestHandler_(handler) {
 }
 
-void connection::start()
-{
+void connection::start() {
   doRead();
 }
 
-void connection::stop()
-{
+void connection::stop() {
   socket_.close();
 }
 
-void connection::doRead()
-{
+void connection::doRead() {
   auto self(shared_from_this());
   socket_.async_read_some(asio::buffer(buffer_),
       [this, self](std::error_code ec, std::size_t bytesTransferred)
@@ -523,8 +498,7 @@ void connection::doRead()
       });
 }
 
-void connection::doWrite()
-{
+void connection::doWrite() {
   auto self(shared_from_this());
   asio::async_write(socket_, response_.toBuffers(),
       [this, self](std::error_code ec, std::size_t)
@@ -570,8 +544,7 @@ server::server(const std::string& address, const std::string& port,
     signals_(io_context_),
     acceptor_(io_context_),
     connectionManager_(),
-    requestHandler_(docRoot)
-{
+    requestHandler_(docRoot) {
   signals_.add(SIGINT);
   signals_.add(SIGTERM);
 #if defined(SIGQUIT)

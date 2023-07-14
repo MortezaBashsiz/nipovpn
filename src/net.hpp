@@ -8,6 +8,17 @@
 
 using namespace std;
 
+const std::string statusStringOk = "HTTP/1.0 200 OK\r\n";
+const std::string statusStringBadRequest = "HTTP/1.0 400 Bad Request\r\n";
+const std::string statusStringUnauthorized = "HTTP/1.0 401 Unauthorized\r\n";
+const std::string statusStringForbidden = "HTTP/1.0 403 Forbidden\r\n";
+const std::string statusStringNotFound = "HTTP/1.0 404 Not Found\r\n";
+const std::string statusStringInternalServerError = "HTTP/1.0 500 Internal Server Error\r\n";
+const std::string statusStringServiceUnavailable = "HTTP/1.0 503 Service Unavailable\r\n";
+
+const char miscNameValueSeparator[] = { ':', ' ' };
+const char miscCrlf[] = { '\r', '\n' };
+
 struct body{
 	enum bodyType{
 		real = 1,
