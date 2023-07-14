@@ -1,8 +1,8 @@
 #include "log.hpp"
 
-Log::Log(string file, int level){
-	log.file	= file;
-	log.level = level;
+Log::Log(Config nipoConfig){
+	log.file	= nipoConfig.config.logFile;
+	log.level = nipoConfig.config.logLevel;
 };
 
 Log::~Log(){

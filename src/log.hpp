@@ -7,6 +7,8 @@
 #include <sstream>
 #include <iomanip>
 
+#include "config.hpp"
+
 using namespace std;
 
 class Log{
@@ -34,7 +36,7 @@ class Log{
 			"DEBUG"
 		};
 		logStruct log;
-		Log(string file, int level);
+		Log(Config nipoConfig);
 		~Log();
 		string logLevelToString(int level);
 		void write(string message, int level);

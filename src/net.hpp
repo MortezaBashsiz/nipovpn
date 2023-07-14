@@ -6,6 +6,7 @@
 #include <set>
 #include <asio.hpp>
 
+#include "config.hpp"
 #include "log.hpp"
 
 using namespace std;
@@ -168,8 +169,10 @@ class server {
 	public:
 		server(const server&) = delete;
 		server& operator=(const server&) = delete;
-		explicit server(const std::string& address, const std::string& port, const std::string& docRoot);
+		explicit server(Config nipoConfig);
 		void run();
+		Config nipoConfig;
+		Log nipoLog;
 	
 	private:
 		void doAccept();

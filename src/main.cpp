@@ -6,12 +6,12 @@
 int main(int argc=0, char* argv[]=0){
 	mainArgs mainArgs = validateMainArgs(argc, argv);
 	Config nipoConfig(mainArgs.configPath);
-	Log nipoLog(nipoConfig.config.logFile, nipoConfig.config.logLevel);
+	Log nipoLog(nipoConfig);
 	
 	if ( mainArgs.runMode == "server" ){
 		nipoLog.write("nipovpn starting in server mode", nipoLog.levelInfo);
 		try {
-			server nipoServer(nipoConfig.config.ip, std::to_string(nipoConfig.config.port), nipoConfig.config.webDir);
+			server nipoServer(nipoConfig);
 			nipoServer.run();
 		}
 		catch (std::exception& e) {
