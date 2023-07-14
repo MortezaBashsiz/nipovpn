@@ -25,6 +25,15 @@ string Log::logLevelToString(int level) {
 };
 
 void Log::write(string message, int level){
+	message.erase(std::remove_if( 
+		message.begin(),
+  	message.end(),
+  		[](auto ch)
+  		{
+  		    return (ch == '\n' ||
+  		            ch == '\r'); 
+  		}),
+  	message.end() );
 	if (level <= log.level){
 		time_t now = time(0);
 		auto time = std::time(nullptr);

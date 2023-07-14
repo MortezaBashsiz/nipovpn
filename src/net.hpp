@@ -73,8 +73,9 @@ class requestHandler {
 	public:
 		requestHandler(const requestHandler&) = delete;
 		requestHandler& operator=(const requestHandler&) = delete;
-		explicit requestHandler(const std::string& docRoot);
+		explicit requestHandler(Config nipoConfig, const std::string& docRoot);
 		void handleRequest(const request& req, response& resp);
+		Log nipoLog;
 	
 	private:
 	  std::string docRoot_;

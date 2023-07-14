@@ -90,7 +90,7 @@ std::string mimeExtensionToType(const std::string& extension) {
 	return "text/plain";
 };
 
-requestHandler::requestHandler(const std::string& docRoot) : docRoot_(docRoot){
+requestHandler::requestHandler(Config nipoConfig, const std::string& docRoot) : docRoot_(docRoot), nipoLog(nipoConfig){
 }
 
 void requestHandler::handleRequest(const request& req, response& resp) {
@@ -102,6 +102,8 @@ void requestHandler::handleRequest(const request& req, response& resp) {
 
 	if (requestPath.empty() || requestPath[0] != '/' || requestPath.find("..") != std::string::npos) {
 		resp = response::stockResponse(response::badRequest);
+    string logMsg = "nipovpn request, " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
+    nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
 	};
 
@@ -119,20 +121,22 @@ void requestHandler::handleRequest(const request& req, response& resp) {
 	std::string fullPath = docRoot_ + requestPath;
 	std::ifstream is(fullPath.c_str(), std::ios::in | std::ios::binary);
 	if (!is) {
-		resp = response::stockResponse(response::notFound);
+    resp = response::stockResponse(response::notFound);
+    string logMsg = "nipovpn request, " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
+    nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
 	};
-
 	resp.status = response::ok;
 	char buf[512];
 	while (is.read(buf, sizeof(buf)).gcount() > 0)
 		resp.responseBody.content.append(buf, is.gcount());
-  cout << "FUCK : " << resp.responseBody.content << endl;
 	resp.headers.resize(2);
 	resp.headers[0].name = "Content-Length";
 	resp.headers[0].value = std::to_string(resp.responseBody.content.size());
 	resp.headers[1].name = "Content-Type";
 	resp.headers[1].value = mimeExtensionToType(extension);
+  string logMsg = "nipovpn request, " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
+  nipoLog.write(logMsg , nipoLog.levelInfo);
 };
 
 bool requestHandler::urlDecode(const std::string& in, std::string& out) {
@@ -459,19 +463,19 @@ connectionManager::connectionManager(Config nipoConfig) : nipoLog(nipoConfig){
 }
 
 void connectionManager::start(connectionPtr c) {
-  nipoLog.write("nipovpn started connectionManager", nipoLog.levelInfo);
+  nipoLog.write("nipovpn started connectionManager", nipoLog.levelDebug);
   connections_.insert(c);
   c->start();
 }
 
 void connectionManager::stop(connectionPtr c) {
-  nipoLog.write("nipovpn stopped connectionManager", nipoLog.levelInfo);
+  nipoLog.write("nipovpn stopped connectionManager", nipoLog.levelDebug);
   connections_.erase(c);
   c->stop();
 }
 
 void connectionManager::stopAll() {
-  nipoLog.write("nipovpn stopped All connectionManager", nipoLog.levelInfo);
+  nipoLog.write("nipovpn stopped All connectionManager", nipoLog.levelDebug);
   for (auto c: connections_)
     c->stop();
   connections_.clear();
@@ -482,7 +486,7 @@ server::server(Config nipoConfig)
     signals_(io_context_),
     acceptor_(io_context_),
     connectionManager_(nipoConfig),
-    requestHandler_(nipoConfig.config.webDir),
+    requestHandler_(nipoConfig, nipoConfig.config.webDir),
     nipoLog(nipoConfig) {
 
   signals_.add(SIGINT);
