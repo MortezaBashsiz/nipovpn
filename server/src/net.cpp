@@ -1,6 +1,8 @@
 #include "net.hpp"
 
 #include <string>
+#include <fstream>
+#include <sstream>
 
 const std::string statusStringOk = "HTTP/1.0 200 OK\r\n";
 const std::string statusStringBadRequest = "HTTP/1.0 400 Bad Request\r\n";
@@ -73,13 +75,569 @@ std::vector<asio::const_buffer> response::toBuffers(){
 
 response response::stockResponse(response::statusType status)
 {
-  response resp;
-  resp.status = status;
-  resp.responseBody.content = statusToString(status);
-  resp.headers.resize(2);
-  resp.headers[0].name = "Content-Length";
-  resp.headers[0].value = std::to_string(resp.responseBody.content.size());
-  resp.headers[1].name = "Content-Type";
-  resp.headers[1].value = "text/html";
-  return resp;
+	response resp;
+	resp.status = status;
+	resp.responseBody.content = statusToString(status);
+	resp.headers.resize(2);
+	resp.headers[0].name = "Content-Length";
+	resp.headers[0].value = std::to_string(resp.responseBody.content.size());
+	resp.headers[1].name = "Content-Type";
+	resp.headers[1].value = "text/html";
+	return resp;
+}
+
+std::string mimeExtensionToType(const std::string& extension) {
+	mimeMapping mimeMappings[] =
+	{
+	  { "gif", "image/gif" },
+	  { "htm", "text/html" },
+	  { "html", "text/html" },
+	  { "jpg", "image/jpeg" },
+	  { "png", "image/png" }
+	};
+	for (mimeMapping m: mimeMappings) {
+		if (m.extension == extension) {
+			return m.mimeType;
+		};
+	};
+	return "text/plain";
+};
+
+requestHandler::requestHandler(const std::string& docRoot) : docRoot_(docRoot){
+}
+
+void requestHandler::handleRequest(const request& req, response& resp)
+{
+	std::string requestPath;
+	if (!urlDecode(req.uri, requestPath)) {
+		resp = response::stockResponse(response::badRequest);
+		return;
+	};
+
+	if (requestPath.empty() || requestPath[0] != '/' || requestPath.find("..") != std::string::npos) {
+		resp = response::stockResponse(response::badRequest);
+		return;
+	};
+
+	if (requestPath[requestPath.size() - 1] == '/') {
+		requestPath += "index.html";
+	};
+
+	std::size_t lastSlashPos = requestPath.find_last_of("/");
+	std::size_t lastDotPos = requestPath.find_last_of(".");
+	std::string extension;
+	if (lastDotPos != std::string::npos && lastDotPos > lastSlashPos) {
+		extension = requestPath.substr(lastDotPos + 1);
+	};
+
+	std::string fullPath = docRoot_ + requestPath;
+	std::ifstream is(fullPath.c_str(), std::ios::in | std::ios::binary);
+	if (!is) {
+		resp = response::stockResponse(response::notFound);
+		return;
+	};
+
+	resp.status = response::ok;
+	char buf[512];
+	while (is.read(buf, sizeof(buf)).gcount() > 0)
+		resp.responseBody.content.append(buf, is.gcount());
+	resp.headers.resize(2);
+	resp.headers[0].name = "Content-Length";
+	resp.headers[0].value = std::to_string(resp.responseBody.content.size());
+	resp.headers[1].name = "Content-Type";
+	resp.headers[1].value = mimeExtensionToType(extension);
+};
+
+bool requestHandler::urlDecode(const std::string& in, std::string& out) {
+	out.clear();
+	out.reserve(in.size());
+	for (std::size_t i = 0; i < in.size(); ++i) {
+		if (in[i] == '%') {
+			if (i + 3 <= in.size()) {
+				int value = 0;
+				std::istringstream is(in.substr(i + 1, 2));
+				if (is >> std::hex >> value) {
+					out += static_cast<char>(value);
+					i += 2;
+				} else {
+					return false;
+				};
+			} else {
+				return false;
+			};
+		} else if (in[i] == '+') {
+			out += ' ';
+		} else {
+			out += in[i];
+		};
+	};
+	return true;
+}
+
+requestParser::requestParser()
+  : state_(methodStart)
+{
+}
+
+void requestParser::reset()
+{
+  state_ = methodStart;
+}
+
+requestParser::resultType requestParser::consume(request& req, char input)
+{
+  switch (state_)
+  {
+  case methodStart:
+    if (!isChar(input) || isCtl(input) || isTspecial(input))
+    {
+      return bad;
+    }
+    else
+    {
+      state_ = method;
+      req.method.push_back(input);
+      return indeterminate;
+    }
+  case method:
+    if (input == ' ')
+    {
+      state_ = uri;
+      return indeterminate;
+    }
+    else if (!isChar(input) || isCtl(input) || isTspecial(input))
+    {
+      return bad;
+    }
+    else
+    {
+      req.method.push_back(input);
+      return indeterminate;
+    }
+  case uri:
+    if (input == ' ')
+    {
+      state_ = httpVersionH;
+      return indeterminate;
+    }
+    else if (isCtl(input))
+    {
+      return bad;
+    }
+    else
+    {
+      req.uri.push_back(input);
+      return indeterminate;
+    }
+  case httpVersionH:
+    if (input == 'H')
+    {
+      state_ = httpVersionT1;
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case httpVersionT1:
+    if (input == 'T')
+    {
+      state_ = httpVersionT2;
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case httpVersionT2:
+    if (input == 'T')
+    {
+      state_ = httpVersionP;
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case httpVersionP:
+    if (input == 'P')
+    {
+      state_ = httpVersionSlash;
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case httpVersionSlash:
+    if (input == '/')
+    {
+      req.httpVersionMajor = 0;
+      req.httpVersionMinor = 0;
+      state_ = httpVersionMajorStart;
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case httpVersionMajorStart:
+    if (isDigit(input))
+    {
+      req.httpVersionMajor = req.httpVersionMajor * 10 + input - '0';
+      state_ = httpVersionMajor;
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case httpVersionMajor:
+    if (input == '.')
+    {
+      state_ = httpVersionMinorStart;
+      return indeterminate;
+    }
+    else if (isDigit(input))
+    {
+      req.httpVersionMajor = req.httpVersionMajor * 10 + input - '0';
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case httpVersionMinorStart:
+    if (isDigit(input))
+    {
+      req.httpVersionMinor = req.httpVersionMinor * 10 + input - '0';
+      state_ = httpVersionMinor;
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case httpVersionMinor:
+    if (input == '\r')
+    {
+      state_ = expectingNewline1;
+      return indeterminate;
+    }
+    else if (isDigit(input))
+    {
+      req.httpVersionMinor = req.httpVersionMinor * 10 + input - '0';
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case expectingNewline1:
+    if (input == '\n')
+    {
+      state_ = headerLineStart;
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case headerLineStart:
+    if (input == '\r')
+    {
+      state_ = expectingNewline3;
+      return indeterminate;
+    }
+    else if (!req.headers.empty() && (input == ' ' || input == '\t'))
+    {
+      state_ = headerLws;
+      return indeterminate;
+    }
+    else if (!isChar(input) || isCtl(input) || isTspecial(input))
+    {
+      return bad;
+    }
+    else
+    {
+      req.headers.push_back(header());
+      req.headers.back().name.push_back(input);
+      state_ = headerName;
+      return indeterminate;
+    }
+  case headerLws:
+    if (input == '\r')
+    {
+      state_ = expectingNewline2;
+      return indeterminate;
+    }
+    else if (input == ' ' || input == '\t')
+    {
+      return indeterminate;
+    }
+    else if (isCtl(input))
+    {
+      return bad;
+    }
+    else
+    {
+      state_ = headerValue;
+      req.headers.back().value.push_back(input);
+      return indeterminate;
+    }
+  case headerName:
+    if (input == ':')
+    {
+      state_ = spaceBeforeHeaderValue;
+      return indeterminate;
+    }
+    else if (!isChar(input) || isCtl(input) || isTspecial(input))
+    {
+      return bad;
+    }
+    else
+    {
+      req.headers.back().name.push_back(input);
+      return indeterminate;
+    }
+  case spaceBeforeHeaderValue:
+    if (input == ' ')
+    {
+      state_ = headerValue;
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case headerValue:
+    if (input == '\r')
+    {
+      state_ = expectingNewline2;
+      return indeterminate;
+    }
+    else if (isCtl(input))
+    {
+      return bad;
+    }
+    else
+    {
+      req.headers.back().value.push_back(input);
+      return indeterminate;
+    }
+  case expectingNewline2:
+    if (input == '\n')
+    {
+      state_ = headerLineStart;
+      return indeterminate;
+    }
+    else
+    {
+      return bad;
+    }
+  case expectingNewline3:
+    return (input == '\n') ? good : bad;
+  default:
+    return bad;
+  }
+}
+
+bool requestParser::isChar(int c)
+{
+  return c >= 0 && c <= 127;
+}
+
+bool requestParser::isCtl(int c)
+{
+  return (c >= 0 && c <= 31) || (c == 127);
+}
+
+bool requestParser::isTspecial(int c)
+{
+  switch (c)
+  {
+  case '(': case ')': case '<': case '>': case '@':
+  case ',': case ';': case ':': case '\\': case '"':
+  case '/': case '[': case ']': case '?': case '=':
+  case '{': case '}': case ' ': case '\t':
+    return true;
+  default:
+    return false;
+  }
+}
+
+bool requestParser::isDigit(int c)
+{
+  return c >= '0' && c <= '9';
+}
+
+connection::connection(asio::ip::tcp::socket socket,
+    connectionManager& manager, requestHandler& handler)
+  : socket_(std::move(socket)),
+    connectionManager_(manager),
+    requestHandler_(handler)
+{
+}
+
+void connection::start()
+{
+  doRead();
+}
+
+void connection::stop()
+{
+  socket_.close();
+}
+
+void connection::doRead()
+{
+  auto self(shared_from_this());
+  socket_.async_read_some(asio::buffer(buffer_),
+      [this, self](std::error_code ec, std::size_t bytesTransferred)
+      {
+        if (!ec)
+        {
+          requestParser::resultType result;
+          std::tie(result, std::ignore) = requestParser_.parse(
+              request_, buffer_.data(), buffer_.data() + bytesTransferred);
+
+          if (result == requestParser::good)
+          {
+            requestHandler_.handleRequest(request_, response_);
+            doWrite();
+          }
+          else if (result == requestParser::bad)
+          {
+            response_ = response::stockResponse(response::badRequest);
+            doWrite();
+          }
+          else
+          {
+            doRead();
+          }
+        }
+        else if (ec != asio::error::operation_aborted)
+        {
+          connectionManager_.stop(shared_from_this());
+        }
+      });
+}
+
+void connection::doWrite()
+{
+  auto self(shared_from_this());
+  asio::async_write(socket_, response_.toBuffers(),
+      [this, self](std::error_code ec, std::size_t)
+      {
+        if (!ec)
+        {
+          // Initiate graceful connection closure.
+          asio::error_code ignored_ec;
+          socket_.shutdown(asio::ip::tcp::socket::shutdown_both,
+            ignored_ec);
+        }
+
+        if (ec != asio::error::operation_aborted)
+        {
+          connectionManager_.stop(shared_from_this());
+        }
+      });
+}
+
+connectionManager::connectionManager()
+{
+}
+
+void connectionManager::start(connectionPtr c)
+{
+  connections_.insert(c);
+  c->start();
+}
+
+void connectionManager::stop(connectionPtr c)
+{
+  connections_.erase(c);
+  c->stop();
+}
+
+void connectionManager::stopAll()
+{
+  for (auto c: connections_)
+    c->stop();
+  connections_.clear();
+}
+
+
+server::server(const std::string& address, const std::string& port,
+    const std::string& docRoot)
+  : io_context_(1),
+    signals_(io_context_),
+    acceptor_(io_context_),
+    connectionManager_(),
+    requestHandler_(docRoot)
+{
+  // Register to handle the signals that indicate when the server should exit.
+  // It is safe to register for the same signal multiple times in a program,
+  // provided all registration for the specified signal is made through Asio.
+  signals_.add(SIGINT);
+  signals_.add(SIGTERM);
+#if defined(SIGQUIT)
+  signals_.add(SIGQUIT);
+#endif // defined(SIGQUIT)
+
+  doAwaitStop();
+
+  // Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
+  asio::ip::tcp::resolver resolver(io_context_);
+  asio::ip::tcp::endpoint endpoint = *resolver.resolve(address, port).begin();
+  acceptor_.open(endpoint.protocol());
+  acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+  acceptor_.bind(endpoint);
+  acceptor_.listen();
+
+  doAccept();
+}
+
+void server::run()
+{
+  // The io_context::run() call will block until all asynchronous operations
+  // have finished. While the server is running, there is always at least one
+  // asynchronous operation outstanding: the asynchronous accept call waiting
+  // for new incoming connections.
+  io_context_.run();
+}
+
+void server::doAccept()
+{
+  acceptor_.async_accept(
+      [this](std::error_code ec, asio::ip::tcp::socket socket)
+      {
+        // Check whether the server was stopped by a signal before this
+        // completion handler had a chance to run.
+        if (!acceptor_.is_open())
+        {
+          return;
+        }
+
+        if (!ec)
+        {
+          connectionManager_.start(std::make_shared<connection>(
+              std::move(socket), connectionManager_, requestHandler_));
+        }
+
+        doAccept();
+      });
+}
+
+void server::doAwaitStop()
+{
+  signals_.async_wait(
+      [this](std::error_code /*ec*/, int /*signo*/)
+      {
+        // The server is stopped by cancelling all outstanding asynchronous
+        // operations. Once all operations have finished the io_context::run()
+        // call will exit.
+        acceptor_.close();
+        connectionManager_.stopAll();
+      });
 }

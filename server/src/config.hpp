@@ -22,6 +22,7 @@ class Config{
 		struct configStruct{
 			string ip;
 			int port;
+			string webDir;
 			string sslKey;
 			string sslCert;
 			int logLevel;

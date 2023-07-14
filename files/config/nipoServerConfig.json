@@ -1,6 +1,7 @@
 {
 	"ip": "0.0.0.0",
 	"port": 443,
+	"webDir": "/var/lib/niposerver",
 	"sslKey": "/etc/niposerver/ssl.key",
 	"sslCert": "/etc/niposerver/ssl.cert",
 	"logLevel": 1,

@@ -20,6 +20,7 @@ Config::Config(string file){
 		readerJson.parse(configFile, configJson);
 		config.ip 			= configJson["ip"].asString();
 		config.port 		= configJson["port"].asInt();
+		config.webDir 	= configJson["webDir"].asString();
 		config.sslKey 	= configJson["sslKey"].asString();
 		config.sslCert 	= configJson["sslCert"].asString();
 		config.logLevel	= configJson["logLevel"].asInt();
@@ -59,6 +60,10 @@ returnMsgCode Config::validate(){
 	};
 	if(! isIPAddress(config.ip)){
 		result.message	= "[ERROR]: specified config IPv4 is not correct, it must be like an IP address : " + config.ip;
+		result.code = 1;
+	};
+	if (! fileExists(config.webDir)){
+		result.message	= "[ERROR]: specified config webDir file does not exists or is not readable : " + config.webDir;
 		result.code = 1;
 	};
 	if (! fileExists(config.sslKey)){
