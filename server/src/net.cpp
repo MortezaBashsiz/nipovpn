@@ -544,24 +544,20 @@ void connection::doWrite()
       });
 }
 
-connectionManager::connectionManager()
-{
+connectionManager::connectionManager(){
 }
 
-void connectionManager::start(connectionPtr c)
-{
+void connectionManager::start(connectionPtr c) {
   connections_.insert(c);
   c->start();
 }
 
-void connectionManager::stop(connectionPtr c)
-{
+void connectionManager::stop(connectionPtr c) {
   connections_.erase(c);
   c->stop();
 }
 
-void connectionManager::stopAll()
-{
+void connectionManager::stopAll() {
   for (auto c: connections_)
     c->stop();
   connections_.clear();
@@ -576,9 +572,6 @@ server::server(const std::string& address, const std::string& port,
     connectionManager_(),
     requestHandler_(docRoot)
 {
-  // Register to handle the signals that indicate when the server should exit.
-  // It is safe to register for the same signal multiple times in a program,
-  // provided all registration for the specified signal is made through Asio.
   signals_.add(SIGINT);
   signals_.add(SIGTERM);
 #if defined(SIGQUIT)
@@ -587,7 +580,6 @@ server::server(const std::string& address, const std::string& port,
 
   doAwaitStop();
 
-  // Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
   asio::ip::tcp::resolver resolver(io_context_);
   asio::ip::tcp::endpoint endpoint = *resolver.resolve(address, port).begin();
   acceptor_.open(endpoint.protocol());
@@ -596,47 +588,31 @@ server::server(const std::string& address, const std::string& port,
   acceptor_.listen();
 
   doAccept();
-}
+};
 
-void server::run()
-{
-  // The io_context::run() call will block until all asynchronous operations
-  // have finished. While the server is running, there is always at least one
-  // asynchronous operation outstanding: the asynchronous accept call waiting
-  // for new incoming connections.
+void server::run() {
   io_context_.run();
-}
+};
 
-void server::doAccept()
-{
+void server::doAccept() {
   acceptor_.async_accept(
       [this](std::error_code ec, asio::ip::tcp::socket socket)
       {
-        // Check whether the server was stopped by a signal before this
-        // completion handler had a chance to run.
-        if (!acceptor_.is_open())
-        {
+        if (!acceptor_.is_open()) {
           return;
-        }
-
-        if (!ec)
-        {
+        };
+        if (!ec) {
           connectionManager_.start(std::make_shared<connection>(
               std::move(socket), connectionManager_, requestHandler_));
-        }
-
+        };
         doAccept();
       });
 }
 
-void server::doAwaitStop()
-{
+void server::doAwaitStop() {
   signals_.async_wait(
       [this](std::error_code /*ec*/, int /*signo*/)
       {
-        // The server is stopped by cancelling all outstanding asynchronous
-        // operations. Once all operations have finished the io_context::run()
-        // call will exit.
         acceptor_.close();
         connectionManager_.stopAll();
       });
