@@ -1,5 +1,4 @@
 #include "request.hpp"
-#include "net.hpp"
 #include "response.hpp"
 #include "header.hpp"
 

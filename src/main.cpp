@@ -1,7 +1,7 @@
 #include "config.hpp"
 #include "log.hpp"
 #include "encrypt.hpp"
-#include "net.hpp"
+#include "server.hpp"
 
 int main(int argc=0, char* argv[]=0){
 	mainArgs mainArgs = validateMainArgs(argc, argv);
