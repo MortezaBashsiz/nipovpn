@@ -19,6 +19,8 @@ void connection::doRead() {
   auto self(shared_from_this());
   socket_.async_read_some(asio::buffer(buffer_),
       [this, self](std::error_code ec, std::size_t bytesTransferred) {
+        request_.clientIP = socket_.remote_endpoint().address().to_string();
+        request_.clientPort = std::to_string(socket_.remote_endpoint().port());
         if (!ec) {
           requestParser::resultType result;
           std::tie(result, std::ignore) = requestParser_.parse(
