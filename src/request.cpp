@@ -1,82 +1,81 @@
 #include "request.hpp"
-
-#include <string>
-#include <fstream>
-#include <sstream>
+#include "net.hpp"
+#include "response.hpp"
+#include "header.hpp"
 
 requestHandler::requestHandler(Config nipoConfig, const std::string& docRoot) : docRoot_(docRoot), nipoLog(nipoConfig){
 }
 
 void requestHandler::handleRequest(const request& req, response& resp) {
-	std::string requestPath;
-	if (!urlDecode(req.uri, requestPath)) {
-		resp = response::stockResponse(response::badRequest);
-		return;
-	};
+  std::string requestPath;
+  if (!urlDecode(req.uri, requestPath)) {
+    resp = response::stockResponse(response::badRequest);
+    return;
+  };
 
-	if (requestPath.empty() || requestPath[0] != '/' || requestPath.find("..") != std::string::npos) {
-		resp = response::stockResponse(response::badRequest);
+  if (requestPath.empty() || requestPath[0] != '/' || requestPath.find("..") != std::string::npos) {
+    resp = response::stockResponse(response::badRequest);
     string logMsg = "nipovpn request, " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
     nipoLog.write(logMsg , nipoLog.levelInfo);
-		return;
-	};
+    return;
+  };
 
-	if (requestPath[requestPath.size() - 1] == '/') {
-		requestPath += "index.html";
-	};
+  if (requestPath[requestPath.size() - 1] == '/') {
+    requestPath += "index.html";
+  };
 
-	std::size_t lastSlashPos = requestPath.find_last_of("/");
-	std::size_t lastDotPos = requestPath.find_last_of(".");
-	std::string extension;
-	if (lastDotPos != std::string::npos && lastDotPos > lastSlashPos) {
-		extension = requestPath.substr(lastDotPos + 1);
-	};
+  std::size_t lastSlashPos = requestPath.find_last_of("/");
+  std::size_t lastDotPos = requestPath.find_last_of(".");
+  std::string extension;
+  if (lastDotPos != std::string::npos && lastDotPos > lastSlashPos) {
+    extension = requestPath.substr(lastDotPos + 1);
+  };
 
-	std::string fullPath = docRoot_ + requestPath;
-	std::ifstream is(fullPath.c_str(), std::ios::in | std::ios::binary);
-	if (!is) {
+  std::string fullPath = docRoot_ + requestPath;
+  std::ifstream is(fullPath.c_str(), std::ios::in | std::ios::binary);
+  if (!is) {
     resp = response::stockResponse(response::notFound);
     string logMsg = "nipovpn request, " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
     nipoLog.write(logMsg , nipoLog.levelInfo);
-		return;
-	};
-	resp.status = response::ok;
-	char buf[512];
-	while (is.read(buf, sizeof(buf)).gcount() > 0)
-		resp.responseBody.content.append(buf, is.gcount());
-	resp.headers.resize(2);
-	resp.headers[0].name = "Content-Length";
-	resp.headers[0].value = std::to_string(resp.responseBody.content.size());
-	resp.headers[1].name = "Content-Type";
-	resp.headers[1].value = mimeExtensionToType(extension);
+    return;
+  };
+  resp.status = response::ok;
+  char buf[512];
+  while (is.read(buf, sizeof(buf)).gcount() > 0)
+    resp.responseBody.content.append(buf, is.gcount());
+  resp.headers.resize(2);
+  resp.headers[0].name = "Content-Length";
+  resp.headers[0].value = std::to_string(resp.responseBody.content.size());
+  resp.headers[1].name = "Content-Type";
+  resp.headers[1].value = mimeExtensionToType(extension);
   string logMsg = "nipovpn request, " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
   nipoLog.write(logMsg , nipoLog.levelInfo);
 };
 
 bool requestHandler::urlDecode(const std::string& in, std::string& out) {
-	out.clear();
-	out.reserve(in.size());
-	for (std::size_t i = 0; i < in.size(); ++i) {
-		if (in[i] == '%') {
-			if (i + 3 <= in.size()) {
-				int value = 0;
-				std::istringstream is(in.substr(i + 1, 2));
-				if (is >> std::hex >> value) {
-					out += static_cast<char>(value);
-					i += 2;
-				} else {
-					return false;
-				};
-			} else {
-				return false;
-			};
-		} else if (in[i] == '+') {
-			out += ' ';
-		} else {
-			out += in[i];
-		};
-	};
-	return true;
+  out.clear();
+  out.reserve(in.size());
+  for (std::size_t i = 0; i < in.size(); ++i) {
+    if (in[i] == '%') {
+      if (i + 3 <= in.size()) {
+        int value = 0;
+        std::istringstream is(in.substr(i + 1, 2));
+        if (is >> std::hex >> value) {
+          out += static_cast<char>(value);
+          i += 2;
+        } else {
+          return false;
+        };
+      } else {
+        return false;
+      };
+    } else if (in[i] == '+') {
+      out += ' ';
+    } else {
+      out += in[i];
+    };
+  };
+  return true;
 }
 
 requestParser::requestParser() : state_(methodStart) {
@@ -314,11 +313,4 @@ bool requestParser::isTspecial(int c) {
 
 bool requestParser::isDigit(int c) {
   return c >= '0' && c <= '9';
-}
-
-connection::connection(asio::ip::tcp::socket socket,
-    connectionManager& manager, requestHandler& handler)
-  : socket_(std::move(socket)),
-    connectionManager_(manager),
-    requestHandler_(handler) {
 }

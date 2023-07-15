@@ -3,22 +3,18 @@
 
 #include <string>
 #include <vector>
-#include <set>
-#include <asio.hpp>
 
 #include "config.hpp"
 #include "log.hpp"
 #include "header.hpp"
-#include "net.hpp"
-
-using namespace std;
+#include "response.hpp"
 
 struct request{
-	string method;
-	string uri;
+	std::string method;
+	std::string uri;
 	int httpVersionMajor;
 	int httpVersionMinor;
-	vector<header> headers;
+	std::vector<header> headers;
 	body requestBody;
 };
 
@@ -80,6 +76,5 @@ class requestParser{
 			expectingNewline3
 		} state_;
 };
-
 
 #endif // REQUEST_HPP
