@@ -6,6 +6,7 @@
 #include <set>
 #include <asio.hpp>
 
+#include "header.hpp"
 #include "config.hpp"
 #include "log.hpp"
 
@@ -21,20 +22,6 @@ const std::string statusStringServiceUnavailable = "HTTP/1.0 503 Service Unavail
 
 const char miscNameValueSeparator[] = { ':', ' ' };
 const char miscCrlf[] = { '\r', '\n' };
-
-struct body{
-	enum bodyType{
-		real = 1,
-		fake = 2
-	} type;	
-	
-	string content;
-};
-
-struct header{
-	string name;
-	string value;
-};
 
 struct request{
 	string method;
