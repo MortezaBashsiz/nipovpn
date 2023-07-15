@@ -9,6 +9,7 @@
 #include "header.hpp"
 #include "config.hpp"
 #include "log.hpp"
+#include "response.hpp"
 
 using namespace std;
 
@@ -23,6 +24,8 @@ const std::string statusStringServiceUnavailable = "HTTP/1.0 503 Service Unavail
 const char miscNameValueSeparator[] = { ':', ' ' };
 const char miscCrlf[] = { '\r', '\n' };
 
+std::string statusToString(response::statusType status);
+
 struct request{
 	string method;
 	string uri;
@@ -30,23 +33,6 @@ struct request{
 	int httpVersionMinor;
 	vector<header> headers;
 	body requestBody;
-};
-
-struct response{
-	enum statusType{
-		ok = 200,
-		badRequest = 400,
-		unauthorized = 401,
-		forbidden = 403,
-		notFound = 404,
-		internalServerError = 500,
-		serviceUnavailable = 503
-	} status;
-
-	vector<header> headers;
-	body responseBody;
-	vector<asio::const_buffer> toBuffers();
-	static response stockResponse(statusType status);
 };
 
 struct mimeMapping {
