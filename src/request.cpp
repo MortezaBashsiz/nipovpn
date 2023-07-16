@@ -13,7 +13,7 @@ void requestHandler::handleRequest(const request& req, response& resp) {
   };
   if (requestPath.empty() || requestPath[0] != '/' || requestPath.find("..") != std::string::npos) {
     resp = response::stockResponse(response::badRequest);
-    std::string logMsg = "nipovpn request, " + req.clientIP + ":" + req.clientPort + ", " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
+    std::string logMsg = "request, " + req.clientIP + ":" + req.clientPort + ", " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
     nipoLog.write(logMsg , nipoLog.levelInfo);
     return;
   };
@@ -33,7 +33,7 @@ void requestHandler::handleRequest(const request& req, response& resp) {
   std::ifstream is(fullPath.c_str(), std::ios::in | std::ios::binary);
   if (!is) {
     resp = response::stockResponse(response::notFound);
-    std::string logMsg = "nipovpn request, " + req.clientIP + ":" + req.clientPort + ", " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
+    std::string logMsg = "request, " + req.clientIP + ":" + req.clientPort + ", " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
     nipoLog.write(logMsg , nipoLog.levelInfo);
     return;
   };
@@ -46,7 +46,7 @@ void requestHandler::handleRequest(const request& req, response& resp) {
   resp.headers[0].value = std::to_string(resp.responseBody.content.size());
   resp.headers[1].name = "Content-Type";
   resp.headers[1].value = mimeExtensionToType(extension);
-  std::string logMsg = "nipovpn request, " + req.clientIP + ":" + req.clientPort + ", " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
+  std::string logMsg = "request, " + req.clientIP + ":" + req.clientPort + ", " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
   nipoLog.write(logMsg , nipoLog.levelInfo);
 };
 

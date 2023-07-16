@@ -13,7 +13,7 @@ server::server(Config nipoConfig)
 #if defined(SIGQUIT)
   signals_.add(SIGQUIT);
 #endif // defined(SIGQUIT)
-  nipoLog.write("nipovpn started in server mode", nipoLog.levelInfo);
+  nipoLog.write("started in server mode", nipoLog.levelInfo);
   doAwaitStop();
   asio::ip::tcp::resolver resolver(io_context_);
   asio::ip::tcp::endpoint endpoint = *resolver.resolve(nipoConfig.config.ip, std::to_string(nipoConfig.config.port)).begin();

@@ -11,6 +11,8 @@ struct request{
 	std::string uri;
 	std::string clientIP;
 	std::string clientPort;
+	std::string serverIP;
+	std::string serverPort;
 	int httpVersionMajor;
 	int httpVersionMinor;
 	std::vector<header> headers;

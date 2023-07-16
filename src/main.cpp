@@ -1,6 +1,5 @@
 #include "config.hpp"
 #include "log.hpp"
-#include "encrypt.hpp"
 #include "server.hpp"
 
 int main(int argc=0, char* argv[]=0){
@@ -9,7 +8,7 @@ int main(int argc=0, char* argv[]=0){
 	Log nipoLog(nipoConfig);
 	
 	if ( mainArgs.runMode == "server" ){
-		nipoLog.write("nipovpn starting in server mode", nipoLog.levelInfo);
+		nipoLog.write("starting in server mode", nipoLog.levelInfo);
 		try {
 			server nipoServer(nipoConfig);
 			nipoServer.run();
