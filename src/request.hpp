@@ -28,8 +28,8 @@ class requestHandler {
 		Log nipoLog;
 	
 	private:
-	  std::string docRoot_;
-	  static bool urlDecode(const std::string& in, std::string& out);
+		std::string docRoot_;
+		static bool urlDecode(const std::string& in, std::string& out);
 };
 
 class requestParser{

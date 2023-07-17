@@ -15,7 +15,7 @@ bool isInteger(string number){
 	for (int i = 0; i < number.length(); i++)
 	if (isdigit(number[i]) == false)
 		return false;
-  return true;
+	return true;
 };
 
 vector<string> splitString(const string &str, char delim){

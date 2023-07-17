@@ -52,7 +52,7 @@ response response::stockResponse(response::statusType status) {
 	resp.headers[1].name = "Content-Type";
 	resp.headers[1].value = "text/html";
 	return resp;
-}
+};
 
 std::vector<asio::const_buffer> response::toBuffers() {
 	std::vector<asio::const_buffer> buffers;
@@ -72,11 +72,11 @@ std::vector<asio::const_buffer> response::toBuffers() {
 std::string mimeExtensionToType(const std::string& extension) {
 	mimeMapping mimeMappings[] =
 	{
-	  { "gif", "image/gif" },
-	  { "htm", "text/html" },
-	  { "html", "text/html" },
-	  { "jpg", "image/jpeg" },
-	  { "png", "image/png" }
+		{ "gif", "image/gif" },
+		{ "htm", "text/html" },
+		{ "html", "text/html" },
+		{ "jpg", "image/jpeg" },
+		{ "png", "image/png" }
 	};
 	for (mimeMapping m: mimeMappings) {
 		if (m.extension == extension) {

@@ -10,13 +10,13 @@
 	"users": [
 		{
 			"encryption": "AES_256",
-			"token": "pait8phii5aithoh3zoh6ood0Leo6ooyohg7sahteth8EiBohs8oneeMaeniel7chee1Sioth2thohy6chiem5ki3eiwahnah6looseix9eeghiecei3xoh8wae3oPhehaeYeM5iejaa7Mahthiekeidi2thai0xoNohxeXahz1yuzuaGh5uNu7ailish9aafiezeiSh3ahcha4Peivi1ephie0oochee5yiepauMeiJeiv4kiefi7reiweyie8n",
-			"srcIp": "127.0.0.1",
+			"token": "af445adb-2434-4975-9445-2c1b223d556e",
+			"srcIp": "0.0.0.0",
 			"endpoint": "/api01"
 		},
 		{
 			"encryption": "AES_256",
-			"token": "ieGeeReewae0oongoolaej9gie8phai2Oig6phie1Tai9il7Bie2viehie1vu1Noh8keeWahkah6vieph5Ohph1lahp3lia8chae0choosagh9eeghooJee4eingeb4od0imiechohy3taiG0exahx5iequuiphoolahfue5ua8ceita8jaoquah4Ushin2eeNgu9ohp8nooda7ui1Aan2OGh5chaech1ahphaej4Oagh6ieS5ep9feiB7eitiet",
+			"token": "ffec8b66-9e09-419c-baf3-9b0c1c72833f",
 			"srcIp": "0.0.0.0",
 			"endpoint": "/api02"
 		}
