@@ -3,14 +3,15 @@
 using namespace std;
 
 Config::Config(){
-	config.ip 			= 	CONFIG_IP;
-	config.port 		= 	CONFIG_PORT;
-	config.webDir		=		CONFIG_WEB_DIR;
-	config.sslKey 	= 	CONFIG_SSL_KEY;
-	config.sslCert 	= 	CONFIG_SSL_CERT;
-	config.logLevel	= 	CONFIG_LOG_LEVEL;
-	config.logFile 	= 	CONFIG_LOG_FILE;
-	config.threads 	= 	CONFIG_THREADS;
+	config.ip 				= 	CONFIG_IP;
+	config.port 			= 	CONFIG_PORT;
+	config.webDir			=		CONFIG_WEB_DIR;
+	config.sslKey			= 	CONFIG_SSL_KEY;
+	config.sslCert 		= 	CONFIG_SSL_CERT;
+	config.logLevel		= 	CONFIG_LOG_LEVEL;
+	config.logFile 		= 	CONFIG_LOG_FILE;
+	config.threads 		= 	CONFIG_THREADS;
+	config.usersCount = 	CONFIG_USERS_COUNT;
 };
 
 Config::Config(string file){
@@ -27,7 +28,8 @@ Config::Config(string file){
 		config.logLevel	= configJson["logLevel"].asInt();
 		config.logFile	= configJson["logFile"].asString();
 		config.threads 	= configJson["threads"].asInt();
-		for (int item 	= 0; item < CONFIG_MAX_USER_COUNT; item += 1){
+		config.usersCount = end(configJson["users"])-begin(configJson["users"]); 
+		for (int item 	= 0; item < config.usersCount; item += 1){
 			if (configJson["users"][item]["token"].asString() != ""){
 				config.users[item].encryption = configJson["users"][item]["encryption"].asString();
 				config.users[item].token = configJson["users"][item]["token"].asString();

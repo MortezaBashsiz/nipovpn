@@ -3,7 +3,8 @@
 #include "header.hpp"
 #include "aes.hpp"
 
-requestHandler::requestHandler(Config nipoConfig, const std::string& docRoot) : docRoot_(docRoot), nipoLog(nipoConfig){
+requestHandler::requestHandler(Config config, const std::string& docRoot) : docRoot_(docRoot), nipoLog(config){
+	nipoConfig = config;
 }
 
 void requestHandler::handleRequest(const request& req, response& resp) {
@@ -14,17 +15,39 @@ void requestHandler::handleRequest(const request& req, response& resp) {
 	};
 	if (requestPath.empty() || requestPath[0] != '/' || requestPath.find("..") != std::string::npos) {
 		resp = response::stockResponse(response::badRequest);
-		std::string logMsg = "request, " + req.clientIP + ":" + req.clientPort + ", " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
+		std::string logMsg = 	"request, " 
+													+ req.headers[0].value + ", " 
+													+ req.clientIP + ":" 
+													+ req.clientPort + ", " 
+													+ req.headers[1].value + ", " 
+													+ req.method + ", " 
+													+ req.uri + ", " 
+													+ to_string(resp.responseBody.content.size()) + ", " 
+													+ req.headers[3].value + ", "
+													+ statusToString(resp.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
 	};
 
-	if (req.uri.rfind("/api01/", 0) == 0) {
-		nipoLog.write("FUCK : BIG " , nipoLog.levelInfo);
-		cout << "FUCK : REQ BODY " << endl << req.requestBody.content << endl; 
-		resp.responseBody.content = "FUCK : RESP BODY\n";
-		resp.status = response::ok;
-		return;
+	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
+		std::string reqPath = nipoConfig.config.users[counter].endpoint + "/";
+		if (req.uri.rfind(reqPath, 0) == 0) {
+			cout << "FUCK : " << req.requestBody.content << endl;
+			resp.responseBody.content = req.clientIP;
+			resp.status = response::ok;
+			std::string logMsg = 	"vpn request, " 
+														+ req.headers[0].value + ", " 
+														+ req.clientIP + ":" 
+														+ req.clientPort + ", " 
+														+ req.headers[1].value + ", " 
+														+ req.method + ", " 
+														+ req.uri + ", " 
+														+ to_string(resp.responseBody.content.size()) + ", " 
+														+ req.headers[3].value + ", "
+														+ statusToString(resp.status);
+			nipoLog.write(logMsg , nipoLog.levelInfo);
+			return;
+		};
 	};
 
 	if (requestPath[requestPath.size() - 1] == '/') {
@@ -42,7 +65,16 @@ void requestHandler::handleRequest(const request& req, response& resp) {
 	std::ifstream is(fullPath.c_str(), std::ios::in | std::ios::binary);
 	if (!is) {
 		resp = response::stockResponse(response::notFound);
-		std::string logMsg = "request, " + req.clientIP + ":" + req.clientPort + ", " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
+		std::string logMsg = 	"request, " 
+													+ req.headers[0].value + ", " 
+													+ req.clientIP + ":" 
+													+ req.clientPort + ", " 
+													+ req.headers[1].value + ", " 
+													+ req.method + ", " 
+													+ req.uri + ", " 
+													+ to_string(resp.responseBody.content.size()) + ", " 
+													+ req.headers[3].value + ", "
+													+ statusToString(resp.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
 	};
@@ -55,7 +87,16 @@ void requestHandler::handleRequest(const request& req, response& resp) {
 	resp.headers[0].value = std::to_string(resp.responseBody.content.size());
 	resp.headers[1].name = "Content-Type";
 	resp.headers[1].value = mimeExtensionToType(extension);
-	std::string logMsg = "request, " + req.clientIP + ":" + req.clientPort + ", " + req.method + ", " + req.uri + ", " + to_string(resp.responseBody.content.size()) + ", " + statusToString(resp.status);
+	std::string logMsg = 	"request, " 
+												+ req.headers[0].value + ", " 
+												+ req.clientIP + ":" 
+												+ req.clientPort + ", " 
+												+ req.headers[1].value + ", " 
+												+ req.method + ", " 
+												+ req.uri + ", " 
+												+ to_string(resp.responseBody.content.size()) + ", " 
+												+ req.headers[3].value + ", "
+												+ statusToString(resp.status);
 	nipoLog.write(logMsg , nipoLog.levelInfo);
 };
 

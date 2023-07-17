@@ -11,8 +11,6 @@ struct request{
 	std::string uri;
 	std::string clientIP;
 	std::string clientPort;
-	std::string serverIP;
-	std::string serverPort;
 	int httpVersionMajor;
 	int httpVersionMinor;
 	std::vector<header> headers;
@@ -23,9 +21,10 @@ class requestHandler {
 	public:
 		requestHandler(const requestHandler&) = delete;
 		requestHandler& operator=(const requestHandler&) = delete;
-		explicit requestHandler(Config nipoConfig, const std::string& docRoot);
+		explicit requestHandler(Config config, const std::string& docRoot);
 		void handleRequest(const request& req, response& resp);
 		Log nipoLog;
+		Config nipoConfig;
 	
 	private:
 		std::string docRoot_;

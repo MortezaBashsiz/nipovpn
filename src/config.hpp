@@ -19,6 +19,7 @@ using namespace std;
 #define CONFIG_LOG_LEVEL 1 
 #define CONFIG_LOG_FILE "/var/log/niposerver/nipo.log" 
 #define CONFIG_THREADS 1 
+#define CONFIG_USERS_COUNT 1
 
 class Config{
 	private:
@@ -37,9 +38,10 @@ class Config{
 			int logLevel;
 			string logFile;
 			int threads;
+			int usersCount;
 			userStruct users[CONFIG_MAX_USER_COUNT]{
-				"AES_256"
-				"Bah9aefai8ShoowieXilaij9Eibee6Uax0ief8dooze2yeesa7fu7Kaexohlaz2Kaghas8kai0ro6uoshaofuYae9eorohZ3AipheixaBaif2ughaithoahuat5bai2peja3ul6aeyoothuur0Kah8Ujeede2wai4vahb9saceiceiGh7Ohke5wiex9abaisieGhoayie7ushie9ahM5pheimaevahchixooBoojuB4eediel5aemus1noopheeZ",
+				"AES_256",
+				"4b445619-a2f7-48fd-9060-04252e10adee",
 				"0.0.0.0",
 				"api01"
 			};
