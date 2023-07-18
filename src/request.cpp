@@ -16,14 +16,11 @@ void requestHandler::handleRequest(const request& req, response& resp) {
 	if (requestPath.empty() || requestPath[0] != '/' || requestPath.find("..") != std::string::npos) {
 		resp = response::stockResponse(response::badRequest);
 		std::string logMsg = 	"request, " 
-													+ req.headers[0].value + ", " 
 													+ req.clientIP + ":" 
 													+ req.clientPort + ", " 
-													+ req.headers[1].value + ", " 
 													+ req.method + ", " 
 													+ req.uri + ", " 
 													+ to_string(resp.responseBody.content.size()) + ", " 
-													+ req.headers[3].value + ", "
 													+ statusToString(resp.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
@@ -36,14 +33,11 @@ void requestHandler::handleRequest(const request& req, response& resp) {
 			resp.responseBody.content = req.clientIP;
 			resp.status = response::ok;
 			std::string logMsg = 	"vpn request, " 
-														+ req.headers[0].value + ", " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + ", " 
-														+ req.headers[1].value + ", " 
 														+ req.method + ", " 
 														+ req.uri + ", " 
 														+ to_string(resp.responseBody.content.size()) + ", " 
-														+ req.headers[3].value + ", "
 														+ statusToString(resp.status);
 			nipoLog.write(logMsg , nipoLog.levelInfo);
 			return;
@@ -66,14 +60,11 @@ void requestHandler::handleRequest(const request& req, response& resp) {
 	if (!is) {
 		resp = response::stockResponse(response::notFound);
 		std::string logMsg = 	"request, " 
-													+ req.headers[0].value + ", " 
 													+ req.clientIP + ":" 
 													+ req.clientPort + ", " 
-													+ req.headers[1].value + ", " 
 													+ req.method + ", " 
 													+ req.uri + ", " 
 													+ to_string(resp.responseBody.content.size()) + ", " 
-													+ req.headers[3].value + ", "
 													+ statusToString(resp.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
@@ -87,15 +78,12 @@ void requestHandler::handleRequest(const request& req, response& resp) {
 	resp.headers[0].value = std::to_string(resp.responseBody.content.size());
 	resp.headers[1].name = "Content-Type";
 	resp.headers[1].value = mimeExtensionToType(extension);
-	std::string logMsg = 	"request, " 
-												+ req.headers[0].value + ", " 
+	std::string logMsg = 	"request, "
 												+ req.clientIP + ":" 
-												+ req.clientPort + ", " 
-												+ req.headers[1].value + ", " 
+												+ req.clientPort + ", "
 												+ req.method + ", " 
 												+ req.uri + ", " 
-												+ to_string(resp.responseBody.content.size()) + ", " 
-												+ req.headers[3].value + ", "
+												+ to_string(resp.responseBody.content.size()) + ", "
 												+ statusToString(resp.status);
 	nipoLog.write(logMsg , nipoLog.levelInfo);
 };
