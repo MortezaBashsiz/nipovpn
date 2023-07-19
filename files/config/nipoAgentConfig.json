@@ -1,0 +1,11 @@
+{
+	"localIp": "127.0.0.1",
+	"localPort": 8080,
+	"serverIp": "127.0.0.1",
+	"serverPort": 80,
+	"logLevel": 1,
+	"logFile": "/var/log/nipoagent/nipo.log",
+	"encryption": "AES_256",
+	"token": "af445adb-2434-4975-9445-2c1b223d556e",
+	"endpoint": "/api01"
+}

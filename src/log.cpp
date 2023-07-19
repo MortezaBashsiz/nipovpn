@@ -1,6 +1,11 @@
 #include "log.hpp"
 
-Log::Log(Config nipoConfig){
+Log::Log(serverConfig nipoConfig){
+	log.file	= nipoConfig.config.logFile;
+	log.level = nipoConfig.config.logLevel;
+};
+
+Log::Log(agentConfig nipoConfig){
 	log.file	= nipoConfig.config.logFile;
 	log.level = nipoConfig.config.logLevel;
 };
@@ -49,7 +54,7 @@ void Log::write(string message, int level){
 			cout << line;
 			file.close();
 		} else {
-			cerr << "[ERROR]: Exception openning log file : " << log.file << "\n";
+			std::cerr << "[ERROR]: Exception openning log file : " << log.file << "\n";
 			exit(1);
 		}
 	}

@@ -37,7 +37,8 @@ class Log{
 			"DEBUG"
 		};
 		logStruct log;
-		Log(Config nipoConfig);
+		Log(serverConfig nipoConfig);
+		Log(agentConfig nipoConfig);
 		~Log();
 		string logLevelToString(int level);
 		void write(string message, int level);

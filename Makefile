@@ -7,6 +7,6 @@ CFLAGS=-g -ljsoncpp
 INCLUDEPATH=../files/include
 SRC=./src
 all:
-	cd $(SRC) &&	$(CC) -I$(INCLUDEPATH) $(CFLAGS) -o ../nipovpn main.cpp general.cpp server.cpp response.cpp serverRequest.cpp connection.cpp config.cpp log.cpp aes.cpp
+	cd $(SRC) &&	$(CC) -I$(INCLUDEPATH) $(CFLAGS) -o ../nipovpn main.cpp general.cpp server.cpp agent.cpp response.cpp request.cpp connection.cpp config.cpp log.cpp aes.cpp
 clean:
 	rm nipovpn

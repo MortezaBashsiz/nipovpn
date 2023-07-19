@@ -1,11 +1,11 @@
-#include "server.hpp"
+#include "agent.hpp"
 
-server::server(serverConfig nipoConfig)
+agent::agent(agentConfig nipoConfig)
 	: io_context_(1),
 		signals_(io_context_),
 		acceptor_(io_context_),
-		serverConnectionManager_(nipoConfig),
-		serverRequestHandler_(nipoConfig, nipoConfig.config.webDir),
+		agentConnectionManager_(nipoConfig),
+		agentRequestHandler_(nipoConfig),
 		nipoLog(nipoConfig) {
 
 	signals_.add(SIGINT);
@@ -13,10 +13,10 @@ server::server(serverConfig nipoConfig)
 #if defined(SIGQUIT)
 	signals_.add(SIGQUIT);
 #endif // defined(SIGQUIT)
-	nipoLog.write("started in server mode", nipoLog.levelInfo);
+	nipoLog.write("started in agent mode", nipoLog.levelInfo);
 	doAwaitStop();
 	asio::ip::tcp::resolver resolver(io_context_);
-	asio::ip::tcp::endpoint endpoint = *resolver.resolve(nipoConfig.config.ip, std::to_string(nipoConfig.config.port)).begin();
+	asio::ip::tcp::endpoint endpoint = *resolver.resolve(nipoConfig.config.localIp, std::to_string(nipoConfig.config.localPort)).begin();
 	acceptor_.open(endpoint.protocol());
 	acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true));
 	acceptor_.bind(endpoint);
@@ -24,11 +24,11 @@ server::server(serverConfig nipoConfig)
 	doAccept();
 };
 
-void server::run() {
+void agent::run() {
 	io_context_.run();
 };
 
-void server::doAccept() {
+void agent::doAccept() {
 	acceptor_.async_accept(
 			[this](std::error_code ec, asio::ip::tcp::socket socket)
 			{
@@ -36,18 +36,18 @@ void server::doAccept() {
 					return;
 				};
 				if (!ec) {
-					serverConnectionManager_.start(std::make_shared<serverConnection>(
-							std::move(socket), serverConnectionManager_, serverRequestHandler_));
+					agentConnectionManager_.start(std::make_shared<agentConnection>(
+							std::move(socket), agentConnectionManager_, agentRequestHandler_));
 				};
 				doAccept();
 			});
 }
 
-void server::doAwaitStop() {
+void agent::doAwaitStop() {
 	signals_.async_wait(
 			[this](std::error_code /*ec*/, int /*signo*/)
 			{
 				acceptor_.close();
-				serverConnectionManager_.stopAll();
+				agentConnectionManager_.stopAll();
 			});
 }

@@ -1,5 +1,5 @@
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#ifndef AGENT_HPP
+#define AGENT_HPP
 
 #include "config.hpp"
 #include "log.hpp"
@@ -10,11 +10,11 @@
 
 using namespace std;
 
-class server {
+class agent {
 	public:
-		server(const server&) = delete;
-		server& operator=(const server&) = delete;
-		explicit server(serverConfig nipoConfig);
+		agent(const agent&) = delete;
+		agent& operator=(const agent&) = delete;
+		explicit agent(agentConfig nipoConfig);
 		void run();
 		Log nipoLog;
 	
@@ -24,8 +24,8 @@ class server {
 		asio::io_context io_context_;
 		asio::signal_set signals_;
 		asio::ip::tcp::acceptor acceptor_;
-		serverConnectionManager serverConnectionManager_;
-		serverRequestHandler serverRequestHandler_;
+		agentConnectionManager agentConnectionManager_;
+		agentRequestHandler agentRequestHandler_;
 };
 
-#endif // SERVER_HPP
+#endif // AGENT_HPP

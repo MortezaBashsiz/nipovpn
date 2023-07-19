@@ -2,19 +2,19 @@
 
 using namespace std;
 
-Config::Config(){
-	config.ip 				= 	CONFIG_IP;
-	config.port 			= 	CONFIG_PORT;
-	config.webDir			=		CONFIG_WEB_DIR;
-	config.sslKey			= 	CONFIG_SSL_KEY;
-	config.sslCert 		= 	CONFIG_SSL_CERT;
-	config.logLevel		= 	CONFIG_LOG_LEVEL;
-	config.logFile 		= 	CONFIG_LOG_FILE;
-	config.threads 		= 	CONFIG_THREADS;
-	config.usersCount = 	CONFIG_USERS_COUNT;
+serverConfig::serverConfig(){
+	config.ip 				= 	SERVER_CONFIG_IP;
+	config.port 			= 	SERVER_CONFIG_PORT;
+	config.webDir			=		SERVER_CONFIG_WEB_DIR;
+	config.sslKey			= 	SERVER_CONFIG_SSL_KEY;
+	config.sslCert 		= 	SERVER_CONFIG_SSL_CERT;
+	config.logLevel		= 	SERVER_CONFIG_LOG_LEVEL;
+	config.logFile 		= 	SERVER_CONFIG_LOG_FILE;
+	config.threads 		= 	SERVER_CONFIG_THREADS;
+	config.usersCount = 	SERVER_CONFIG_USERS_COUNT;
 };
 
-Config::Config(string file){
+serverConfig::serverConfig(string file){
 	ifstream configFile(file, ifstream::binary);
 	Json::Reader readerJson;
 	Json::Value configJson;
@@ -38,20 +38,20 @@ Config::Config(string file){
 			};
 		};
 	}	catch (const exception& error) {
-		cerr << "[ERROR]: specified config file is not in json format : " << error.what() << endl;
+		std::cerr << "[ERROR]: specified config file is not in json format : " << error.what() << std::endl;
 		exit(1);
 	};
 	returnMsgCode result = validate();
 	if (result.code != 0){
-		cerr << result.message << endl;
+		std::cerr << result.message << std::endl;
 		exit(result.code);
 	};
 };
 
-Config::~Config(){
+serverConfig::~serverConfig(){
 };
 
-returnMsgCode Config::validate(){
+returnMsgCode serverConfig::validate(){
 	returnMsgCode result{0,"OK"};
 	if((! isInteger(to_string(config.port))) || (isInteger(to_string(config.port)) && (config.port > 65535 || config.port < 1))){
 		result.message	= "[ERROR]: specified config port is not correct, it must be an integer from 1 to 65535 : " + to_string(config.port);
@@ -81,7 +81,7 @@ returnMsgCode Config::validate(){
 		result.message	= "[ERROR]: specified config logFile file does not exists or is not readable : " + config.logFile;
 		result.code = 1;
 	};
-	for (int item = 0; item < CONFIG_MAX_USER_COUNT; item += 1){
+	for (int item = 0; item < SERVER_CONFIG_MAX_USER_COUNT; item += 1){
 		if (config.users[item].token != ""){
 			if(!isIPAddress(config.users[item].srcIp)){
 				result.message	= "[ERROR]: specified config IPv4 for users is not correct or no user is defined, it must be like an IP address : " + config.users[item].srcIp;
@@ -89,6 +89,68 @@ returnMsgCode Config::validate(){
 				break;
 			};
 		};
+	};
+	return result;
+};
+
+agentConfig::agentConfig(){
+	config.localIp		=	AGENT_CONFIG_LOCAL_IP;
+	config.localPort	=	AGENT_CONFIG_LOCAL_PORT;
+	config.serverIp		=	AGENT_CONFIG_SERVER_IP;
+	config.serverPort	=	AGENT_CONFIG_SERVER_PORT;
+	config.logLevel		=	AGENT_CONFIG_LOG_LEVEL;
+	config.logFile		=	AGENT_CONFIG_LOG_FILE;
+	config.encryption	=	AGENT_CONFIG_ENCRYPTION;
+};
+
+agentConfig::agentConfig(string file){
+	ifstream configFile(file, ifstream::binary);
+	Json::Reader readerJson;
+	Json::Value configJson;
+	try{
+		readerJson.parse(configFile, configJson);
+		config.localIp	= configJson["localIp"].asString();
+		config.localPort	= configJson["localPort"].asInt();
+		config.serverIp	= configJson["serverIp"].asString();
+		config.serverPort	= configJson["serverPort"].asInt();
+		config.logLevel	= configJson["logLevel"].asInt();
+		config.logFile	= configJson["logFile"].asString();
+		config.encryption	= configJson["encryption"].asString();
+	}	catch (const exception& error) {
+		std::cerr << "[ERROR]: specified config file is not in json format : " << error.what() << std::endl;
+		exit(1);
+	};
+	returnMsgCode result = validate();
+	if (result.code != 0){
+		std::cerr << result.message << std::endl;
+		exit(result.code);
+	};
+};
+
+agentConfig::~agentConfig(){
+};
+
+returnMsgCode agentConfig::validate(){
+	returnMsgCode result{0,"OK"};
+	if((! isInteger(to_string(config.localPort))) || (isInteger(to_string(config.localPort)) && (config.localPort > 65535 || config.localPort < 1))){
+		result.message	= "[ERROR]: specified config localPort is not correct, it must be an integer from 1 to 65535 : " + to_string(config.localPort);
+		result.code = 1;
+	};
+	if((! isInteger(to_string(config.serverPort))) || (isInteger(to_string(config.serverPort)) && (config.serverPort > 65535 || config.serverPort < 1))){
+		result.message	= "[ERROR]: specified config serverPort is not correct, it must be an integer from 1 to 65535 : " + to_string(config.serverPort);
+		result.code = 1;
+	};
+	if(! isIPAddress(config.localIp)){
+		result.message	= "[ERROR]: specified config localIp is not correct, it must be like an IP address : " + config.localIp;
+		result.code = 1;
+	};
+	if(! isIPAddress(config.serverIp)){
+		result.message	= "[ERROR]: specified config serverIp is not correct, it must be like an IP address : " + config.serverIp;
+		result.code = 1;
+	};
+	if (! fileExists(config.logFile)){
+		result.message	= "[ERROR]: specified config logFile file does not exists or is not readable : " + config.logFile;
+		result.code = 1;
 	};
 	return result;
 };
