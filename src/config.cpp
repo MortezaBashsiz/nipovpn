@@ -116,6 +116,7 @@ agentConfig::agentConfig(string file){
 		config.logLevel	= configJson["logLevel"].asInt();
 		config.logFile	= configJson["logFile"].asString();
 		config.encryption	= configJson["encryption"].asString();
+		config.token	= configJson["token"].asString();
 	}	catch (const exception& error) {
 		std::cerr << "[ERROR]: specified config file is not in json format : " << error.what() << std::endl;
 		exit(1);

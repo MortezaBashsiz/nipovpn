@@ -2,6 +2,7 @@
 #include "response.hpp"
 #include "header.hpp"
 #include "aes.hpp"
+#include "proxy.hpp"
 
 serverRequestHandler::serverRequestHandler(serverConfig config, const std::string& docRoot) : docRoot_(docRoot), nipoLog(config){
 	nipoConfig = config;
@@ -380,6 +381,10 @@ agentRequestHandler::agentRequestHandler(agentConfig config) : nipoLog(config){
 void agentRequestHandler::handleRequest(request& req, response& resp) {
 	if (req.method == "CONNECT"){
 		resp.status = response::ok;
+		cout << "ADAS : " << req.requestBody.content << std::endl << std::endl << std::endl ;
+		unsigned int plainLen = 16 * (sizeof(req.requestBody.content));
+		std::string encryptedBody = encrypt(req.requestBody.content, plainLen, nipoConfig.config.token);
+		std::string decryptedBody = decrypt(encryptedBody, plainLen, nipoConfig.config.token);
 	} else {
 		resp = response::stockResponse(response::badRequest);
 	};
