@@ -7,7 +7,7 @@
 #include "log.hpp"
 #include "header.hpp"
 #include "response.hpp"
-#include "request.hpp"
+#include "serverRequest.hpp"
 
 class connectionManager;
 
@@ -15,7 +15,7 @@ class connection : public std::enable_shared_from_this<connection> {
 	public:
 		connection(const connection&) = delete;
 		connection& operator=(const connection&) = delete;
-		explicit connection(asio::ip::tcp::socket socket, connectionManager& manager, requestHandler& handler);
+		explicit connection(asio::ip::tcp::socket socket, connectionManager& manager, serverRequestHandler& handler);
 		void start();
 		void stop();
 	
@@ -24,10 +24,10 @@ class connection : public std::enable_shared_from_this<connection> {
 		void doWrite();
 		asio::ip::tcp::socket socket_;
 		connectionManager& connectionManager_;
-		requestHandler& requestHandler_;
+		serverRequestHandler& serverRequestHandler_;
 		std::array<char, 8192> buffer_;
 		request request_;
-		requestParser requestParser_;
+		serverRequestParser serverRequestParser_;
 		response response_;
 };
 

@@ -1,5 +1,5 @@
-#ifndef REQUEST_HPP
-#define REQUEST_HPP
+#ifndef SERVERREQUEST_HPP
+#define SERVERREQUEST_HPP
 
 #include "config.hpp"
 #include "log.hpp"
@@ -17,11 +17,11 @@ struct request{
 	body requestBody;
 };
 
-class requestHandler {
+class serverRequestHandler {
 	public:
-		requestHandler(const requestHandler&) = delete;
-		requestHandler& operator=(const requestHandler&) = delete;
-		explicit requestHandler(Config config, const std::string& docRoot);
+		serverRequestHandler(const serverRequestHandler&) = delete;
+		serverRequestHandler& operator=(const serverRequestHandler&) = delete;
+		explicit serverRequestHandler(Config config, const std::string& docRoot);
 		void handleRequest(request& req, response& resp);
 		Log nipoLog;
 		Config nipoConfig;
@@ -31,9 +31,9 @@ class requestHandler {
 		static bool urlDecode(const std::string& in, std::string& out);
 };
 
-class requestParser{
+class serverRequestParser{
 	public:
-		requestParser();
+		serverRequestParser();
 		void reset();
 		enum resultType { good, bad, indeterminate };
 		template <typename InputIterator>
@@ -77,4 +77,4 @@ class requestParser{
 		} state_;
 };
 
-#endif // REQUEST_HPP
+#endif // SERVERREQUEST_HPP

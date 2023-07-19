@@ -1,10 +1,10 @@
 #include "connection.hpp"
 
 connection::connection(asio::ip::tcp::socket socket,
-		connectionManager& manager, requestHandler& handler)
+		connectionManager& manager, serverRequestHandler& handler)
 	: socket_(std::move(socket)),
 		connectionManager_(manager),
-		requestHandler_(handler) {
+		serverRequestHandler_(handler) {
 }
 
 void connection::start() {
@@ -24,14 +24,14 @@ void connection::doRead() {
 		std::memcpy(data, buffer_.data(), bytesTransferred);
 		request_.requestBody.content = data;
 		if (!ec) {
-			requestParser::resultType result;
-			std::tie(result, std::ignore) = requestParser_.parse(
+			serverRequestParser::resultType result;
+			std::tie(result, std::ignore) = serverRequestParser_.parse(
 					request_, buffer_.data(), buffer_.data() + bytesTransferred);
-			if (result == requestParser::good) {
-				requestHandler_.handleRequest(request_, response_);
+			if (result == serverRequestParser::good) {
+				serverRequestHandler_.handleRequest(request_, response_);
 				doWrite();
 			}
-			else if (result == requestParser::bad) {
+			else if (result == serverRequestParser::bad) {
 				response_ = response::stockResponse(response::badRequest);
 				doWrite();
 			}

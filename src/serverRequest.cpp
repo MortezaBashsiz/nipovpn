@@ -1,21 +1,48 @@
 // #include<string>
 
-#include "request.hpp"
+#include "serverRequest.hpp"
 #include "response.hpp"
 #include "header.hpp"
 #include "aes.hpp"
 
-requestHandler::requestHandler(Config config, const std::string& docRoot) : docRoot_(docRoot), nipoLog(config){
+serverRequestHandler::serverRequestHandler(Config config, const std::string& docRoot) : docRoot_(docRoot), nipoLog(config){
 	nipoConfig = config;
 }
 
-void requestHandler::handleRequest(request& req, response& resp) {
+void serverRequestHandler::handleRequest(request& req, response& resp) {
 	std::string requestPath;
-	if (!urlDecode(req.uri, requestPath)) {
-		resp = response::stockResponse(response::badRequest);
-		return;
+
+	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
+		std::string reqPath = nipoConfig.config.users[counter].endpoint + "/";
+		if (req.uri.rfind(reqPath, 0) == 0) {
+			unsigned first = req.requestBody.content.find("DATA_START:");
+			unsigned last = req.requestBody.content.find(":DATA_END");
+			if ( req.headers.size() < 5 ){
+				resp = response::stockResponse(response::badRequest);
+			} else {
+				int dataLenght = std::stoi(req.headers[4].value);
+				if ( first == 4294967295 || last == 4294967295 ) {
+					resp = response::stockResponse(response::badRequest);
+				} else {
+					resp.status = response::ok;
+				};
+			};
+			std::string tempString = req.requestBody.content.substr(first+11,last-first-11);
+			req.requestBody.content = tempString;
+			resp.responseBody.content = req.requestBody.content;
+			std::string logMsg = 	"vpn request, " 
+														+ req.clientIP + ":" 
+														+ req.clientPort + ", " 
+														+ req.method + ", " 
+														+ req.uri + ", " 
+														+ to_string(resp.responseBody.content.size()) + ", " 
+														+ statusToString(resp.status);
+			nipoLog.write(logMsg , nipoLog.levelInfo);
+			return;
+		};
 	};
-	if (requestPath.empty() || requestPath[0] != '/' || requestPath.find("..") != std::string::npos) {
+
+	if (!urlDecode(req.uri, requestPath)) {
 		resp = response::stockResponse(response::badRequest);
 		std::string logMsg = 	"request, " 
 													+ req.clientIP + ":" 
@@ -28,35 +55,17 @@ void requestHandler::handleRequest(request& req, response& resp) {
 		return;
 	};
 
-	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
-		std::string reqPath = nipoConfig.config.users[counter].endpoint + "/";
-		if (req.uri.rfind(reqPath, 0) == 0) {
-			if ( req.headers.size() < 5 ){
-				resp = response::stockResponse(response::badRequest);
-				return;
-			} else {
-				int dataLenght = std::stoi(req.headers[4].value);
-				unsigned first = req.requestBody.content.find("DATA_START:");
-				unsigned last = req.requestBody.content.find(":DATA_END");
-				if ( first == 4294967295 || last == 4294967295 ) {
-					resp = response::stockResponse(response::badRequest);
-					return;
-				} else {
-					std::string tempString = req.requestBody.content.substr(first+11,last-first-11);
-					req.requestBody.content = tempString;
-					resp.status = response::ok;
-					std::string logMsg = 	"vpn request, " 
-																+ req.clientIP + ":" 
-																+ req.clientPort + ", " 
-																+ req.method + ", " 
-																+ req.uri + ", " 
-																+ to_string(resp.responseBody.content.size()) + ", " 
-																+ statusToString(resp.status);
-					nipoLog.write(logMsg , nipoLog.levelInfo);
-					return;
-				};
-			};
-		};
+	if (requestPath.empty() || requestPath[0] != '/' || requestPath.find("..") != std::string::npos) {
+		resp = response::stockResponse(response::badRequest);
+		std::string logMsg = 	"request, " 
+													+ req.clientIP + ":" 
+													+ req.clientPort + ", " 
+													+ req.method + ", " 
+													+ req.uri + ", " 
+													+ to_string(resp.responseBody.content.size()) + ", " 
+													+ statusToString(resp.status);
+		nipoLog.write(logMsg , nipoLog.levelInfo);
+		return;
 	};
 
 	if (requestPath[requestPath.size() - 1] == '/') {
@@ -103,7 +112,7 @@ void requestHandler::handleRequest(request& req, response& resp) {
 	nipoLog.write(logMsg , nipoLog.levelInfo);
 };
 
-bool requestHandler::urlDecode(const std::string& in, std::string& out) {
+bool serverRequestHandler::urlDecode(const std::string& in, std::string& out) {
 	out.clear();
 	out.reserve(in.size());
 	for (std::size_t i = 0; i < in.size(); ++i) {
@@ -129,14 +138,14 @@ bool requestHandler::urlDecode(const std::string& in, std::string& out) {
 	return true;
 }
 
-requestParser::requestParser() : state_(methodStart) {
+serverRequestParser::serverRequestParser() : state_(methodStart) {
 }
 
-void requestParser::reset() {
+void serverRequestParser::reset() {
 	state_ = methodStart;
 }
 
-requestParser::resultType requestParser::consume(request& req, char input) {
+serverRequestParser::resultType serverRequestParser::consume(request& req, char input) {
 	switch (state_) {
 	case methodStart:
 		if (!isChar(input) || isCtl(input) || isTspecial(input)) {
@@ -341,15 +350,15 @@ requestParser::resultType requestParser::consume(request& req, char input) {
 	}
 }
 
-bool requestParser::isChar(int c) {
+bool serverRequestParser::isChar(int c) {
 	return c >= 0 && c <= 127;
 }
 
-bool requestParser::isCtl(int c) {
+bool serverRequestParser::isCtl(int c) {
 	return (c >= 0 && c <= 31) || (c == 127);
 }
 
-bool requestParser::isTspecial(int c) {
+bool serverRequestParser::isTspecial(int c) {
 	switch (c)
 	{
 	case '(': case ')': case '<': case '>': case '@':
@@ -362,6 +371,6 @@ bool requestParser::isTspecial(int c) {
 	}
 }
 
-bool requestParser::isDigit(int c) {
+bool serverRequestParser::isDigit(int c) {
 	return c >= '0' && c <= '9';
 }

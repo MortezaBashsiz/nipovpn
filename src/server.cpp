@@ -5,7 +5,7 @@ server::server(Config nipoConfig)
 		signals_(io_context_),
 		acceptor_(io_context_),
 		connectionManager_(nipoConfig),
-		requestHandler_(nipoConfig, nipoConfig.config.webDir),
+		serverRequestHandler_(nipoConfig, nipoConfig.config.webDir),
 		nipoLog(nipoConfig) {
 
 	signals_.add(SIGINT);
@@ -37,7 +37,7 @@ void server::doAccept() {
 				};
 				if (!ec) {
 					connectionManager_.start(std::make_shared<connection>(
-							std::move(socket), connectionManager_, requestHandler_));
+							std::move(socket), connectionManager_, serverRequestHandler_));
 				};
 				doAccept();
 			});

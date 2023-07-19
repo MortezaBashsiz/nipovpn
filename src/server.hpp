@@ -4,7 +4,7 @@
 #include "config.hpp"
 #include "log.hpp"
 #include "header.hpp"
-#include "request.hpp"
+#include "serverRequest.hpp"
 #include "response.hpp"
 #include "connection.hpp"
 
@@ -25,7 +25,7 @@ class server {
 		asio::signal_set signals_;
 		asio::ip::tcp::acceptor acceptor_;
 		connectionManager connectionManager_;
-		requestHandler requestHandler_;
+		serverRequestHandler serverRequestHandler_;
 };
 
 #endif // SERVER_HPP
