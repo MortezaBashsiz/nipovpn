@@ -22,7 +22,7 @@ class requestHandler {
 		requestHandler(const requestHandler&) = delete;
 		requestHandler& operator=(const requestHandler&) = delete;
 		explicit requestHandler(Config config, const std::string& docRoot);
-		void handleRequest(const request& req, response& resp);
+		void handleRequest(request& req, response& resp);
 		Log nipoLog;
 		Config nipoConfig;
 	

@@ -1,3 +1,5 @@
+// #include<string>
+
 #include "request.hpp"
 #include "response.hpp"
 #include "header.hpp"
@@ -7,7 +9,7 @@ requestHandler::requestHandler(Config config, const std::string& docRoot) : docR
 	nipoConfig = config;
 }
 
-void requestHandler::handleRequest(const request& req, response& resp) {
+void requestHandler::handleRequest(request& req, response& resp) {
 	std::string requestPath;
 	if (!urlDecode(req.uri, requestPath)) {
 		resp = response::stockResponse(response::badRequest);
@@ -29,18 +31,31 @@ void requestHandler::handleRequest(const request& req, response& resp) {
 	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
 		std::string reqPath = nipoConfig.config.users[counter].endpoint + "/";
 		if (req.uri.rfind(reqPath, 0) == 0) {
-			cout << "FUCK : " << req.requestBody.content << endl;
-			resp.responseBody.content = req.clientIP;
-			resp.status = response::ok;
-			std::string logMsg = 	"vpn request, " 
-														+ req.clientIP + ":" 
-														+ req.clientPort + ", " 
-														+ req.method + ", " 
-														+ req.uri + ", " 
-														+ to_string(resp.responseBody.content.size()) + ", " 
-														+ statusToString(resp.status);
-			nipoLog.write(logMsg , nipoLog.levelInfo);
-			return;
+			if ( req.headers.size() < 5 ){
+				resp = response::stockResponse(response::badRequest);
+				return;
+			} else {
+				int dataLenght = std::stoi(req.headers[4].value);
+				unsigned first = req.requestBody.content.find("DATA_START:");
+				unsigned last = req.requestBody.content.find(":DATA_END");
+				if ( first == 4294967295 || last == 4294967295 ) {
+					resp = response::stockResponse(response::badRequest);
+					return;
+				} else {
+					std::string tempString = req.requestBody.content.substr(first+11,last-first-11);
+					req.requestBody.content = tempString;
+					resp.status = response::ok;
+					std::string logMsg = 	"vpn request, " 
+																+ req.clientIP + ":" 
+																+ req.clientPort + ", " 
+																+ req.method + ", " 
+																+ req.uri + ", " 
+																+ to_string(resp.responseBody.content.size()) + ", " 
+																+ statusToString(resp.status);
+					nipoLog.write(logMsg , nipoLog.levelInfo);
+					return;
+				};
+			};
 		};
 	};
 
