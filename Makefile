@@ -6,7 +6,10 @@ CC=g++
 CFLAGS=-g -ljsoncpp
 INCLUDEPATH=../files/include
 SRC=./src
-all:
-	cd $(SRC) &&	$(CC) -I$(INCLUDEPATH) $(CFLAGS) -o ../nipovpn main.cpp general.cpp server.cpp agent.cpp response.cpp request.cpp connection.cpp config.cpp log.cpp aes.cpp proxy.cpp
+server:
+	cd $(SRC) &&	$(CC) -I$(INCLUDEPATH) -Iserver -Icommon $(CFLAGS) -o ../niposerver niposerver.cpp common/general.cpp server/server.cpp server/response.cpp server/request.cpp server/connection.cpp common/config.cpp common/log.cpp common/aes.cpp server/proxy.cpp
+agent:
+	cd $(SRC) &&	$(CC) -I$(INCLUDEPATH) -Iagent -Icommon $(CFLAGS) -o ../nipoagent nipoagent.cpp common/general.cpp agent/agent.cpp agent/response.cpp agent/request.cpp agent/connection.cpp common/config.cpp common/log.cpp common/aes.cpp agent/proxy.cpp
 clean:
-	rm nipovpn
+	rm niposerver
+	rm nipoagent

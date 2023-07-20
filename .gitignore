@@ -31,5 +31,7 @@
 *.out
 *.app
 
+niposerver
+nipoagent
 nipovpn
 test
