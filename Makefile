@@ -34,7 +34,7 @@ cleanserver:
 	rm niposerver
 
 agent: agentConfig agentLog agentGeneral
-	cd $(AGENTSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -o ../nipoagent main.cpp config.o log.o general.o connection.o request.o response.o
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -o ../nipoagent main.cpp config.o log.o general.o
 
 agentConfig:
 	cd $(AGENTSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c config.cpp
