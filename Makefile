@@ -7,6 +7,9 @@ CFLAGS=-g -ljsoncpp
 SERVERSRC=./server
 AGENTSRC=./agent
 
+all: server agent 
+clean: cleanserver cleanagent
+	
 server: serverConfig serverLog serverGeneral serverConnection serverRequest serverResponse
 	cd $(SERVERSRC) && $(CC) $(CFLAGS) -o ../niposerver main.cpp server.cpp config.o log.o general.o connection.o request.o response.o
 
