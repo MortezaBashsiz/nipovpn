@@ -1,6 +1,7 @@
 #include "config.hpp"
 #include "general.hpp"
 #include "log.hpp"
+#include "net.hpp"
 
 int main(int argc=0, char* argv[]=0){
 
