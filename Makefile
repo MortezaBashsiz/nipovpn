@@ -7,10 +7,8 @@ CFLAGS=-g -ljsoncpp
 SRC=./server
 INCLUDEPATH=../files/include
 
-all: server
-
-server: config general log net
-	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -o ../niposerver main.cpp config.o log.o general.o net.o
+all: config log general connection request response
+	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -o ../niposerver main.cpp server.cpp config.o log.o general.o connection.o request.o response.o
 
 config:
 	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c config.cpp
@@ -21,8 +19,14 @@ log:
 general:
 	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c general.cpp
 
-net:
-	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c net.cpp
+connection:
+	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c connection.cpp 
+
+request:
+	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c request.cpp 
+
+response:
+	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c response.cpp 
 
 clean:
 	rm $(SRC)/*.o

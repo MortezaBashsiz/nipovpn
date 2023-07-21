@@ -36,6 +36,7 @@ private:
 	};
 public:
 	configStruct config;
+	Config();
 	Config(std::string file);
 	returnMsgCode validate();
 	~Config();

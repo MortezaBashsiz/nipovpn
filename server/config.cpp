@@ -1,6 +1,9 @@
 #include "config.hpp"
 
 using namespace std;
+Config::Config()
+{
+}
 
 Config::Config(std::string file)
 {
