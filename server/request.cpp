@@ -2,11 +2,11 @@
 #include "response.hpp"
 #include "header.hpp"
 
-serverRequestHandler::serverRequestHandler(Config config, const std::string& docRoot) : docRoot_(docRoot), nipoLog(config){
+RequestHandler::RequestHandler(Config config, const std::string& docRoot) : docRoot_(docRoot), nipoLog(config){
 	nipoConfig = config;
 }
 
-void serverRequestHandler::handleRequest(request& req, response& resp) {
+void RequestHandler::handleRequest(request& req, response& resp) {
 	std::string requestPath;
 
 	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
@@ -109,7 +109,7 @@ void serverRequestHandler::handleRequest(request& req, response& resp) {
 	nipoLog.write(logMsg , nipoLog.levelInfo);
 };
 
-bool serverRequestHandler::urlDecode(const std::string& in, std::string& out) {
+bool RequestHandler::urlDecode(const std::string& in, std::string& out) {
 	out.clear();
 	out.reserve(in.size());
 	for (std::size_t i = 0; i < in.size(); ++i) {

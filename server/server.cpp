@@ -4,8 +4,8 @@ server::server(Config nipoConfig)
 	: io_context_(1),
 		signals_(io_context_),
 		acceptor_(io_context_),
-		serverConnectionManager_(nipoConfig),
-		serverRequestHandler_(nipoConfig, nipoConfig.config.webDir),
+		ConnectionManager_(nipoConfig),
+		RequestHandler_(nipoConfig, nipoConfig.config.webDir),
 		nipoLog(nipoConfig) {
 
 	signals_.add(SIGINT);
@@ -36,8 +36,8 @@ void server::doAccept() {
 					return;
 				};
 				if (!ec) {
-					serverConnectionManager_.start(std::make_shared<serverConnection>(
-							std::move(socket), serverConnectionManager_, serverRequestHandler_));
+					ConnectionManager_.start(std::make_shared<Connection>(
+							std::move(socket), ConnectionManager_, RequestHandler_));
 				};
 				doAccept();
 			});
@@ -48,6 +48,6 @@ void server::doAwaitStop() {
 			[this](std::error_code /*ec*/, int /*signo*/)
 			{
 				acceptor_.close();
-				serverConnectionManager_.stopAll();
+				ConnectionManager_.stopAll();
 			});
 }

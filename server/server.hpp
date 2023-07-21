@@ -24,8 +24,8 @@ class server {
 		asio::io_context io_context_;
 		asio::signal_set signals_;
 		asio::ip::tcp::acceptor acceptor_;
-		serverConnectionManager serverConnectionManager_;
-		serverRequestHandler serverRequestHandler_;
+		ConnectionManager ConnectionManager_;
+		RequestHandler RequestHandler_;
 };
 
 #endif // SERVER_HPP

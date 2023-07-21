@@ -17,11 +17,11 @@ struct request{
 	body requestBody;
 };
 
-class serverRequestHandler {
+class RequestHandler {
 	public:
-		serverRequestHandler(const serverRequestHandler&) = delete;
-		serverRequestHandler& operator=(const serverRequestHandler&) = delete;
-		explicit serverRequestHandler(Config config, const std::string& docRoot);
+		RequestHandler(const RequestHandler&) = delete;
+		RequestHandler& operator=(const RequestHandler&) = delete;
+		explicit RequestHandler(Config config, const std::string& docRoot);
 		void handleRequest(request& req, response& resp);
 		Log nipoLog;
 		Config nipoConfig;

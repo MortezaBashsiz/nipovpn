@@ -10,13 +10,13 @@
 #include "request.hpp"
 #include "request.hpp"
 
-class serverConnectionManager;
+class ConnectionManager;
 
-class serverConnection : public std::enable_shared_from_this<serverConnection> {
+class Connection : public std::enable_shared_from_this<Connection> {
 	public:
-		serverConnection(const serverConnection&) = delete;
-		serverConnection& operator=(const serverConnection&) = delete;
-		explicit serverConnection(asio::ip::tcp::socket socket, serverConnectionManager& manager, serverRequestHandler& handler);
+		Connection(const Connection&) = delete;
+		Connection& operator=(const Connection&) = delete;
+		explicit Connection(asio::ip::tcp::socket socket, ConnectionManager& manager, RequestHandler& handler);
 		void start();
 		void stop();
 	
@@ -24,29 +24,29 @@ class serverConnection : public std::enable_shared_from_this<serverConnection> {
 		void doRead();
 		void doWrite();
 		asio::ip::tcp::socket socket_;
-		serverConnectionManager& serverConnectionManager_;
-		serverRequestHandler& serverRequestHandler_;
+		ConnectionManager& ConnectionManager_;
+		RequestHandler& RequestHandler_;
 		std::array<char, 8192> buffer_;
 		request request_;
 		serverRequestParser serverRequestParser_;
 		response response_;
 };
 
-typedef std::shared_ptr<serverConnection> serverConnectionPtr;
+typedef std::shared_ptr<Connection> ConnectionPtr;
 
-class serverConnectionManager
+class ConnectionManager
 {
 	public:
-		serverConnectionManager(const serverConnectionManager&) = delete;
-		serverConnectionManager& operator=(const serverConnectionManager&) = delete;
-		serverConnectionManager(Config nipoConfig);
-		void start(serverConnectionPtr c);
-		void stop(serverConnectionPtr c);
+		ConnectionManager(const ConnectionManager&) = delete;
+		ConnectionManager& operator=(const ConnectionManager&) = delete;
+		ConnectionManager(Config nipoConfig);
+		void start(ConnectionPtr c);
+		void stop(ConnectionPtr c);
 		void stopAll();
 		Log nipoLog;
 	
 	private:
-		std::set<serverConnectionPtr> connections_;
+		std::set<ConnectionPtr> connections_;
 };
 
 #endif //CONNECTION_HPP
