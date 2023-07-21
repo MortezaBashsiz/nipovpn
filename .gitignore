@@ -34,3 +34,4 @@
 server/*.o
 
 niposerver
+nipoagent

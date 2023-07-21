@@ -21,9 +21,9 @@ class server {
 	private:
 		void doAccept();
 		void doAwaitStop();
-		asio::io_context io_context_;
-		asio::signal_set signals_;
-		asio::ip::tcp::acceptor acceptor_;
+		boost::asio::io_context io_context_;
+		boost::asio::signal_set signals_;
+		boost::asio::ip::tcp::acceptor acceptor_;
 		ConnectionManager ConnectionManager_;
 		RequestHandler RequestHandler_;
 };

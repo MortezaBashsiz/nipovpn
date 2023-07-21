@@ -1,6 +1,6 @@
 #include "connection.hpp"
 
-Connection::Connection(asio::ip::tcp::socket socket,
+Connection::Connection(boost::asio::ip::tcp::socket socket,
 		ConnectionManager& manager, RequestHandler& handler)
 	: socket_(std::move(socket)),
 		ConnectionManager_(manager),
@@ -17,7 +17,7 @@ void Connection::stop() {
 
 void Connection::doRead() {
 	auto self(shared_from_this());
-	socket_.async_read_some(asio::buffer(buffer_), [this, self](std::error_code ec, std::size_t bytesTransferred) {
+	socket_.async_read_some(boost::asio::buffer(buffer_), [this, self](boost::system::error_code ec, std::size_t bytesTransferred) {
 		request_.clientIP = socket_.remote_endpoint().address().to_string();
 		request_.clientPort = std::to_string(socket_.remote_endpoint().port());
 		char data[bytesTransferred];
@@ -39,7 +39,7 @@ void Connection::doRead() {
 				doRead();
 			}
 		}
-		else if (ec != asio::error::operation_aborted) {
+		else if (ec != boost::asio::error::operation_aborted) {
 			ConnectionManager_.stop(shared_from_this());
 		}
 	});
@@ -47,13 +47,13 @@ void Connection::doRead() {
 
 void Connection::doWrite() {
 	auto self(shared_from_this());
-	asio::async_write(socket_, response_.toBuffers(), [this, self](std::error_code ec, std::size_t) {
+	boost::asio::async_write(socket_, response_.toBuffers(), [this, self](boost::system::error_code ec, std::size_t) {
 		if (!ec) {
-			asio::error_code ignored_ec;
-			socket_.shutdown(asio::ip::tcp::socket::shutdown_both,
+			boost::system::error_code ignored_ec;
+			socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both,
 				ignored_ec);
 		}
-		if (ec != asio::error::operation_aborted) {
+		if (ec != boost::asio::error::operation_aborted) {
 			ConnectionManager_.stop(shared_from_this());
 		}
 	});

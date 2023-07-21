@@ -6,44 +6,43 @@ CC=g++
 CFLAGS=-g -ljsoncpp
 SERVERSRC=./server
 AGENTSRC=./agent
-INCLUDEPATH=../files/include
 
 server: serverConfig serverLog serverGeneral serverConnection serverRequest serverResponse
-	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -o ../niposerver main.cpp server.cpp config.o log.o general.o connection.o request.o response.o
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -o ../niposerver main.cpp server.cpp config.o log.o general.o connection.o request.o response.o
 
 serverConfig:
-	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c config.cpp
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -c config.cpp
 
 serverLog:
-	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c log.cpp
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -c log.cpp
 
 serverGeneral:
-	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c general.cpp
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -c general.cpp
 
 serverConnection:
-	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c connection.cpp 
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -c connection.cpp 
 
 serverRequest:
-	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c request.cpp 
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -c request.cpp 
 
 serverResponse:
-	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c response.cpp 
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -c response.cpp 
 
 cleanserver:
 	rm $(SERVERSRC)/*.o
 	rm niposerver
 
 agent: agentConfig agentLog agentGeneral
-	cd $(AGENTSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -o ../nipoagent main.cpp config.o log.o general.o
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -o ../nipoagent main.cpp config.o log.o general.o
 
 agentConfig:
-	cd $(AGENTSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c config.cpp
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c config.cpp
 
 agentLog:
-	cd $(AGENTSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c log.cpp
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c log.cpp
 
 agentGeneral:
-	cd $(AGENTSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c general.cpp
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c general.cpp
 
 cleanagent:
 	rm $(AGENTSRC)/*.o

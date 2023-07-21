@@ -15,10 +15,10 @@ server::server(Config nipoConfig)
 #endif // defined(SIGQUIT)
 	nipoLog.write("started in server mode", nipoLog.levelInfo);
 	doAwaitStop();
-	asio::ip::tcp::resolver resolver(io_context_);
-	asio::ip::tcp::endpoint endpoint = *resolver.resolve(nipoConfig.config.ip, std::to_string(nipoConfig.config.port)).begin();
+	boost::asio::ip::tcp::resolver resolver(io_context_);
+	boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(nipoConfig.config.ip, std::to_string(nipoConfig.config.port)).begin();
 	acceptor_.open(endpoint.protocol());
-	acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+	acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
 	acceptor_.bind(endpoint);
 	acceptor_.listen();
 	doAccept();
@@ -30,7 +30,7 @@ void server::run() {
 
 void server::doAccept() {
 	acceptor_.async_accept(
-			[this](std::error_code ec, asio::ip::tcp::socket socket)
+			[this](std::error_code ec, boost::asio::ip::tcp::socket socket)
 			{
 				if (!acceptor_.is_open()) {
 					return;

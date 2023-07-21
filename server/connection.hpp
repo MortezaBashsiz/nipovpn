@@ -16,14 +16,14 @@ class Connection : public std::enable_shared_from_this<Connection> {
 	public:
 		Connection(const Connection&) = delete;
 		Connection& operator=(const Connection&) = delete;
-		explicit Connection(asio::ip::tcp::socket socket, ConnectionManager& manager, RequestHandler& handler);
+		explicit Connection(boost::asio::ip::tcp::socket socket, ConnectionManager& manager, RequestHandler& handler);
 		void start();
 		void stop();
 	
 	private:
 		void doRead();
 		void doWrite();
-		asio::ip::tcp::socket socket_;
+		boost::asio::ip::tcp::socket socket_;
 		ConnectionManager& ConnectionManager_;
 		RequestHandler& RequestHandler_;
 		std::array<char, 8192> buffer_;

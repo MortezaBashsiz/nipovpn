@@ -1,23 +1,23 @@
 #include "response.hpp"
 
-asio::const_buffer statusToBuffer(response::statusType status) {
+boost::asio::const_buffer statusToBuffer(response::statusType status) {
 	switch (status){
 	case response::ok:
-		return asio::buffer(statusStringOk);
+		return boost::asio::buffer(statusStringOk);
 	case response::badRequest:
-		return asio::buffer(statusStringBadRequest);
+		return boost::asio::buffer(statusStringBadRequest);
 	case response::unauthorized:
-		return asio::buffer(statusStringUnauthorized);
+		return boost::asio::buffer(statusStringUnauthorized);
 	case response::forbidden:
-		return asio::buffer(statusStringForbidden);
+		return boost::asio::buffer(statusStringForbidden);
 	case response::notFound:
-		return asio::buffer(statusStringNotFound);
+		return boost::asio::buffer(statusStringNotFound);
 	case response::internalServerError:
-		return asio::buffer(statusStringInternalServerError);
+		return boost::asio::buffer(statusStringInternalServerError);
 	case response::serviceUnavailable:
-		return asio::buffer(statusStringServiceUnavailable);
+		return boost::asio::buffer(statusStringServiceUnavailable);
 	default:
-		return asio::buffer(statusStringInternalServerError);
+		return boost::asio::buffer(statusStringInternalServerError);
 	};
 };
 
@@ -54,18 +54,18 @@ response response::stockResponse(response::statusType status) {
 	return resp;
 };
 
-std::vector<asio::const_buffer> response::toBuffers() {
-	std::vector<asio::const_buffer> buffers;
+std::vector<boost::asio::const_buffer> response::toBuffers() {
+	std::vector<boost::asio::const_buffer> buffers;
 	buffers.push_back(statusToBuffer(status));
 	for (std::size_t i = 0; i < headers.size(); ++i){
 		header& h = headers[i];
-		buffers.push_back(asio::buffer(h.name));
-		buffers.push_back(asio::buffer(miscNameValueSeparator));
-		buffers.push_back(asio::buffer(h.value));
-		buffers.push_back(asio::buffer(miscCrlf));
+		buffers.push_back(boost::asio::buffer(h.name));
+		buffers.push_back(boost::asio::buffer(miscNameValueSeparator));
+		buffers.push_back(boost::asio::buffer(h.value));
+		buffers.push_back(boost::asio::buffer(miscCrlf));
 	};
-	buffers.push_back(asio::buffer(miscCrlf));
-	buffers.push_back(asio::buffer(responseBody.content));
+	buffers.push_back(boost::asio::buffer(miscCrlf));
+	buffers.push_back(boost::asio::buffer(responseBody.content));
 	return buffers;
 };
 

@@ -3,7 +3,8 @@
 
 #include <string>
 #include <vector>
-#include <asio.hpp>
+// #include <asio.hpp>
+#include <boost/asio.hpp>
 
 #include "header.hpp"
 
@@ -38,11 +39,11 @@ struct response{
 
 	std::vector<header> headers;
 	body responseBody;
-	std::vector<asio::const_buffer> toBuffers();
+	std::vector<boost::asio::const_buffer> toBuffers();
 	static response stockResponse(statusType status);
 };
 
 std::string statusToString(response::statusType status);
-asio::const_buffer statusToBuffer(response::statusType status);
+boost::asio::const_buffer statusToBuffer(response::statusType status);
 
 #endif //RESPONSE_HPP
