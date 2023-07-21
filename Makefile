@@ -4,31 +4,47 @@
 #
 CC=g++
 CFLAGS=-g -ljsoncpp
-SRC=./server
+SERVERSRC=./server
+AGENTSRC=./agent
 INCLUDEPATH=../files/include
 
-all: config log general connection request response
-	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -o ../niposerver main.cpp server.cpp config.o log.o general.o connection.o request.o response.o
+server: serverConfig serverLog serverGeneral serverConnection serverRequest serverResponse
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -o ../niposerver main.cpp server.cpp config.o log.o general.o connection.o request.o response.o
 
-config:
-	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c config.cpp
+serverConfig:
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c config.cpp
 
-log:
-	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c log.cpp
+serverLog:
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c log.cpp
 
-general:
-	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c general.cpp
+serverGeneral:
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c general.cpp
 
-connection:
-	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c connection.cpp 
+serverConnection:
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c connection.cpp 
 
-request:
-	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c request.cpp 
+serverRequest:
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c request.cpp 
 
-response:
-	cd $(SRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c response.cpp 
+serverResponse:
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c response.cpp 
 
-clean:
-	rm $(SRC)/*.o
+cleanserver:
+	rm $(SERVERSRC)/*.o
 	rm niposerver
 
+agent: agentConfig agentLog agentGeneral
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -o ../nipoagent main.cpp config.o log.o general.o connection.o request.o response.o
+
+agentConfig:
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c config.cpp
+
+agentLog:
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c log.cpp
+
+agentGeneral:
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -I$(INCLUDEPATH) -c general.cpp
+
+cleanagent:
+	rm $(AGENTSRC)/*.o
+	rm nipoagent
