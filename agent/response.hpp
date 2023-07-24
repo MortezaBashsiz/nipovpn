@@ -6,11 +6,6 @@
 #include <boost/asio.hpp>
 
 struct ResponseBody{
-	enum bodyType{
-		real = 1,
-		fake = 2
-	} type;	
-	
 	std::string content;
 };
 
