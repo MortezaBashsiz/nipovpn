@@ -31,9 +31,9 @@ class RequestHandler {
 		static bool urlDecode(const std::string& in, std::string& out);
 };
 
-class serverRequestParser{
+class RequestParser{
 	public:
-		serverRequestParser();
+		RequestParser();
 		void reset();
 		enum resultType { good, bad, indeterminate };
 		template <typename InputIterator>

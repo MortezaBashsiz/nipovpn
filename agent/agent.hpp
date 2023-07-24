@@ -3,29 +3,26 @@
 
 #include "config.hpp"
 #include "log.hpp"
-#include "header.hpp"
-#include "request.hpp"
-#include "response.hpp"
 #include "connection.hpp"
 
-using namespace std;
+#include <boost/asio.hpp>
 
 class agent {
 	public:
 		agent(const agent&) = delete;
 		agent& operator=(const agent&) = delete;
-		explicit agent(agentConfig nipoConfig);
+		explicit agent(Config nipoConfig);
 		void run();
 		Log nipoLog;
 	
 	private:
 		void doAccept();
 		void doAwaitStop();
-		asio::io_context io_context_;
-		asio::signal_set signals_;
-		asio::ip::tcp::acceptor acceptor_;
-		agentConnectionManager agentConnectionManager_;
-		agentRequestHandler agentRequestHandler_;
+		boost::asio::io_context io_context_;
+		boost::asio::signal_set signals_;
+		boost::asio::ip::tcp::acceptor acceptor_;
+		ConnectionManager ConnectionManager_;
+		RequestHandler RequestHandler_;
 };
 
 #endif // AGENT_HPP

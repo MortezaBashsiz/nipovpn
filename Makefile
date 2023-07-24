@@ -35,8 +35,8 @@ cleanserver:
 	rm $(SERVERSRC)/*.o
 	rm niposerver
 
-agent: agentConfig agentLog agentGeneral
-	cd $(AGENTSRC) && $(CC) $(CFLAGS) -o ../nipoagent main.cpp config.o log.o general.o
+agent: agentConfig agentLog agentGeneral agentConnection agentRequest agentResponse
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -o ../nipoagent main.cpp agent.cpp config.o log.o general.o connection.o request.o response.o
 
 agentConfig:
 	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c config.cpp
@@ -46,6 +46,15 @@ agentLog:
 
 agentGeneral:
 	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c general.cpp
+
+agentConnection:
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c connection.cpp 
+
+agentRequest:
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c request.cpp 
+
+agentResponse:
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c response.cpp 
 
 cleanagent:
 	rm $(AGENTSRC)/*.o

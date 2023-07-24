@@ -18,28 +18,16 @@ void Connection::stop() {
 void Connection::doRead() {
 	auto self(shared_from_this());
 	socket_.async_read_some(boost::asio::buffer(buffer_), [this, self](boost::system::error_code ec, std::size_t bytesTransferred) {
-		request_.clientIP = socket_.remote_endpoint().address().to_string();
-		request_.clientPort = std::to_string(socket_.remote_endpoint().port());
+		// request_.clientIP = socket_.remote_endpoint().address().to_string();
+		// request_.clientPort = std::to_string(socket_.remote_endpoint().port());
 		char data[bytesTransferred];
 		std::memcpy(data, buffer_.data(), bytesTransferred);
 		request_.requestBody.content = data;
+		response_.responseBody.content = data;
 		if (!ec) {
-			RequestParser::resultType result;
-			std::tie(result, std::ignore) = RequestParser_.parse(
-					request_, buffer_.data(), buffer_.data() + bytesTransferred);
-			if (result == RequestParser::good) {
-				RequestHandler_.handleRequest(request_, response_);
-				doWrite();
-			}
-			else if (result == RequestParser::bad) {
-				response_ = response::stockResponse(response::badRequest);
-				doWrite();
-			}
-			else {
-				doRead();
-			}
+			doRead();
 		}
-		else if (ec != boost::asio::error::operation_aborted) {
+		if (ec != boost::asio::error::operation_aborted) {
 			ConnectionManager_.stop(shared_from_this());
 		}
 	});

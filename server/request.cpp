@@ -135,14 +135,14 @@ bool RequestHandler::urlDecode(const std::string& in, std::string& out) {
 	return true;
 }
 
-serverRequestParser::serverRequestParser() : state_(methodStart) {
+RequestParser::RequestParser() : state_(methodStart) {
 }
 
-void serverRequestParser::reset() {
+void RequestParser::reset() {
 	state_ = methodStart;
 }
 
-serverRequestParser::resultType serverRequestParser::consume(request& req, char input) {
+RequestParser::resultType RequestParser::consume(request& req, char input) {
 	switch (state_) {
 	case methodStart:
 		if (!isChar(input) || isCtl(input) || isTspecial(input)) {
@@ -347,15 +347,15 @@ serverRequestParser::resultType serverRequestParser::consume(request& req, char 
 	}
 }
 
-bool serverRequestParser::isChar(int c) {
+bool RequestParser::isChar(int c) {
 	return c >= 0 && c <= 127;
 }
 
-bool serverRequestParser::isCtl(int c) {
+bool RequestParser::isCtl(int c) {
 	return (c >= 0 && c <= 31) || (c == 127);
 }
 
-bool serverRequestParser::isTspecial(int c) {
+bool RequestParser::isTspecial(int c) {
 	switch (c)
 	{
 	case '(': case ')': case '<': case '>': case '@':
@@ -368,6 +368,6 @@ bool serverRequestParser::isTspecial(int c) {
 	}
 }
 
-bool serverRequestParser::isDigit(int c) {
+bool RequestParser::isDigit(int c) {
 	return c >= '0' && c <= '9';
 }

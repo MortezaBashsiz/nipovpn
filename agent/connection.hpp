@@ -2,10 +2,10 @@
 #define CONNECTION_HPP
 
 #include <set>
+#include <boost/asio.hpp>
 
 #include "config.hpp"
 #include "log.hpp"
-#include "header.hpp"
 #include "response.hpp"
 #include "request.hpp"
 
@@ -27,7 +27,6 @@ class Connection : public std::enable_shared_from_this<Connection> {
 		RequestHandler& RequestHandler_;
 		std::array<char, 8192> buffer_;
 		request request_;
-		RequestParser RequestParser_;
 		response response_;
 };
 
