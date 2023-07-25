@@ -2,7 +2,6 @@
 #define CONNECTION_HPP
 
 #include <set>
-#include <boost/asio.hpp>
 
 #include "config.hpp"
 #include "log.hpp"
