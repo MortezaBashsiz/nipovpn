@@ -7,12 +7,16 @@
 
 #include <boost/asio.hpp>
 
+
+
+
 class agent {
 	public:
 		agent(const agent&) = delete;
 		agent& operator=(const agent&) = delete;
-		explicit agent(Config nipoConfig);
+		explicit agent(Config config);
 		void run();
+		Config nipoConfig;
 		Log nipoLog;
 	
 	private:

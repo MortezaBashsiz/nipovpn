@@ -14,8 +14,9 @@ class server {
 	public:
 		server(const server&) = delete;
 		server& operator=(const server&) = delete;
-		explicit server(Config nipoConfig);
+		explicit server(Config config);
 		void run();
+		Config nipoConfig;
 		Log nipoLog;
 	
 	private:

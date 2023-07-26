@@ -15,9 +15,11 @@ class Connection : public std::enable_shared_from_this<Connection> {
 	public:
 		Connection(const Connection&) = delete;
 		Connection& operator=(const Connection&) = delete;
-		explicit Connection(boost::asio::ip::tcp::socket socket, ConnectionManager& manager, RequestHandler& handler);
+		explicit Connection(boost::asio::ip::tcp::socket socket, ConnectionManager& manager, RequestHandler& handler, Config config);
 		void start();
 		void stop();
+		Log nipoLog;
+		Config nipoConfig;
 	
 	private:
 		void doRead();
@@ -38,11 +40,12 @@ class ConnectionManager
 	public:
 		ConnectionManager(const ConnectionManager&) = delete;
 		ConnectionManager& operator=(const ConnectionManager&) = delete;
-		ConnectionManager(Config nipoConfig);
+		ConnectionManager(Config config);
 		void start(ConnectionPtr c);
 		void stop(ConnectionPtr c);
 		void stopAll();
 		Log nipoLog;
+		Config nipoConfig;
 	
 	private:
 		std::set<ConnectionPtr> connections_;

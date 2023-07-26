@@ -3,7 +3,7 @@
 # "standard" command name CC
 #
 CC=g++
-CFLAGS=-g -ljsoncpp
+CFLAGS=-g -ljsoncpp -lcrypto -lssl
 SERVERSRC=./server
 AGENTSRC=./agent
 
@@ -35,8 +35,8 @@ cleanserver:
 	rm $(SERVERSRC)/*.o
 	rm niposerver
 
-agent: agentConfig agentLog agentGeneral agentConnection agentRequest agentResponse
-	cd $(AGENTSRC) && $(CC) $(CFLAGS) -o ../nipoagent main.cpp agent.cpp config.o log.o general.o connection.o request.o response.o
+agent: agentConfig agentLog agentGeneral agentConnection agentRequest agentResponse agentEncrypt
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -o ../nipoagent main.cpp agent.cpp config.o log.o general.o connection.o request.o response.o encrypt.o
 
 agentConfig:
 	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c config.cpp
@@ -55,6 +55,9 @@ agentRequest:
 
 agentResponse:
 	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c response.cpp 
+
+agentEncrypt:
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c encrypt.cpp 
 
 cleanagent:
 	rm $(AGENTSRC)/*.o

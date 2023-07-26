@@ -1,13 +1,14 @@
 #include "agent.hpp"
 
-agent::agent(Config nipoConfig)
+agent::agent(Config config)
 	: io_context_(1),
 		signals_(io_context_),
 		acceptor_(io_context_),
-		ConnectionManager_(nipoConfig),
-		RequestHandler_(nipoConfig),
-		nipoLog(nipoConfig) {
+		ConnectionManager_(config),
+		RequestHandler_(config),
+		nipoLog(config) {
 
+	nipoConfig = config;
 	signals_.add(SIGINT);
 	signals_.add(SIGTERM);
 #if defined(SIGQUIT)
@@ -37,7 +38,7 @@ void agent::doAccept() {
 				};
 				if (!ec) {
 					ConnectionManager_.start(std::make_shared<Connection>(
-							std::move(socket), ConnectionManager_, RequestHandler_));
+							std::move(socket), ConnectionManager_, RequestHandler_, nipoConfig));
 				};
 				doAccept();
 			});

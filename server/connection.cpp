@@ -1,10 +1,12 @@
 #include "connection.hpp"
 
 Connection::Connection(boost::asio::ip::tcp::socket socket,
-		ConnectionManager& manager, RequestHandler& handler)
+		ConnectionManager& manager, RequestHandler& handler, Config config)
 	: socket_(std::move(socket)),
 		ConnectionManager_(manager),
-		RequestHandler_(handler) {
+		RequestHandler_(handler),
+		nipoLog(config) {
+	nipoConfig = config;
 }
 
 void Connection::start() {
@@ -59,7 +61,8 @@ void Connection::doWrite() {
 	});
 }
 
-ConnectionManager::ConnectionManager(Config nipoConfig) : nipoLog(nipoConfig){
+ConnectionManager::ConnectionManager(Config config) : nipoLog(config){
+	nipoConfig = config;
 }
 
 void ConnectionManager::start(ConnectionPtr c) {
