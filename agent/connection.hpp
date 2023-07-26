@@ -8,6 +8,7 @@
 #include "response.hpp"
 #include "request.hpp"
 #include "encrypt.hpp"
+#include "proxy.hpp"
 
 class ConnectionManager;
 
@@ -21,6 +22,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
 		Config nipoConfig;
 		Log nipoLog;
 		Encrypt nipoEncrypt;
+		Proxy nipoProxy;
 	
 	private:
 		void doRead();

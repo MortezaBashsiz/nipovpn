@@ -7,7 +7,8 @@ Connection::Connection(boost::asio::ip::tcp::socket socket,
 		ConnectionManager_(manager),
 		RequestHandler_(handler),
 		nipoLog(config),
-		nipoEncrypt(nipoConfig)
+		nipoEncrypt(nipoConfig),
+		nipoProxy(nipoConfig)
 {
 	nipoConfig = config;
 }
@@ -33,6 +34,7 @@ void Connection::doRead() {
 			int dataLen = strlen(data)+1;
 			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)data, &dataLen);
 			std::string encryptedBody = std::string("DATA_START:")+(char*)encryptedData+std::string(":DATA_END");
+			std::string result = nipoProxy.send(encryptedBody);
 			doWrite();
 		} else if (ec != boost::asio::error::operation_aborted) {
 			ConnectionManager_.stop(shared_from_this());
