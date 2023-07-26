@@ -12,7 +12,6 @@ class Config
 {
 private:
 	struct userStruct{
-		std::string encryption;
 		std::string token;
 		std::string srcIp;
 		std::string endpoint;
@@ -28,7 +27,6 @@ private:
 		unsigned short threads;
 		unsigned short usersCount;
 		userStruct users[SERVER_CONFIG_MAX_USER_COUNT]{
-			"AES_256",
 			"4b445619-a2f7-48fd-9060-04252e10adee",
 			"0.0.0.0",
 			"api01"

@@ -16,8 +16,8 @@ private:
 		unsigned short serverPort;
 		unsigned short logLevel;
 		std::string logFile;
-		std::string encryption;
 		std::string token;
+		int salt;
 		std::string endpoint;
 	};
 public:

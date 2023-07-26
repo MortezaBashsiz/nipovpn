@@ -26,7 +26,6 @@ Config::Config(std::string file)
 		{
 			if (configJson["users"][item]["token"].asString() != "")
 			{
-				config.users[item].encryption = configJson["users"][item]["encryption"].asString();
 				config.users[item].token = configJson["users"][item]["token"].asString();
 				config.users[item].srcIp = configJson["users"][item]["srcIp"].asString();
 				config.users[item].endpoint = configJson["users"][item]["endpoint"].asString();

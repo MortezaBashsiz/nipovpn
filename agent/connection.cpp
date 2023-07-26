@@ -6,7 +6,9 @@ Connection::Connection(boost::asio::ip::tcp::socket socket,
 	: socket_(std::move(socket)),
 		ConnectionManager_(manager),
 		RequestHandler_(handler),
-		nipoLog(config){
+		nipoLog(config),
+		nipoEncrypt(nipoConfig)
+{
 	nipoConfig = config;
 }
 
@@ -27,21 +29,10 @@ void Connection::doRead() {
 			doRead();
 			request_.clientIP = socket_.remote_endpoint().address().to_string();
 			request_.clientPort = std::to_string(socket_.remote_endpoint().port());
-			EVP_CIPHER_CTX* en = EVP_CIPHER_CTX_new();
-			EVP_CIPHER_CTX* de = EVP_CIPHER_CTX_new();
-			char *plaintext;
-			unsigned char *ciphertext;
-			unsigned int salt[] = {12345, 54321};
-			unsigned char *token;
-			int tokenLen, i;
-			token = (unsigned char *)nipoConfig.config.token.c_str();
-			tokenLen = strlen(nipoConfig.config.token.c_str());
-			int len = strlen(data)+1;
-			initAes(token, tokenLen, (unsigned char *)&salt, en, de);
-			ciphertext = encryptAes(en, (unsigned char *)data, &len);
-			plaintext = (char *)decryptAes(de, ciphertext, &len);
-			std::cout << "FE : " << std::endl << ciphertext << std::endl;
-			std::cout << "FD : " << std::endl << plaintext << std::endl;
+			unsigned char *encryptedData;
+			int dataLen = strlen(data)+1;
+			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)data, &dataLen);
+			std::string encryptedBody = std::string("DATA_START:")+(char*)encryptedData+std::string(":DATA_END");
 			doWrite();
 		} else if (ec != boost::asio::error::operation_aborted) {
 			ConnectionManager_.stop(shared_from_this());

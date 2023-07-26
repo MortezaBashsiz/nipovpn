@@ -7,7 +7,7 @@
 #include "log.hpp"
 #include "response.hpp"
 #include "request.hpp"
-// #include "encrypt.hpp"
+#include "encrypt.hpp"
 
 class ConnectionManager;
 
@@ -20,6 +20,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
 		void stop();
 		Config nipoConfig;
 		Log nipoLog;
+		Encrypt nipoEncrypt;
 	
 	private:
 		void doRead();

@@ -17,8 +17,8 @@ Config::Config(string file){
 		config.serverPort	= configJson["serverPort"].asInt();
 		config.logLevel	= configJson["logLevel"].asInt();
 		config.logFile	= configJson["logFile"].asString();
-		config.encryption	= configJson["encryption"].asString();
 		config.token	= configJson["token"].asString();
+		config.salt	= configJson["salt"].asInt();
 	}	catch (const exception& error) {
 		std::cerr << "[ERROR]: specified config file is not in json format : " << error.what() << std::endl;
 		exit(1);
