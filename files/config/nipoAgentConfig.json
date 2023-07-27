@@ -9,5 +9,5 @@
 	"salt": 123456,
 	"endPoint": "/api01",
 	"httpVersion": 20,
-	"userAgent" : "Firefox version 12"
+	"userAgent" : "Golang API"
 }
