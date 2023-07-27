@@ -25,7 +25,6 @@ void Connection::doRead() {
 		char data[bytesTransferred];
 		std::memcpy(data, buffer_.data(), bytesTransferred);
 		request_.requestBody.content = data;
-		std::cout << "FUCK : " << data << std::endl;
 		if (!ec) {
 			RequestParser::resultType result;
 			std::tie(result, std::ignore) = RequestParser_.parse(

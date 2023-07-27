@@ -13,9 +13,9 @@ Proxy::Proxy(Config config) : nipoLog(config)
 
 Proxy::~Proxy(){}
 
-std::string Proxy::send(std::string encryptedBody)
+std::string Proxy::send(std::string encryptedBody, unsigned short plainDataLen)
 {
-	boost::beast::http::response<boost::beast::http::dynamic_body> res;
+	boost::beast::http::response<boost::beast::http::string_body> res;
 	try
 	{
 		boost::asio::io_context ioc;
@@ -27,6 +27,9 @@ std::string Proxy::send(std::string encryptedBody)
 		req.set(boost::beast::http::field::host, nipoConfig.config.serverIp);
 		req.set(boost::beast::http::field::user_agent, nipoConfig.config.userAgent);
 		req.body() = encryptedBody;
+		req.set("Accept", "*/*");
+		req.set("Content-Type", "application/javascript");
+		req.set("Content-Length", std::to_string(plainDataLen));
 		boost::beast::http::write(stream, req);
 		boost::beast::flat_buffer buffer;
 		boost::beast::http::read(stream, buffer, res);
@@ -39,6 +42,5 @@ std::string Proxy::send(std::string encryptedBody)
 	{
 			std::cerr << "Error: " << e.what() << std::endl;
 	}
-	std::cout << "FUCK : " << std::endl << res << std::endl;
-	return "ok";
+	return res.body();
 }

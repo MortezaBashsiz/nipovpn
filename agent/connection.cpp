@@ -34,7 +34,9 @@ void Connection::doRead() {
 			int dataLen = strlen(data)+1;
 			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)data, &dataLen);
 			std::string encryptedBody = std::string("DATA_START:")+(char*)encryptedData+std::string(":DATA_END");
-			std::string result = nipoProxy.send(encryptedBody);
+			std::string result = nipoProxy.send(encryptedBody, dataLen);
+			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) result.c_str(), &dataLen);
+			response_.responseBody.content = result;
 			doWrite();
 		} else if (ec != boost::asio::error::operation_aborted) {
 			ConnectionManager_.stop(shared_from_this());

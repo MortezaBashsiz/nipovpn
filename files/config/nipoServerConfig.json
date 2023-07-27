@@ -13,12 +13,6 @@
 			"salt": 123456,
 			"srcIp": "0.0.0.0",
 			"endpoint": "/api01"
-		},
-		{
-			"token": "ffec8b66-9e09-419c-baf3-9b0c1c72833f",
-			"salt": 123456,
-			"srcIp": "0.0.0.0",
-			"endpoint": "/api02"
 		}
 	]
 }

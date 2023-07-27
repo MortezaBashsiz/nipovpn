@@ -5,6 +5,7 @@
 #include "log.hpp"
 #include "header.hpp"
 #include "response.hpp"
+#include "encrypt.hpp"
 
 struct request{
 	std::string method;
@@ -25,6 +26,7 @@ class RequestHandler {
 		void handleRequest(request& req, response& resp);
 		Log nipoLog;
 		Config nipoConfig;
+		Encrypt nipoEncrypt;
 	
 	private:
 		std::string docRoot_;

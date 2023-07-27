@@ -41,10 +41,10 @@ unsigned char* Encrypt::decryptAes(EVP_CIPHER_CTX *e, unsigned char *ciphertext,
 Encrypt::Encrypt(Config config) : nipoLog(config)
 {
   nipoConfig = config;
-  salt[0] = nipoConfig.config.salt;
-  salt[1] = nipoConfig.config.salt;
-  token = (unsigned char *)nipoConfig.config.token.c_str();
-  tokenLen = strlen(nipoConfig.config.token.c_str());
+  salt[0] = nipoConfig.config.users[0].salt;
+  salt[1] = nipoConfig.config.users[0].salt;
+  token = (unsigned char *)nipoConfig.config.users[0].token.c_str();
+  tokenLen = strlen(nipoConfig.config.users[0].token.c_str());
   initAes(token, tokenLen, (unsigned char *)&salt, encryptEvp, decryptEvp);
 }
 

@@ -7,9 +7,6 @@
 
 #include <boost/asio.hpp>
 
-
-
-
 class agent {
 	public:
 		agent(const agent&) = delete;

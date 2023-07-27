@@ -1,8 +1,9 @@
 #include "request.hpp"
 #include "response.hpp"
 #include "header.hpp"
+#include "encrypt.hpp"
 
-RequestHandler::RequestHandler(Config config, const std::string& docRoot) : docRoot_(docRoot), nipoLog(config){
+RequestHandler::RequestHandler(Config config, const std::string& docRoot) : docRoot_(docRoot), nipoLog(config), nipoEncrypt(config) {
 	nipoConfig = config;
 }
 
@@ -26,7 +27,9 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 			};
 			std::string tempString = req.requestBody.content.substr(first+11,last-first-11);
 			req.requestBody.content = tempString;
-			resp.responseBody.content = req.requestBody.content;
+			int lenlen = std::stoi(req.headers[4].value);
+			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.requestBody.content.c_str(), &lenlen);
+			resp.responseBody.content = plainData;
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + ", " 
