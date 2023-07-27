@@ -10,7 +10,7 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 	std::string requestPath;
 
 	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
-		std::string reqPath = nipoConfig.config.users[counter].endpoint + "/";
+		std::string reqPath = nipoConfig.config.users[counter].endpoint;
 		if (req.uri.rfind(reqPath, 0) == 0) {
 			unsigned first = req.requestBody.content.find("DATA_START:");
 			unsigned last = req.requestBody.content.find(":DATA_END");

@@ -18,7 +18,9 @@ private:
 		std::string logFile;
 		std::string token;
 		int salt;
-		std::string endpoint;
+		std::string endPoint;
+		unsigned short httpVersion;
+		std::string userAgent;
 	};
 public:
 	configStruct config;

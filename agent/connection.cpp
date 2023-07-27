@@ -7,8 +7,8 @@ Connection::Connection(boost::asio::ip::tcp::socket socket,
 		ConnectionManager_(manager),
 		RequestHandler_(handler),
 		nipoLog(config),
-		nipoEncrypt(nipoConfig),
-		nipoProxy(nipoConfig)
+		nipoEncrypt(config),
+		nipoProxy(config)
 {
 	nipoConfig = config;
 }
