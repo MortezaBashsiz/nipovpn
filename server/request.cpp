@@ -18,7 +18,6 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 			if ( req.headers.size() < 5 ){
 				resp = response::stockResponse(response::badRequest);
 			} else {
-				int dataLenght = std::stoi(req.headers[4].value);
 				if ( first == 4294967295 || last == 4294967295 ) {
 					resp = response::stockResponse(response::badRequest);
 				} else {
@@ -27,8 +26,8 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 			};
 			std::string tempString = req.requestBody.content.substr(first+11,last-first+11);
 			req.requestBody.content = tempString;
-			int lenlen = std::stoi(req.headers[4].value);
-			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.requestBody.content.c_str(), &lenlen);
+			int dataLenght = std::stoi(req.headers[4].value);
+			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.requestBody.content.c_str(), &dataLenght);
 			resp.responseBody.content = plainData;
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
