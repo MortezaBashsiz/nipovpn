@@ -29,6 +29,19 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 			int dataLenght = std::stoi(req.headers[4].value);
 			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.requestBody.content.c_str(), &dataLenght);
 			resp.responseBody.content = plainData;
+      request newRequest;
+      RequestParser::resultType result;
+      RequestParser RequestParser_;
+      std::tie(result, std::ignore) = RequestParser_.parse(newRequest, plainData, plainData + dataLenght);
+      std::cout << std::endl << "FUCK size : " << newRequest.headers.size() << std::endl;
+      std::cout << "method : "<< newRequest.method << std::endl;
+      std::cout << "uri : "<< newRequest.uri << std::endl;
+      std::cout << "httpVersionMajor : "<< newRequest.httpVersionMajor << std::endl;
+      std::cout << "httpVersionMinor : "<< newRequest.httpVersionMinor << std::endl;
+      for (int i = 0 ; i < newRequest.headers.size() ; i++)
+      {
+              std::cout << newRequest.headers[i].name << " : "<< newRequest.headers[i].value << std::endl;
+      }
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + ", " 
