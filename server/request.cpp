@@ -25,7 +25,7 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 					resp.status = response::ok;
 				};
 			};
-			std::string tempString = req.requestBody.content.substr(first+11,last-first-11);
+			std::string tempString = req.requestBody.content.substr(first+11,last-first+11);
 			req.requestBody.content = tempString;
 			int lenlen = std::stoi(req.headers[4].value);
 			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.requestBody.content.c_str(), &lenlen);
