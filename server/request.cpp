@@ -15,27 +15,17 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
 		std::string reqPath = nipoConfig.config.users[counter].endpoint;
 		if (req.uri.rfind(reqPath, 0) == 0) {
-			// char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.content.c_str(), &req.contentLength);
-			// resp.responseBody.content = plainData;
-			// request newRequest;
-			// RequestParser::resultType result;
-			// RequestParser RequestParser_;
-			// std::tie(result, std::ignore) = RequestParser_.parse(newRequest, plainData, plainData + req.contentLength);
-			// std::cout << "method : "<< newRequest.method << std::endl;
-			// std::cout << "uri : "<< newRequest.uri << std::endl;
-			// std::cout << "httpVersionMajor : "<< newRequest.httpVersionMajor << std::endl;
-			// std::cout << "httpVersionMinor : "<< newRequest.httpVersionMinor << std::endl;
-			// std::cout << "content : "<< req.content << std::endl;
-			// std::cout << "resp.responseBody.content : "<< resp.responseBody.content << std::endl;
-			// for (int i = 0 ; i < newRequest.headers.size() ; i++)
-			// {
-			// 				std::cout << newRequest.headers[i].name << " : "<< newRequest.headers[i].value << std::endl;
-			// }
+			resp = response::stockResponse(response::ok);
+			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.content.c_str(), &req.contentLength);
+			request newRequest;
+			RequestParser::resultType result;
+			RequestParser RequestParser_;
+			std::tie(result, std::ignore) = RequestParser_.parse(newRequest, plainData, plainData + req.contentLength);
 			std::string logMsg = 	"vpn request, " 
-														+ req.clientIP + ":" 
-														+ req.clientPort + ", " 
-														+ req.method + ", " 
-														+ req.uri + ", " 
+														+ newRequest.clientIP + ":" 
+														+ newRequest.clientPort + ", " 
+														+ newRequest.method + ", " 
+														+ newRequest.uri + ", " 
 														+ to_string(resp.responseBody.content.size()) + ", " 
 														+ statusToString(resp.status);
 			nipoLog.write(logMsg , nipoLog.levelInfo);
@@ -365,12 +355,9 @@ RequestParser::resultType RequestParser::consume(request& req, char input) {
 	case content:
 		if (req.content.length() == req.contentLength-1)
 		{
-			std::cout << "content : " << input  << " req.content.length() : " << req.content.length() << " req.contentLength : " << req.contentLength << std::endl;
 			req.content.push_back(input);
-			std::cout << "FUCK : END content" << std::endl; 
 			return good;
 		} else {
-			std::cout << "content : " << input  << " req.content.length() : " << req.content.length() << " req.contentLength : " << req.contentLength << std::endl;
 			req.content.push_back(input);
 			return indeterminate;
 		}
