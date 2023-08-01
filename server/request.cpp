@@ -17,15 +17,15 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 		if (req.uri.rfind(reqPath, 0) == 0) {
 			resp = response::stockResponse(response::ok);
 			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.content.c_str(), &req.contentLength);
-			request newRequest;
+			request originalRequest;
 			RequestParser::resultType result;
 			RequestParser RequestParser_;
-			std::tie(result, std::ignore) = RequestParser_.parse(newRequest, plainData, plainData + req.contentLength);
+			std::tie(result, std::ignore) = RequestParser_.parse(originalRequest, plainData, plainData + req.contentLength);
 			std::string logMsg = 	"vpn request, " 
-														+ newRequest.clientIP + ":" 
-														+ newRequest.clientPort + ", " 
-														+ newRequest.method + ", " 
-														+ newRequest.uri + ", " 
+														+ req.clientIP + ":" 
+														+ req.clientPort + ", " 
+														+ originalRequest.method + ", " 
+														+ originalRequest.uri + ", " 
 														+ to_string(resp.responseBody.content.size()) + ", " 
 														+ statusToString(resp.status);
 			nipoLog.write(logMsg , nipoLog.levelInfo);
