@@ -2,8 +2,15 @@
 #include "response.hpp"
 #include "header.hpp"
 #include "encrypt.hpp"
+#include "proxy.hpp"
+#include "general.hpp"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/asio/connect.hpp>
+#include <boost/asio/ip/tcp.hpp>
 
 RequestHandler::RequestHandler(Config config, const std::string& docRoot) : docRoot_(docRoot), nipoLog(config), nipoEncrypt(config) {
 	nipoConfig = config;
@@ -21,12 +28,36 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 			RequestParser::resultType result;
 			RequestParser RequestParser_;
 			std::tie(result, std::ignore) = RequestParser_.parse(originalRequest, plainData, plainData + req.contentLength);
+			proxyRequest newRequest;
+			Proxy proxy(nipoConfig);
+			newRequest.port = "80";
+			newRequest.method = originalRequest.method ;
+			newRequest.uri = originalRequest.uri ;
+			newRequest.httpVersion = 11;
+			newRequest.userAgent = "nipoServer";
+			newRequest.headers = originalRequest.headers;
+			newRequest.contentLength = originalRequest.contentLength;
+			newRequest.content = originalRequest.content;
+			for (std::size_t i = 0; i < originalRequest.headers.size(); ++i)
+			{
+				if (headersEqual(originalRequest.headers[i].name, "Host"))
+				{
+					std::vector<std::string> list = splitString(originalRequest.headers[i].value, ':');
+					newRequest.host = list[0];
+					if (list.size() == 2) 
+					{
+						newRequest.port = list[1];
+					}
+				}
+			}
+			boost::beast::http::response<boost::beast::http::string_body> newResponse = proxy.send(newRequest);
+			std::cout << "Fuck : " << newResponse << std::endl ;
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + ", " 
 														+ originalRequest.method + ", " 
 														+ originalRequest.uri + ", " 
-														+ to_string(resp.responseBody.content.size()) + ", " 
+														+ to_string(req.content.size()) + ", " 
 														+ statusToString(resp.status);
 			nipoLog.write(logMsg , nipoLog.levelInfo);
 			return;
@@ -393,16 +424,16 @@ bool RequestParser::isDigit(int c) {
 	return c >= '0' && c <= '9';
 }
 
-bool RequestParser::tolowerCompare(char a, char b)
+bool tolowerCompare(char a, char b)
 {
 	return std::tolower(a) == std::tolower(b);
 }
 
-bool RequestParser::headersEqual(const std::string& a, const std::string& b)
+bool headersEqual(const std::string& a, const std::string& b)
 {
 	if (a.length() != b.length())
 		return false;
 
 	return std::equal(a.begin(), a.end(), b.begin(),
-			&RequestParser::tolowerCompare);
+			&tolowerCompare);
 }

@@ -19,6 +19,9 @@ struct request{
 	std::string content;
 };
 
+bool headersEqual(const std::string& a, const std::string& b);
+static bool tolowerCompare(char a, char b);
+
 class RequestHandler {
 	public:
 		RequestHandler(const RequestHandler&) = delete;
@@ -57,8 +60,6 @@ class RequestParser{
 		static bool isCtl(int c);
 		static bool isTspecial(int c);
 		static bool isDigit(int c);
-		static bool tolowerCompare(char a, char b);
-		bool headersEqual(const std::string& a, const std::string& b);
 		enum state{
 			methodStart,
 			method,

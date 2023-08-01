@@ -19,7 +19,7 @@ struct mainArgs
 
 bool fileExists(std::string filePath);
 bool isInteger(std::string number);
-std::vector<std::string> split(const std::string &str, char delim);
+std::vector<std::string> splitString(const std::string &str, char delim);
 bool isIPAddress(std::string ipaddress);
 mainArgs validateMainArgs(short argc, char* argv[]);
 

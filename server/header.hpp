@@ -1,8 +1,6 @@
 #ifndef HEADER_HPP
 #define HEADER_HPP
 
-#include <string>
-
 struct body{
 	std::string content;
 };

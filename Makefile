@@ -10,8 +10,8 @@ AGENTSRC=./agent
 all: server agent 
 clean: cleanserver cleanagent
 	
-server: serverConfig serverLog serverGeneral serverConnection serverRequest serverResponse serverEncrypt
-	cd $(SERVERSRC) && $(CC) $(CFLAGS) -o ../niposerver main.cpp server.cpp config.o log.o general.o connection.o request.o response.o encrypt.o
+server: serverConfig serverLog serverGeneral serverConnection serverRequest serverResponse serverEncrypt serverProxy
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -o ../niposerver main.cpp server.cpp config.o log.o general.o connection.o request.o response.o encrypt.o proxy.o
 
 serverConfig:
 	cd $(SERVERSRC) && $(CC) $(CFLAGS) -c config.cpp
@@ -33,6 +33,9 @@ serverResponse:
 
 serverEncrypt:
 	cd $(SERVERSRC) && $(CC) $(CFLAGS) -c encrypt.cpp 
+
+serverProxy:
+	cd $(SERVERSRC) && $(CC) $(CFLAGS) -c proxy.cpp 
 
 cleanserver:
 	rm $(SERVERSRC)/*.o
