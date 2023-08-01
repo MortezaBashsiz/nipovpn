@@ -24,7 +24,6 @@ void Connection::doRead() {
 		request_.clientPort = std::to_string(socket_.remote_endpoint().port());
 		char data[bytesTransferred];
 		std::memcpy(data, buffer_.data(), bytesTransferred);
-		request_.requestBody.content = data;
 		if (!ec) {
 			RequestParser::resultType result;
 			std::tie(result, std::ignore) = RequestParser_.parse(

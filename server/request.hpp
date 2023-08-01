@@ -15,7 +15,8 @@ struct request{
 	int httpVersionMajor;
 	int httpVersionMinor;
 	std::vector<header> headers;
-	body requestBody;
+	int contentLength = 0;
+	std::string content;
 };
 
 class RequestHandler {
@@ -50,11 +51,14 @@ class RequestParser{
 		}
 	
 	private:
+		static std::string content_length_name_;
 		resultType consume(request& req, char input);
 		static bool isChar(int c);
 		static bool isCtl(int c);
 		static bool isTspecial(int c);
 		static bool isDigit(int c);
+		static bool tolowerCompare(char a, char b);
+		bool headersEqual(const std::string& a, const std::string& b);
 		enum state{
 			methodStart,
 			method,
@@ -75,7 +79,9 @@ class RequestParser{
 			spaceBeforeHeaderValue,
 			headerValue,
 			expectingNewline2,
-			expectingNewline3
+			expectingNewline3,
+			content,
+			noContent
 		} state_;
 };
 

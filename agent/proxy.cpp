@@ -13,7 +13,7 @@ Proxy::Proxy(Config config) : nipoLog(config)
 
 Proxy::~Proxy(){}
 
-std::string Proxy::send(std::string encryptedBody, unsigned short plainDataLen)
+std::string Proxy::send(std::string encryptedBody)
 {
 	boost::beast::http::response<boost::beast::http::string_body> res;
 	try
@@ -23,13 +23,13 @@ std::string Proxy::send(std::string encryptedBody, unsigned short plainDataLen)
 		boost::beast::tcp_stream stream(ioc);
 		auto const results = resolver.resolve(nipoConfig.config.serverIp, std::to_string(nipoConfig.config.serverPort));
 		stream.connect(results);
-		boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::get, nipoConfig.config.endPoint, nipoConfig.config.httpVersion, "\r\n"};
+		boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::post, nipoConfig.config.endPoint, nipoConfig.config.httpVersion, "\r\n"};
 		req.set(boost::beast::http::field::host, nipoConfig.config.serverIp);
 		req.set(boost::beast::http::field::user_agent, nipoConfig.config.userAgent);
 		req.body() = encryptedBody;
 		req.set("Accept", "*/*");
 		req.set("Content-Type", "application/javascript");
-		req.set("Content-Length", std::to_string(plainDataLen));
+		req.set("Content-Length", std::to_string(req.body().length()));
 		boost::beast::http::write(stream, req);
 		boost::beast::flat_buffer buffer;
 		boost::beast::http::read(stream, buffer, res);

@@ -3,6 +3,8 @@
 #include "header.hpp"
 #include "encrypt.hpp"
 
+#include <boost/lexical_cast.hpp>
+
 RequestHandler::RequestHandler(Config config, const std::string& docRoot) : docRoot_(docRoot), nipoLog(config), nipoEncrypt(config) {
 	nipoConfig = config;
 }
@@ -13,35 +15,22 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
 		std::string reqPath = nipoConfig.config.users[counter].endpoint;
 		if (req.uri.rfind(reqPath, 0) == 0) {
-			unsigned first = req.requestBody.content.find("DATA_START:");
-			unsigned last = req.requestBody.content.find(":DATA_END");
-			if ( req.headers.size() < 5 ){
-				resp = response::stockResponse(response::badRequest);
-			} else {
-				if ( first == 4294967295 || last == 4294967295 ) {
-					resp = response::stockResponse(response::badRequest);
-				} else {
-					resp.status = response::ok;
-				};
-			};
-			std::string tempString = req.requestBody.content.substr(first+11,last-first+11);
-			req.requestBody.content = tempString;
-			int dataLenght = std::stoi(req.headers[4].value);
-			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.requestBody.content.c_str(), &dataLenght);
-			resp.responseBody.content = plainData;
-      request newRequest;
-      RequestParser::resultType result;
-      RequestParser RequestParser_;
-      std::tie(result, std::ignore) = RequestParser_.parse(newRequest, plainData, plainData + dataLenght);
-      std::cout << std::endl << "FUCK size : " << newRequest.headers.size() << std::endl;
-      std::cout << "method : "<< newRequest.method << std::endl;
-      std::cout << "uri : "<< newRequest.uri << std::endl;
-      std::cout << "httpVersionMajor : "<< newRequest.httpVersionMajor << std::endl;
-      std::cout << "httpVersionMinor : "<< newRequest.httpVersionMinor << std::endl;
-      for (int i = 0 ; i < newRequest.headers.size() ; i++)
-      {
-              std::cout << newRequest.headers[i].name << " : "<< newRequest.headers[i].value << std::endl;
-      }
+			// char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.content.c_str(), &req.contentLength);
+			// resp.responseBody.content = plainData;
+			// request newRequest;
+			// RequestParser::resultType result;
+			// RequestParser RequestParser_;
+			// std::tie(result, std::ignore) = RequestParser_.parse(newRequest, plainData, plainData + req.contentLength);
+			// std::cout << "method : "<< newRequest.method << std::endl;
+			// std::cout << "uri : "<< newRequest.uri << std::endl;
+			// std::cout << "httpVersionMajor : "<< newRequest.httpVersionMajor << std::endl;
+			// std::cout << "httpVersionMinor : "<< newRequest.httpVersionMinor << std::endl;
+			// std::cout << "content : "<< req.content << std::endl;
+			// std::cout << "resp.responseBody.content : "<< resp.responseBody.content << std::endl;
+			// for (int i = 0 ; i < newRequest.headers.size() ; i++)
+			// {
+			// 				std::cout << newRequest.headers[i].name << " : "<< newRequest.headers[i].value << std::endl;
+			// }
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + ", " 
@@ -156,6 +145,8 @@ RequestParser::RequestParser() : state_(methodStart) {
 void RequestParser::reset() {
 	state_ = methodStart;
 }
+
+std::string RequestParser::content_length_name_ = "Content-Length";
 
 RequestParser::resultType RequestParser::consume(request& req, char input) {
 	switch (state_) {
@@ -356,7 +347,35 @@ RequestParser::resultType RequestParser::consume(request& req, char input) {
 			return bad;
 		}
 	case expectingNewline3:
-		return (input == '\n') ? good : bad;
+		if (input == '\n') {
+			for (std::size_t i = 0; i < req.headers.size(); ++i)
+			{
+				if (headersEqual(req.headers[i].name, content_length_name_))
+				{
+					req.contentLength = (std::stoi(req.headers[i].value));
+					state_ = content;
+					return indeterminate;
+				}
+			}
+			return good;
+		}
+		else {
+			return bad;
+		}
+	case content:
+		if (req.content.length() == req.contentLength-1)
+		{
+			std::cout << "content : " << input  << " req.content.length() : " << req.content.length() << " req.contentLength : " << req.contentLength << std::endl;
+			req.content.push_back(input);
+			std::cout << "FUCK : END content" << std::endl; 
+			return good;
+		} else {
+			std::cout << "content : " << input  << " req.content.length() : " << req.content.length() << " req.contentLength : " << req.contentLength << std::endl;
+			req.content.push_back(input);
+			return indeterminate;
+		}
+	case noContent:
+		return good;
 	default:
 		return bad;
 	}
@@ -385,4 +404,18 @@ bool RequestParser::isTspecial(int c) {
 
 bool RequestParser::isDigit(int c) {
 	return c >= '0' && c <= '9';
+}
+
+bool RequestParser::tolowerCompare(char a, char b)
+{
+	return std::tolower(a) == std::tolower(b);
+}
+
+bool RequestParser::headersEqual(const std::string& a, const std::string& b)
+{
+	if (a.length() != b.length())
+		return false;
+
+	return std::equal(a.begin(), a.end(), b.begin(),
+			&RequestParser::tolowerCompare);
 }

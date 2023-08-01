@@ -11,7 +11,7 @@ public:
 	~Proxy();
 	Config nipoConfig;
 	Log nipoLog;
-	std::string send(std::string encryptedBody, unsigned short plainDataLen);
+	std::string send(std::string encryptedBody);
 };
 
 #endif //PROXY_HPP

@@ -31,10 +31,9 @@ void Connection::doRead() {
 			request_.clientIP = socket_.remote_endpoint().address().to_string();
 			request_.clientPort = std::to_string(socket_.remote_endpoint().port());
 			unsigned char *encryptedData;
-			int dataLen = strlen(data)+1;
+			int dataLen = strlen(data);
 			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)data, &dataLen);
-			std::string encryptedBody = std::string("DATA_START:")+(char*)encryptedData+std::string(":DATA_END");
-			std::string result = nipoProxy.send(encryptedBody, dataLen);
+			std::string result = nipoProxy.send((char *)encryptedData);
 			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) result.c_str(), &dataLen);
 			response_.responseBody.content = result;
 			doWrite();
