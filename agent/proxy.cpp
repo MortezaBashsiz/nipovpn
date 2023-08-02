@@ -21,9 +21,9 @@ std::string Proxy::send(std::string encryptedBody)
 		req.set(boost::beast::http::field::host, nipoConfig.config.serverIp);
 		req.set(boost::beast::http::field::user_agent, nipoConfig.config.userAgent);
 		req.body() = encryptedBody;
-		req.set("Accept", "*/*");
-		req.set("Content-Type", "application/javascript");
-		req.set("Content-Length", std::to_string(req.body().length()));
+		req.set(boost::beast::http::field::accept, "*/*");
+		req.set(boost::beast::http::field::content_type, "application/javascript");
+		req.set(boost::beast::http::field::content_length, std::to_string(req.body().length()));
 		boost::beast::http::write(stream, req);
 		boost::beast::flat_buffer buffer;
 		boost::beast::http::read(stream, buffer, res);
