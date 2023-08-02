@@ -30,7 +30,7 @@ public:
 	~Proxy();
 	Config nipoConfig;
 	Log nipoLog;
-	boost::beast::http::response<boost::beast::http::string_body> send(proxyRequest request_);
+	std::string send(proxyRequest request_);
 };
 
 #endif //PROXY_HPP

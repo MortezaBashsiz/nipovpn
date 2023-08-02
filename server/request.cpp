@@ -22,7 +22,6 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
 		std::string reqPath = nipoConfig.config.users[counter].endpoint;
 		if (req.uri.rfind(reqPath, 0) == 0) {
-			resp = response::stockResponse(response::ok);
 			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.content.c_str(), &req.contentLength);
 			request originalRequest;
 			RequestParser::resultType result;
@@ -50,13 +49,19 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 					}
 				}
 			}
-			boost::beast::http::response<boost::beast::http::string_body> newResponse = proxy.send(newRequest);
-			std::cout << "Fuck : " << newResponse << std::endl ;
+			std::string newResponse = proxy.send(newRequest);
+			std::cout << "FUCK : " << newResponse << std::endl;
+			resp.status = response::ok;
+			unsigned char *encryptedData;
+			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)newResponse.c_str(), &req.contentLength);			
+			resp.responseBody.content = (char *)encryptedData;
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + ", " 
-														+ originalRequest.method + ", " 
-														+ originalRequest.uri + ", " 
+														+ newRequest.method + ", " 
+														+ newRequest.uri + ", "
+														+ newRequest.host + ", "
+														+ newRequest.port + ", " 
 														+ to_string(req.content.size()) + ", " 
 														+ statusToString(resp.status);
 			nipoLog.write(logMsg , nipoLog.levelInfo);

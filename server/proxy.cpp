@@ -1,10 +1,6 @@
 #include "proxy.hpp"
 
-// #include <boost/beast/core.hpp>
-// #include <boost/beast/http.hpp>
-// #include <boost/beast/version.hpp>
-// #include <boost/asio/connect.hpp>
-// #include <boost/asio/ip/tcp.hpp>
+#include <boost/lexical_cast.hpp>
 
 Proxy::Proxy(Config config) : nipoLog(config)
 {
@@ -13,7 +9,7 @@ Proxy::Proxy(Config config) : nipoLog(config)
 
 Proxy::~Proxy(){}
 
-boost::beast::http::response<boost::beast::http::string_body> Proxy::send(proxyRequest request_)
+std::string Proxy::send(proxyRequest request_)
 {
 	boost::beast::http::response<boost::beast::http::string_body> res;
 	try
@@ -42,5 +38,5 @@ boost::beast::http::response<boost::beast::http::string_body> Proxy::send(proxyR
 	{
 			std::cerr << "Error: " << e.what() << std::endl;
 	}
-	return res;
+	return boost::lexical_cast<std::string>(res);
 }
