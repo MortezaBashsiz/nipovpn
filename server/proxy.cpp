@@ -23,9 +23,10 @@ std::string Proxy::send(proxyRequest request_)
 		req.set(boost::beast::http::field::host, request_.host);
 		req.set(boost::beast::http::field::user_agent, request_.userAgent);
 		req.body() = request_.content;
-		req.set("Accept", "*/*");
-		req.set("Content-Type", "application/javascript");
-		req.set("Content-Length", std::to_string(req.body().length()));
+		for (std::size_t i = 0; i < request_.headers.size(); ++i)
+		{
+			req.set(request_.headers[i].name, request_.headers[i].value);
+		}
 		boost::beast::http::write(stream, req);
 		boost::beast::flat_buffer buffer;
 		boost::beast::http::read(stream, buffer, res);
