@@ -1,7 +1,5 @@
 #include "proxy.hpp"
 
-#include <boost/lexical_cast.hpp>
-
 Proxy::Proxy(Config config) : nipoLog(config)
 {
 	nipoConfig = config;

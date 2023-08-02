@@ -10,6 +10,7 @@
 #include <boost/beast/version.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/lexical_cast.hpp>
 
 struct proxyRequest{
 	std::string host;

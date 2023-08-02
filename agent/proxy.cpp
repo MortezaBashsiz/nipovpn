@@ -1,11 +1,5 @@
 #include "proxy.hpp"
 
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio/connect.hpp>
-#include <boost/asio/ip/tcp.hpp>
-
 Proxy::Proxy(Config config) : nipoLog(config)
 {
 	nipoConfig = config;
@@ -42,5 +36,5 @@ std::string Proxy::send(std::string encryptedBody)
 	{
 			std::cerr << "Error: " << e.what() << std::endl;
 	}
-	return res.body();
+	return boost::lexical_cast<std::string>(res);
 }
