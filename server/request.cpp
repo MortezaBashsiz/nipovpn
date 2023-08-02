@@ -28,27 +28,48 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 			RequestParser RequestParser_;
 			std::tie(result, std::ignore) = RequestParser_.parse(originalRequest, plainData, plainData + req.contentLength);
 			proxyRequest newRequest;
-			Proxy proxy(nipoConfig);
-			newRequest.port = "80";
-			newRequest.method = originalRequest.method ;
-			newRequest.uri = originalRequest.uri ;
-			newRequest.httpVersion = 11;
-			newRequest.userAgent = "nipoServer";
-			newRequest.headers = originalRequest.headers;
-			newRequest.contentLength = originalRequest.contentLength;
-			newRequest.content = originalRequest.content;
-			for (std::size_t i = 0; i < originalRequest.headers.size(); ++i)
+			if (originalRequest.method == "CONNECT")
 			{
-				if (headersEqual(originalRequest.headers[i].name, "Host"))
+				newRequest.port = "443";
+				newRequest.method = originalRequest.method;
+				newRequest.httpVersion = 11;
+				std::vector<std::string> list = splitString(originalRequest.uri, ':');
+						newRequest.host = list[0];
+						if (list.size() == 2) 
+						{
+							newRequest.port = list[1];
+						}
+				newRequest.userAgent = "nipoServer";
+				newRequest.headers = originalRequest.headers;
+				newRequest.contentLength = originalRequest.contentLength;
+				newRequest.content = originalRequest.content;
+			} 
+			else 
+			{
+				newRequest.port = "80";
+				newRequest.method = originalRequest.method;
+				newRequest.uri = originalRequest.uri;
+				newRequest.httpVersion = 11;
+				newRequest.userAgent = "nipoServer";
+				newRequest.headers = originalRequest.headers;
+				newRequest.contentLength = originalRequest.contentLength;
+				newRequest.content = originalRequest.content;
+				for (std::size_t i = 0; i < originalRequest.headers.size(); ++i)
 				{
-					std::vector<std::string> list = splitString(originalRequest.headers[i].value, ':');
-					newRequest.host = list[0];
-					if (list.size() == 2) 
+					if (headersEqual(originalRequest.headers[i].name, "Host"))
 					{
-						newRequest.port = list[1];
+						std::vector<std::string> list = splitString(originalRequest.headers[i].value, ':');
+						newRequest.host = list[0];
+						if (list.size() == 2) 
+						{
+							newRequest.port = list[1];
+						}
 					}
 				}
 			}
+			
+			
+			Proxy proxy(nipoConfig);
 			std::string newResponse = proxy.send(newRequest);
 			int newRequestLength = newResponse.length();
 			resp.status = response::ok;
