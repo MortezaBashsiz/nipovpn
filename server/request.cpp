@@ -53,8 +53,15 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 			int newRequestLength = newResponse.length();
 			resp.status = response::ok;
 			unsigned char *encryptedData;
-			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)newResponse.c_str(), &newRequestLength);			
+			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)newResponse.c_str(), &newRequestLength);
 			resp.content = (char *)encryptedData;
+			resp.headers.resize(3);
+			resp.headers[0].name = "Accept";
+			resp.headers[0].value = "*/*";
+			resp.headers[1].name = "Content-Type";
+			resp.headers[1].value = "application/javascript";
+			resp.headers[2].name = "Content-Length";
+			resp.headers[2].value = std::to_string(newResponse.length());
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + ", " 
