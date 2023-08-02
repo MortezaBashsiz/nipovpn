@@ -37,7 +37,7 @@ struct response{
 	} status;
 
 	std::vector<header> headers;
-	body responseBody;
+	std::string content;
 	std::vector<boost::asio::const_buffer> toBuffers();
 	static response stockResponse(statusType status);
 };

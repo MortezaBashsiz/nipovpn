@@ -50,11 +50,11 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 				}
 			}
 			std::string newResponse = proxy.send(newRequest);
-			std::cout << "FUCK : " << newResponse << std::endl;
+			int newRequestLength = newResponse.length();
 			resp.status = response::ok;
 			unsigned char *encryptedData;
-			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)newResponse.c_str(), &req.contentLength);			
-			resp.responseBody.content = (char *)encryptedData;
+			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)newResponse.c_str(), &newRequestLength);			
+			resp.content = (char *)encryptedData;
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + ", " 
@@ -76,7 +76,7 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 													+ req.clientPort + ", " 
 													+ req.method + ", " 
 													+ req.uri + ", " 
-													+ to_string(resp.responseBody.content.size()) + ", " 
+													+ to_string(resp.content.size()) + ", " 
 													+ statusToString(resp.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
@@ -89,7 +89,7 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 													+ req.clientPort + ", " 
 													+ req.method + ", " 
 													+ req.uri + ", " 
-													+ to_string(resp.responseBody.content.size()) + ", " 
+													+ to_string(resp.content.size()) + ", " 
 													+ statusToString(resp.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
@@ -115,7 +115,7 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 													+ req.clientPort + ", " 
 													+ req.method + ", " 
 													+ req.uri + ", " 
-													+ to_string(resp.responseBody.content.size()) + ", " 
+													+ to_string(resp.content.size()) + ", " 
 													+ statusToString(resp.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
@@ -123,10 +123,10 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 	resp.status = response::ok;
 	char buf[512];
 	while (is.read(buf, sizeof(buf)).gcount() > 0)
-		resp.responseBody.content.append(buf, is.gcount());
+		resp.content.append(buf, is.gcount());
 	resp.headers.resize(2);
 	resp.headers[0].name = "Content-Length";
-	resp.headers[0].value = std::to_string(resp.responseBody.content.size());
+	resp.headers[0].value = std::to_string(resp.content.size());
 	resp.headers[1].name = "Content-Type";
 	resp.headers[1].value = mimeExtensionToType(extension);
 	std::string logMsg = 	"request, "
@@ -134,7 +134,7 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 												+ req.clientPort + ", "
 												+ req.method + ", " 
 												+ req.uri + ", " 
-												+ to_string(resp.responseBody.content.size()) + ", "
+												+ to_string(resp.content.size()) + ", "
 												+ statusToString(resp.status);
 	nipoLog.write(logMsg , nipoLog.levelInfo);
 };

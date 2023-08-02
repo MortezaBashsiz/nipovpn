@@ -5,12 +5,8 @@
 #include <vector>
 #include <boost/asio.hpp>
 
-struct ResponseBody{
-	std::string content;
-};
-
 struct response{
-	ResponseBody responseBody;
+	std::string content;
 	std::vector<boost::asio::const_buffer> toBuffers();
 };
 

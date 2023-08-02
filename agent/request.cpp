@@ -7,10 +7,10 @@ RequestHandler::RequestHandler(Config config) : nipoLog(config){
 
 void RequestHandler::handleRequest(request& req, response& resp) {
 	char buf[512];
-	resp.responseBody.content = "DONE\n";
+	resp.content = "DONE\n";
 	std::string logMsg = 	"request, "
 												+ req.clientIP + ":" 
 												+ req.clientPort + ", "
-												+ to_string(resp.responseBody.content.size());
+												+ to_string(resp.content.size());
 	nipoLog.write(logMsg , nipoLog.levelInfo);
 };
