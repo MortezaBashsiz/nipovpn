@@ -8,6 +8,7 @@ std::vector<boost::asio::const_buffer> response::toBuffers() {
 
 void response::parse(std::string response)
 {
+	std::cout << "\nFUCK : " << response << std::endl;
 	boost::asio::io_context ctx;
 	boost::process::async_pipe pipe(ctx);
 	write(pipe, boost::asio::buffer(response));

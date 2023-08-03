@@ -28,17 +28,17 @@ struct proxyRequest{
   	std::string allHeaders = "";
   	for (std::size_t i = 0; i < headers.size(); ++i)
 		{
-			allHeaders += headers[i].name + " : " + headers[i].value + "\n";
+			allHeaders += headers[i].name + " : " + headers[i].value + ", \n";
 		}
-    return 	"host: " + host + "\n"
-    				+ "port: " + port + "\n"
-    				+ "method: " + method + "\n"
-    				+ "uri: " + uri + "\n"
-						+	"httpVersion: " + std::to_string(httpVersion) + "\n"
-						+ "userAgent: " + userAgent + "\n"
+    return 	"host: " + host + ", \n"
+    				+ "port: " + port + ", \n"
+    				+ "method: " + method + ", \n"
+    				+ "uri: " + uri + ", \n"
+						+	"httpVersion: " + std::to_string(httpVersion) + ", \n"
+						+ "userAgent: " + userAgent + ", \n"
 						+	allHeaders
-						+	"contentLength: " +	std::to_string(contentLength) + "\n"
-						+	"content : \n " + content + "\n";
+						+	"contentLength: " +	std::to_string(contentLength) + ", \n"
+						+	"content : , \n " + content + ", \n";
   }
 };
 
