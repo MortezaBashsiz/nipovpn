@@ -7,6 +7,7 @@
 #include <boost/beast/http.hpp>
 #include <boost/asio.hpp>
 #include <boost/process/async_pipe.hpp>
+#include <boost/lexical_cast.hpp>
 #include <iostream>
 
 struct response{
@@ -16,8 +17,15 @@ struct response{
 	std::vector<boost::asio::const_buffer> toBuffers();
 	boost::beast::http::response<boost::beast::http::string_body> parsedResponse;
 	void parse(std::string response);
+
+	std::string toString()
+	{
+		return 	"content : , \n " + content + ", \n"
+						+ "encryptedContent : , \n " + encryptedContent + ", \n"
+						+ "contentLength : , \n " + contentLength + ", \n"
+						+ "parsed headers : , \n " + boost::lexical_cast<std::string>(parsedResponse.base()) + ", \n";
+	}
+
 };
-
-
 
 #endif //RESPONSE_HPP

@@ -41,16 +41,16 @@ struct response{
 	std::vector<boost::asio::const_buffer> toBuffers();
 
 	std::string toString()
-  {
-  	std::string allHeaders = "";
-  	for (std::size_t i = 0; i < headers.size(); ++i)
+	{
+		std::string allHeaders = "";
+		for (std::size_t i = 0; i < headers.size(); ++i)
 		{
 			allHeaders += headers[i].name + " : " + headers[i].value + ", \n";
 		}
-    // return 	"status: " + "std::string(status)" + "\n"
+		// return 	"status: " + "std::string(status)" + "\n"
 		return	allHeaders + " , \n"
 						+	"content : \n " + content + ", \n";
-  }
+	}
 	static response stockResponse(statusType status);
 };
 

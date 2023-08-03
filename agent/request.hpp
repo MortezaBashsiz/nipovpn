@@ -10,6 +10,14 @@ struct request{
 	std::string clientIP;
 	std::string clientPort;
 	std::string content;
+
+	std::string toString()
+	{
+		return 	"clientIP : " + clientIP + ", \n"
+						+ "clientPort : " + clientPort + ", \n"
+						+ "content : , \n " + content + "\n";
+	}
+
 };
 
 class RequestHandler {
