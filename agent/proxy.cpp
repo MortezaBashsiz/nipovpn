@@ -36,5 +36,6 @@ std::string Proxy::send(std::string encryptedBody)
 	{
 			std::cerr << "Error: " << e.what() << std::endl;
 	}
+	nipoLog.write("Request sent to nipoServer", nipoLog.levelDebug);
 	return boost::lexical_cast<std::string>(res);
 }

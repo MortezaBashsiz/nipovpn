@@ -3,8 +3,6 @@
 #include "log.hpp"
 #include "agent.hpp"
 
-// #include <boost/asio.hpp>
-
 int main(int argc=0, char* argv[]=0){
 
 	mainArgs mainArgs = validateMainArgs(argc, argv);

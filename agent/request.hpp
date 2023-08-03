@@ -5,14 +5,11 @@
 #include "log.hpp"
 #include "response.hpp"
 
-struct RequestBody{
-	std::string content;
-};
 
 struct request{
 	std::string clientIP;
 	std::string clientPort;
-	RequestBody requestBody;
+	std::string content;
 };
 
 class RequestHandler {
