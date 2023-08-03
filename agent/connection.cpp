@@ -42,7 +42,11 @@ void Connection::doRead() {
 			std::string result = nipoProxy.send((char *)encryptedData);
 			nipoLog.write("Response recieved from nipoServer", nipoLog.levelDebug);
 			nipoLog.write("\n"+result+"\n", nipoLog.levelDebug);
-			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) result.c_str(), &dataLen);
+			response_.parse(result);
+			nipoLog.write("Recieved response from niposerver parsed headers", nipoLog.levelDebug);
+			nipoLog.write(boost::lexical_cast<std::string>(response_.parsedResponse.base()), nipoLog.levelDebug);
+			int responseContentLength = std::stoi(response_.contentLength);
+			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *)response_.encryptedContent.c_str(), &responseContentLength);
 			nipoLog.write("Recieved response from niposerver decrypted", nipoLog.levelDebug);
 			response_.content = plainData;
 			nipoLog.write("\n"+response_.content+"\n", nipoLog.levelDebug);

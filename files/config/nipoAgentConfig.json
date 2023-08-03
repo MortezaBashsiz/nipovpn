@@ -1,7 +1,7 @@
 {
 	"localIp": "127.0.0.1",
 	"localPort": 8080,
-	"serverIp": "127.0.0.1",
+	"serverIp": "192.168.100.187",
 	"serverPort": 80,
 	"logLevel": 4,
 	"logFile": "/var/log/nipoagent/nipo.log",
