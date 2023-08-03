@@ -28,6 +28,10 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 			RequestParser RequestParser_;
 			std::tie(result, std::ignore) = RequestParser_.parse(originalRequest, plainData, plainData + req.contentLength);
 			proxyRequest newRequest;
+			nipoLog.write("Request recieved from nipoAgent ", nipoLog.levelDebug);
+			nipoLog.write(req.toString(), nipoLog.levelDebug);
+			nipoLog.write("Parsed request recieved from nipoAgent ", nipoLog.levelDebug);
+			nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
 			if (originalRequest.method == "CONNECT")
 			{
 				newRequest.port = "443";
@@ -67,10 +71,12 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 					}
 				}
 			}
-			
-			
 			Proxy proxy(nipoConfig);
 			std::string newResponse = proxy.send(newRequest);
+			nipoLog.write("New request sent to original server ", nipoLog.levelDebug);
+			nipoLog.write(newRequest.toString(), nipoLog.levelDebug);
+			nipoLog.write("Response recieved from original server ", nipoLog.levelDebug);
+			nipoLog.write("\n"+newResponse+"\n", nipoLog.levelDebug);
 			int newRequestLength = newResponse.length();
 			resp.status = response::ok;
 			unsigned char *encryptedData;
@@ -83,6 +89,8 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 			resp.headers[1].value = "application/javascript";
 			resp.headers[2].name = "Content-Length";
 			resp.headers[2].value = std::to_string(newResponse.length());
+			nipoLog.write("New response generated for nipoAgent ", nipoLog.levelDebug);
+			nipoLog.write(resp.toString(), nipoLog.levelDebug);
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + ", " 
