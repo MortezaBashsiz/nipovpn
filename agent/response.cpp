@@ -2,13 +2,14 @@
 
 std::vector<boost::asio::const_buffer> response::toBuffers() {
 	std::vector<boost::asio::const_buffer> buffers;
+	buffers.push_back(boost::asio::buffer(miscCrlf));
 	buffers.push_back(boost::asio::buffer(content));
 	return buffers;
+
 };
 
 void response::parse(std::string response)
 {
-	std::cout << "\nFUCK : " << response << std::endl;
 	boost::asio::io_context ctx;
 	boost::process::async_pipe pipe(ctx);
 	write(pipe, boost::asio::buffer(response));

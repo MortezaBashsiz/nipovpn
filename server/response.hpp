@@ -47,7 +47,6 @@ struct response{
 		{
 			allHeaders += headers[i].name + " : " + headers[i].value + ", \n";
 		}
-		// return 	"status: " + "std::string(status)" + "\n"
 		return	allHeaders + " , \n"
 						+	"content : \n " + content + ", \n";
 	}

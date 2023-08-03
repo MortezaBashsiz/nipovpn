@@ -16,7 +16,7 @@ RequestHandler::RequestHandler(Config config, const std::string& docRoot) : docR
 	nipoConfig = config;
 }
 
-void RequestHandler::handleRequest(request& req, response& resp) {
+void RequestHandler::handleRequest(request& req, response& res) {
 	std::string requestPath;
 
 	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
@@ -78,19 +78,19 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 			nipoLog.write("Response recieved from original server ", nipoLog.levelDebug);
 			nipoLog.write("\n"+newResponse+"\n", nipoLog.levelDebug);
 			int newRequestLength = newResponse.length();
-			resp.status = response::ok;
 			unsigned char *encryptedData;
 			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)newResponse.c_str(), &newRequestLength);
-			resp.content = (char *)encryptedData;
-			resp.headers.resize(3);
-			resp.headers[0].name = "Accept";
-			resp.headers[0].value = "*/*";
-			resp.headers[1].name = "Content-Type";
-			resp.headers[1].value = "application/javascript";
-			resp.headers[2].name = "Content-Length";
-			resp.headers[2].value = std::to_string(newResponse.length());
+			res.content = (char *)encryptedData;
+			res.status = response::ok;
+			res.headers.resize(3);
+			res.headers[0].name = "Accept";
+			res.headers[0].value = "*/*\r\n";
+			res.headers[1].name = "Content-Type";
+			res.headers[1].value = "application/javascript\r\n";
+			res.headers[2].name = "Content-Length";
+			res.headers[2].value = std::to_string(newResponse.length());
 			nipoLog.write("New response generated for nipoAgent ", nipoLog.levelDebug);
-			nipoLog.write(resp.toString(), nipoLog.levelDebug);
+			nipoLog.write(res.toString(), nipoLog.levelDebug);
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + ", " 
@@ -99,34 +99,34 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 														+ newRequest.host + ", "
 														+ newRequest.port + ", " 
 														+ to_string(req.content.size()) + ", " 
-														+ statusToString(resp.status);
+														+ statusToString(res.status);
 			nipoLog.write(logMsg , nipoLog.levelInfo);
 			return;
 		};
 	};
 
 	if (!urlDecode(req.uri, requestPath)) {
-		resp = response::stockResponse(response::badRequest);
+		res = response::stockResponse(response::badRequest);
 		std::string logMsg = 	"request, " 
 													+ req.clientIP + ":" 
 													+ req.clientPort + ", " 
 													+ req.method + ", " 
 													+ req.uri + ", " 
-													+ to_string(resp.content.size()) + ", " 
-													+ statusToString(resp.status);
+													+ to_string(res.content.size()) + ", " 
+													+ statusToString(res.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
 	};
 
 	if (requestPath.empty() || requestPath[0] != '/' || requestPath.find("..") != std::string::npos) {
-		resp = response::stockResponse(response::badRequest);
+		res = response::stockResponse(response::badRequest);
 		std::string logMsg = 	"request, " 
 													+ req.clientIP + ":" 
 													+ req.clientPort + ", " 
 													+ req.method + ", " 
 													+ req.uri + ", " 
-													+ to_string(resp.content.size()) + ", " 
-													+ statusToString(resp.status);
+													+ to_string(res.content.size()) + ", " 
+													+ statusToString(res.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
 	};
@@ -145,33 +145,33 @@ void RequestHandler::handleRequest(request& req, response& resp) {
 	std::string fullPath = docRoot_ + requestPath;
 	std::ifstream is(fullPath.c_str(), std::ios::in | std::ios::binary);
 	if (!is) {
-		resp = response::stockResponse(response::notFound);
+		res = response::stockResponse(response::notFound);
 		std::string logMsg = 	"request, " 
 													+ req.clientIP + ":" 
 													+ req.clientPort + ", " 
 													+ req.method + ", " 
 													+ req.uri + ", " 
-													+ to_string(resp.content.size()) + ", " 
-													+ statusToString(resp.status);
+													+ to_string(res.content.size()) + ", " 
+													+ statusToString(res.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
 	};
-	resp.status = response::ok;
+	res.status = response::ok;
 	char buf[512];
 	while (is.read(buf, sizeof(buf)).gcount() > 0)
-		resp.content.append(buf, is.gcount());
-	resp.headers.resize(2);
-	resp.headers[0].name = "Content-Length";
-	resp.headers[0].value = std::to_string(resp.content.size());
-	resp.headers[1].name = "Content-Type";
-	resp.headers[1].value = mimeExtensionToType(extension);
+		res.content.append(buf, is.gcount());
+	res.headers.resize(2);
+	res.headers[0].name = "Content-Length";
+	res.headers[0].value = std::to_string(res.content.size());
+	res.headers[1].name = "Content-Type";
+	res.headers[1].value = mimeExtensionToType(extension);
 	std::string logMsg = 	"request, "
 												+ req.clientIP + ":" 
 												+ req.clientPort + ", "
 												+ req.method + ", " 
 												+ req.uri + ", " 
-												+ to_string(resp.content.size()) + ", "
-												+ statusToString(resp.status);
+												+ to_string(res.content.size()) + ", "
+												+ statusToString(res.status);
 	nipoLog.write(logMsg , nipoLog.levelInfo);
 };
 

@@ -10,6 +10,9 @@
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 
+const char miscNameValueSeparator[] = { ':', ' ' };
+const char miscCrlf[] = { '\r', '\n' };
+
 struct response{
 	std::string content;
 	std::string encryptedContent;
