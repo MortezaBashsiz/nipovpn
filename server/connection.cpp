@@ -23,12 +23,12 @@ void Connection::doRead() {
 		char data[bytesTransferred];
 		std::memcpy(data, buffer_.data(), bytesTransferred);
 		if (!ec) {
-			doRead();
+			request_.parse(data);
 			request_.clientIP = socket_.remote_endpoint().address().to_string();
 			request_.clientPort = std::to_string(socket_.remote_endpoint().port());
-			request_.parse(data);
 			RequestHandler_.handleRequest(request_, response_);
 			doWrite();
+			doRead();
 		}
 		else if (ec != boost::asio::error::operation_aborted) {
 			ConnectionManager_.stop(shared_from_this());

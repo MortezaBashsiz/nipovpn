@@ -17,7 +17,6 @@ struct request{
 						+ "clientPort : " + clientPort + ", \n"
 						+ "content : , \n " + content + "\n";
 	}
-
 };
 
 class RequestHandler {

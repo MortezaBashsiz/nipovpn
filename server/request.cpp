@@ -18,48 +18,33 @@ RequestHandler::RequestHandler(Config config, const std::string& docRoot) : docR
 
 void RequestHandler::handleRequest(request& req, response& res) {
 	std::string requestPath;
-
 	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
 		std::string reqPath = nipoConfig.config.users[counter].endpoint;
-		if (req.uri.rfind(reqPath, 0) == 0) {
+		if (req.uri == reqPath) {
 			int contentLengthInt = std::stoi(req.contentLength);
 			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.content.c_str(), &contentLengthInt);
 			request originalRequest;
 			originalRequest.parse(plainData);
-			request newRequest;
+			if (originalRequest.method == boost::beast::http::verb::unknown)
+			{
+				res = response::stockResponse(response::badRequest);
+				std::string logMsg = 	"request, " 
+															+ originalRequest.clientIP + ":" 
+															+ originalRequest.clientPort + ", " 
+															+ boost::lexical_cast<std::string>(originalRequest.method) + ", " 
+															+ originalRequest.uri + ", " 
+															+ to_string(res.content.size()) + ", " 
+															+ statusToString(res.status);
+				nipoLog.write(logMsg , nipoLog.levelInfo);
+				return;
+			}
 			nipoLog.write("Request recieved from nipoAgent ", nipoLog.levelDebug);
 			nipoLog.write(req.toString(), nipoLog.levelDebug);
-			nipoLog.write("Parsed request recieved from nipoAgent ", nipoLog.levelDebug);
+			nipoLog.write("Recieved request from nipoAgent Parsed ", nipoLog.levelDebug);
 			nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
-			if (originalRequest.method == boost::beast::http::verb::connect)
-			{
-				newRequest.port = "443";
-				newRequest.method = originalRequest.method;
-				newRequest.httpVersion = 11;
-				std::vector<std::string> list = splitString(originalRequest.uri, ':');
-						newRequest.host = list[0];
-						if (list.size() == 2) 
-						{
-							newRequest.port = list[1];
-						}
-				newRequest.userAgent = "nipoServer";
-				newRequest.contentLength = originalRequest.contentLength;
-				newRequest.content = originalRequest.content;
-			} 
-			else 
-			{
-				newRequest.port = "80";
-				newRequest.method = originalRequest.method;
-				newRequest.uri = originalRequest.uri;
-				newRequest.httpVersion = 11;
-				newRequest.userAgent = "nipoServer";
-				newRequest.contentLength = originalRequest.contentLength;
-				newRequest.content = originalRequest.content;
-			}
 			Proxy proxy(nipoConfig);
-			std::string newResponse = proxy.send(newRequest);
-			nipoLog.write("New request sent to original server ", nipoLog.levelDebug);
-			nipoLog.write(newRequest.toString(), nipoLog.levelDebug);
+			std::string newResponse = proxy.send(originalRequest);
+			nipoLog.write("Parsed request sent to original server ", nipoLog.levelDebug);
 			nipoLog.write("Response recieved from original server ", nipoLog.levelDebug);
 			nipoLog.write("\n"+newResponse+"\n", nipoLog.levelDebug);
 			int newRequestLength = newResponse.length();
@@ -79,10 +64,10 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + ", " 
-														+ boost::lexical_cast<std::string>(newRequest.method) + ", " 
-														+ newRequest.uri + ", "
-														+ newRequest.host + ", "
-														+ newRequest.port + ", " 
+														+ boost::lexical_cast<std::string>(originalRequest.method) + ", " 
+														+ originalRequest.uri + ", "
+														+ originalRequest.host + ", "
+														+ originalRequest.port + ", " 
 														+ to_string(req.content.size()) + ", " 
 														+ statusToString(res.status);
 			nipoLog.write(logMsg , nipoLog.levelInfo);
@@ -191,7 +176,6 @@ void request::parse(std::string request)
 	boost::asio::io_context ctx;
 	boost::process::async_pipe pipe(ctx);
 	write(pipe, boost::asio::buffer(request));
-	write(pipe, boost::asio::buffer(request));
 	::close(pipe.native_sink());
 	boost::beast::flat_buffer buf;
 	boost::system::error_code ec;
@@ -201,7 +185,7 @@ void request::parse(std::string request)
 		content = req.body().data();
 		method = req.method();
 		httpVersion = req.version();
-		uri = req.target();\
+		uri = req.target();
 		userAgent = boost::lexical_cast<std::string>(req["User-Agent"]);
 		contentLength = req["Content-Length"];
 		std::vector<std::string> list = splitString(req["Host"], ':');
