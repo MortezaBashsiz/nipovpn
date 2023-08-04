@@ -22,7 +22,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 		std::string reqPath = nipoConfig.config.users[counter].endpoint;
 		if (req.uri == reqPath) {
 			int contentLengthInt = std::stoi(req.contentLength);
-			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.content.c_str(), &contentLengthInt);
+			std::string plainData = (char *)(nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.content.c_str(), &contentLengthInt));
 			request originalRequest;
 			originalRequest.parse(plainData);
 			if (originalRequest.method == boost::beast::http::verb::unknown)
