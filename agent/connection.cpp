@@ -27,32 +27,12 @@ void Connection::doRead() {
 		char data[bytesTransferred];
 		std::memcpy(data, buffer_.data(), bytesTransferred);
 		if (!ec) {
-			doRead();
+			request_.parse(data);
 			request_.clientIP = socket_.remote_endpoint().address().to_string();
 			request_.clientPort = std::to_string(socket_.remote_endpoint().port());
-			request_.content = data;
-			unsigned char *encryptedData;
-			int dataLen = strlen(data);
-			std::string logMsg = 	"vpn request, " 
-														+ request_.clientIP + ":" 
-														+ request_.clientPort;
-			nipoLog.write(logMsg, nipoLog.levelInfo);
-			nipoLog.write("Recieved request from client", nipoLog.levelDebug);
-			nipoLog.write(request_.toString(), nipoLog.levelDebug);
-			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)data, &dataLen);
-			std::string result = nipoProxy.send((char *)encryptedData);
-			nipoLog.write("Response recieved from nipoServer", nipoLog.levelDebug);
-			nipoLog.write("\n"+result+"\n", nipoLog.levelDebug);
-			response_.parse(result);
-			nipoLog.write("Recieved response from niposerver parsed", nipoLog.levelDebug);
-			nipoLog.write(response_.toString(), nipoLog.levelDebug);
-			int responseContentLength = std::stoi(response_.contentLength);
-			char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *)response_.encryptedContent.c_str(), &responseContentLength);
-			nipoLog.write("Recieved response from niposerver decrypted", nipoLog.levelDebug);
-			response_.content = plainData;
-			nipoLog.write("Response sent to client", nipoLog.levelDebug);
-			nipoLog.write(response_.toString(), nipoLog.levelDebug);
+			RequestHandler_.handleRequest(request_, response_);
 			doWrite();
+			doRead();
 		} else if (ec != boost::asio::error::operation_aborted) {
 			ConnectionManager_.stop(shared_from_this());
 		}

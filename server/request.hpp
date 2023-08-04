@@ -1,5 +1,5 @@
-#ifndef SERVERREQUEST_HPP
-#define SERVERREQUEST_HPP
+#ifndef REQUEST_HPP
+#define REQUEST_HPP
 
 #include "config.hpp"
 #include "log.hpp"
@@ -56,4 +56,4 @@ class RequestHandler {
 		static bool urlDecode(const std::string& in, std::string& out);
 };
 
-#endif // SERVERREQUEST_HPP
+#endif // REQUEST_HPP
