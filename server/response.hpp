@@ -40,6 +40,9 @@ struct response{
 	std::string content;
 	std::vector<boost::asio::const_buffer> toBuffers();
 
+	// boost::beast::http::response<boost::beast::http::string_body> parsedResponse;
+	// void parse(std::string response);
+	
 	std::string toString()
 	{
 		std::string allHeaders = "";

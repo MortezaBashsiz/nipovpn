@@ -2,6 +2,8 @@
 #define CONNECTION_HPP
 
 #include <set>
+#include <boost/beast/http.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "config.hpp"
 #include "log.hpp"
@@ -29,7 +31,6 @@ class Connection : public std::enable_shared_from_this<Connection> {
 		RequestHandler& RequestHandler_;
 		std::array<char, 8192> buffer_;
 		request request_;
-		RequestParser RequestParser_;
 		response response_;
 };
 

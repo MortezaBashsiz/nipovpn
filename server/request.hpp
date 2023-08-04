@@ -7,34 +7,35 @@
 #include "response.hpp"
 #include "encrypt.hpp"
 
+#include <boost/beast/http.hpp>
+#include <boost/process/async_pipe.hpp>
+#include <boost/lexical_cast.hpp>
+
 struct request{
-	std::string method;
+	std::string host;
+	std::string port = "80";
+	boost::beast::http::verb method;
 	std::string uri;
 	std::string clientIP;
 	std::string clientPort;
-	int httpVersionMajor;
-	int httpVersionMinor;
-	std::vector<header> headers;
-	int contentLength = 0;
+	std::string httpVersion;
+	std::string userAgent;
+	std::string contentLength = "0";
 	std::string content;
 
+	boost::beast::http::request<boost::beast::http::string_body> parsedRequest;
+	void parse(std::string request);
 	std::string toString()
   {
-  	std::string allHeaders = "";
-  	for (std::size_t i = 0; i < headers.size(); ++i)
-		{
-			allHeaders += headers[i].name + " : " + headers[i].value + ", \n";
-		}
-    return 	"method: " + method + ", \n"
+    return 	"method: " + boost::lexical_cast<std::string>(method) + ", \n"
     				+ "uri: " + uri + ", \n"
 						+	"clientIP: " + clientIP + ", \n"
 						+	"clientPort: " + clientPort + ", \n"
-						+	"httpVersion: " + std::to_string(httpVersionMajor) +"."+ std::to_string(httpVersionMinor) + ", \n"
-						+	allHeaders
-						+	"contentLength: " +	std::to_string(contentLength) + ", \n"
+						+	"httpVersion: " + httpVersion + ", \n"
+						+	boost::lexical_cast<std::string>(parsedRequest.base())
+						+	"contentLength: " +	contentLength + ", \n"
 						+	"content : , \n " + content + ", \n";
   }
-
 };
 
 bool headersEqual(const std::string& a, const std::string& b);
@@ -53,55 +54,6 @@ class RequestHandler {
 	private:
 		std::string docRoot_;
 		static bool urlDecode(const std::string& in, std::string& out);
-};
-
-class RequestParser{
-	public:
-		RequestParser();
-		void reset();
-		enum resultType { good, bad, indeterminate };
-		template <typename InputIterator>
-		std::tuple<resultType, InputIterator> parse(request& req, InputIterator begin, InputIterator end) {
-			while (begin != end)
-			{
-				resultType result = consume(req, *begin++);
-				if (result == good || result == bad)
-					return std::make_tuple(result, begin);
-			}
-			return std::make_tuple(indeterminate, begin);
-		}
-	
-	private:
-		static std::string content_length_name_;
-		resultType consume(request& req, char input);
-		static bool isChar(int c);
-		static bool isCtl(int c);
-		static bool isTspecial(int c);
-		static bool isDigit(int c);
-		enum state{
-			methodStart,
-			method,
-			uri,
-			httpVersionH,
-			httpVersionT1,
-			httpVersionT2,
-			httpVersionP,
-			httpVersionSlash,
-			httpVersionMajorStart,
-			httpVersionMajor,
-			httpVersionMinorStart,
-			httpVersionMinor,
-			expectingNewline1,
-			headerLineStart,
-			headerLws,
-			headerName,
-			spaceBeforeHeaderValue,
-			headerValue,
-			expectingNewline2,
-			expectingNewline3,
-			content,
-			noContent
-		} state_;
 };
 
 #endif // SERVERREQUEST_HPP
