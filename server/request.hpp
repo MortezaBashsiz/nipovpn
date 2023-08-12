@@ -32,7 +32,6 @@ struct request{
 						+	"clientIP: " + clientIP + ", \n"
 						+	"clientPort: " + clientPort + ", \n"
 						+	"httpVersion: " + httpVersion + ", \n"
-						+	boost::lexical_cast<std::string>(parsedRequest.base())
 						+	"contentLength: " +	contentLength + ", \n"
 						+	"content : , \n " + content + ", \n";
   }

@@ -13,7 +13,6 @@ void response::parse(std::string response)
 	boost::asio::io_context ctx;
 	boost::process::async_pipe pipe(ctx);
 	write(pipe, boost::asio::buffer(response));
-	write(pipe, boost::asio::buffer(response));
 	::close(pipe.native_sink());
 	boost::beast::flat_buffer buf;
 	boost::system::error_code ec;

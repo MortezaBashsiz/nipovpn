@@ -22,9 +22,16 @@ void RequestHandler::handleRequest(request& req, response& res) {
 		std::string reqPath = nipoConfig.config.users[counter].endpoint;
 		if (req.uri == reqPath) {
 			int contentLengthInt = std::stoi(req.contentLength);
-			std::string plainData = (char *)(nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *) req.content.c_str(), &contentLengthInt));
+			nipoLog.write("Recieve request from nipoagent", nipoLog.levelDebug);
+			nipoLog.write(req.toString(), nipoLog.levelDebug);
+			std::string plainData = (char *)(nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *)req.content.c_str(), &contentLengthInt));
+			nipoLog.write("Decrypt request from nipoagent", nipoLog.levelDebug);
+			nipoLog.write(plainData, nipoLog.levelDebug);
 			request originalRequest;
+			nipoLog.write("Parsing request from nipoagent", nipoLog.levelDebug);
 			originalRequest.parse(plainData);
+			nipoLog.write("Parsed request from nipoagent", nipoLog.levelDebug);
+			nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
 			if (originalRequest.method == boost::beast::http::verb::unknown)
 			{
 				res = response::stockResponse(response::badRequest);
@@ -38,18 +45,16 @@ void RequestHandler::handleRequest(request& req, response& res) {
 				nipoLog.write(logMsg , nipoLog.levelInfo);
 				return;
 			}
-			nipoLog.write("Request recieved from nipoAgent ", nipoLog.levelDebug);
-			nipoLog.write(req.toString(), nipoLog.levelDebug);
-			nipoLog.write("Recieved request from nipoAgent Parsed ", nipoLog.levelDebug);
-			nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
 			Proxy proxy(nipoConfig);
+			nipoLog.write("Send request to the originserver ", nipoLog.levelDebug);
 			std::string newResponse = proxy.send(originalRequest);
-			nipoLog.write("Parsed request sent to original server ", nipoLog.levelDebug);
 			nipoLog.write("Response recieved from original server ", nipoLog.levelDebug);
 			nipoLog.write("\n"+newResponse+"\n", nipoLog.levelDebug);
 			int newRequestLength = newResponse.length();
 			unsigned char *encryptedData;
 			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)newResponse.c_str(), &newRequestLength);
+			nipoLog.write("Encrypt response from originserver", nipoLog.levelDebug);
+			nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
 			res.content = (char *)encryptedData;
 			res.status = response::ok;
 			res.headers.resize(3);
@@ -59,7 +64,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			res.headers[1].value = "*/*\r\n";
 			res.headers[2].name = "Content-Type";
 			res.headers[2].value = "application/javascript\r\n";
-			nipoLog.write("New response generated for nipoAgent ", nipoLog.levelDebug);
+			nipoLog.write("Response generated for nipoAgent ", nipoLog.levelDebug);
 			nipoLog.write(res.toString(), nipoLog.levelDebug);
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
@@ -180,9 +185,8 @@ void request::parse(std::string request)
 	boost::beast::flat_buffer buf;
 	boost::system::error_code ec;
 	boost::beast::http::request<boost::beast::http::string_body> req;
-	for (req; !ec && read(pipe, buf, req, ec); req.clear()) {
+	for (req; boost::beast::http::read(pipe, buf, req, ec); req.clear()) {
 		parsedRequest = req;
-		content = req.body().data();
 		method = req.method();
 		httpVersion = req.version();
 		uri = req.target();
@@ -194,6 +198,8 @@ void request::parse(std::string request)
 		{
 			port = list[1];
 		}
+		if(ec && ec != boost::beast::errc::not_connected)
+				throw boost::beast::system_error{ec};
 	}
 };
 
