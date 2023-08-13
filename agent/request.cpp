@@ -22,13 +22,15 @@ void RequestHandler::handleRequest(request& req, response& res)
 	unsigned char *encryptedData;
 	std::string data = boost::lexical_cast<std::string>(req.parsedRequest);
 	int dataLen = data.length();
+	std::cout << "DATA : " << data << std::endl;
+	std::cout << "DATALEN : " << dataLen << std::endl;
 	std::string logMsg = 	"vpn request, " 
 												+ req.clientIP + ":" 
 												+ req.clientPort;
 	nipoLog.write(logMsg, nipoLog.levelInfo);
 	nipoLog.write("Recieved request from client", nipoLog.levelDebug);
 	nipoLog.write(req.toString(), nipoLog.levelDebug);
-	encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)data.c_str(), &dataLen);
+	encryptedData = nipoEncrypt.encryptAes((unsigned char *)data.c_str(), &dataLen);
 	nipoLog.write("Encrypted request", nipoLog.levelDebug);
 	nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
 	nipoLog.write("Sending request to nipoServer", nipoLog.levelDebug);
@@ -40,7 +42,7 @@ void RequestHandler::handleRequest(request& req, response& res)
 	nipoLog.write("Parsed response from niposerver", nipoLog.levelDebug);
 	nipoLog.write(newResponse.toString(), nipoLog.levelDebug);
 	int responseContentLength = std::stoi(newResponse.contentLength);
-	char *plainData = (char *)nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *)res.encryptedContent.c_str(), &responseContentLength);
+	char *plainData = (char *)nipoEncrypt.decryptAes((unsigned char *)res.encryptedContent.c_str(), &responseContentLength);
 	nipoLog.write("Decrypt recieved response from niposerver", nipoLog.levelDebug);
 	res.parse(plainData);
 	nipoLog.write("Sending response to client", nipoLog.levelDebug);

@@ -14,8 +14,8 @@ public:
 	Log nipoLog;
 	EVP_CIPHER_CTX* encryptEvp = EVP_CIPHER_CTX_new();
 	EVP_CIPHER_CTX* decryptEvp = EVP_CIPHER_CTX_new();
-	unsigned char *encryptAes(EVP_CIPHER_CTX *e, unsigned char *plaintext, int *len);
-	unsigned char *decryptAes(EVP_CIPHER_CTX *e, unsigned char *ciphertext, int *len);
+	unsigned char *encryptAes(unsigned char *plaintext, int *len);
+	unsigned char *decryptAes(unsigned char *ciphertext, int *len);
 	
 	Encrypt(Config config);
 	~Encrypt();

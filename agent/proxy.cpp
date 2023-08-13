@@ -23,7 +23,7 @@ std::string Proxy::send(std::string encryptedBody)
 		req.body() = encryptedBody;
 		req.set(boost::beast::http::field::accept, "*/*");
 		req.set(boost::beast::http::field::content_type, "application/javascript");
-		req.set(boost::beast::http::field::content_length, std::to_string(req.body().size()));
+		req.set(boost::beast::http::field::content_length, std::to_string(encryptedBody.length()));
 		boost::beast::http::write(stream, req);
 		boost::beast::flat_buffer buffer;
 		boost::beast::http::read(stream, buffer, res);

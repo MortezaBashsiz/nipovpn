@@ -16,24 +16,24 @@ int Encrypt::initAes(unsigned char *key_data, int key_data_len, unsigned char *s
   return 0;
 }
 
-unsigned char* Encrypt::encryptAes(EVP_CIPHER_CTX *e, unsigned char *plaintext, int *len)
+unsigned char* Encrypt::encryptAes(unsigned char *plaintext, int *len)
 {
   int c_len = *len + AES_BLOCK_SIZE, f_len = 0;
   unsigned char *ciphertext = new unsigned char[c_len];
-  EVP_EncryptInit_ex(e, NULL, NULL, NULL, NULL);
-  EVP_EncryptUpdate(e, ciphertext, &c_len, plaintext, *len);
-  EVP_EncryptFinal_ex(e, ciphertext+c_len, &f_len);
+  EVP_EncryptInit_ex(encryptEvp, NULL, NULL, NULL, NULL);
+  EVP_EncryptUpdate(encryptEvp, ciphertext, &c_len, plaintext, *len);
+  EVP_EncryptFinal_ex(encryptEvp, ciphertext+c_len, &f_len);
   *len = c_len + f_len;
   return ciphertext;
 }
 
-unsigned char* Encrypt::decryptAes(EVP_CIPHER_CTX *e, unsigned char *ciphertext, int *len)
+unsigned char* Encrypt::decryptAes(unsigned char *ciphertext, int *len)
 {
   int p_len = *len, f_len = 0;
   unsigned char *plaintext = new unsigned char[p_len];
-  EVP_DecryptInit_ex(e, NULL, NULL, NULL, NULL);
-  EVP_DecryptUpdate(e, plaintext, &p_len, ciphertext, *len);
-  EVP_DecryptFinal_ex(e, plaintext+p_len, &f_len);
+  EVP_DecryptInit_ex(decryptEvp, NULL, NULL, NULL, NULL);
+  EVP_DecryptUpdate(decryptEvp, plaintext, &p_len, ciphertext, *len);
+  EVP_DecryptFinal_ex(decryptEvp, plaintext+p_len, &f_len);
   *len = p_len + f_len;
   return plaintext;
 }

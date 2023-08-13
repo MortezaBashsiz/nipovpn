@@ -24,7 +24,8 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			int contentLengthInt = std::stoi(req.contentLength);
 			nipoLog.write("Recieve request from nipoagent", nipoLog.levelDebug);
 			nipoLog.write(req.toString(), nipoLog.levelDebug);
-			std::string plainData = (char *)(nipoEncrypt.decryptAes(nipoEncrypt.decryptEvp, (unsigned char *)req.content.c_str(), &contentLengthInt));
+			std::cout << "REQ BODY: " << std::endl << req.content << std::endl;
+			std::string plainData = (char *)(nipoEncrypt.decryptAes((unsigned char *)req.content.c_str(), &contentLengthInt));
 			nipoLog.write("Decrypt request from nipoagent", nipoLog.levelDebug);
 			nipoLog.write(plainData, nipoLog.levelDebug);
 			request originalRequest;
@@ -52,7 +53,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			nipoLog.write("\n"+newResponse+"\n", nipoLog.levelDebug);
 			int newRequestLength = newResponse.length();
 			unsigned char *encryptedData;
-			encryptedData = nipoEncrypt.encryptAes(nipoEncrypt.encryptEvp, (unsigned char *)newResponse.c_str(), &newRequestLength);
+			encryptedData = nipoEncrypt.encryptAes((unsigned char *)newResponse.c_str(), &newRequestLength);
 			nipoLog.write("Encrypt response from originserver", nipoLog.levelDebug);
 			nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
 			res.content = (char *)encryptedData;
@@ -178,6 +179,7 @@ bool RequestHandler::urlDecode(const std::string& in, std::string& out) {
 
 void request::parse(std::string request)
 {
+	std::cout << "BEFOR PARSE " << std::endl << request << std::endl;
 	boost::asio::io_context ctx;
 	boost::process::async_pipe pipe(ctx);
 	write(pipe, boost::asio::buffer(request));
@@ -185,8 +187,9 @@ void request::parse(std::string request)
 	boost::beast::flat_buffer buf;
 	boost::system::error_code ec;
 	boost::beast::http::request<boost::beast::http::string_body> req;
-	for (req; boost::beast::http::read(pipe, buf, req, ec); req.clear()) {
+	for (req; read(pipe, buf, req, ec); req.clear()) {
 		parsedRequest = req;
+		content = req.body().data();
 		method = req.method();
 		httpVersion = req.version();
 		uri = req.target();
@@ -201,6 +204,7 @@ void request::parse(std::string request)
 		if(ec && ec != boost::beast::errc::not_connected)
 				throw boost::beast::system_error{ec};
 	}
+	std::cout << "AFTER PARSE " << std::endl << boost::lexical_cast<std::string>(req) << std::endl;
 };
 
 bool tolowerCompare(char a, char b)
