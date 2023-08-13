@@ -187,7 +187,7 @@ void request::parse(std::string request)
 	boost::beast::flat_buffer buf;
 	boost::system::error_code ec;
 	boost::beast::http::request<boost::beast::http::string_body> req;
-	for (req; read(pipe, buf, req, ec); req.clear()) {
+	for (req; !ec && boost::beast::http::read(pipe, buf, req, ec); req.clear()) {
 		parsedRequest = req;
 		content = req.body().data();
 		method = req.method();

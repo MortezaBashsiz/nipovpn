@@ -17,7 +17,7 @@ void response::parse(std::string response)
 	boost::beast::flat_buffer buf;
 	boost::system::error_code ec;
 	boost::beast::http::response<boost::beast::http::string_body> res;
-	for (res; !ec && read(pipe, buf, res, ec); res.clear()) {
+	for (res; !ec && boost::beast::http::read(pipe, buf, res, ec); res.clear()) {
 		parsedResponse = res;
 		contentLength = res["Content-Length"];
 		encryptedContent = res.body().data();

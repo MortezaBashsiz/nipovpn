@@ -22,8 +22,6 @@ void RequestHandler::handleRequest(request& req, response& res)
 	unsigned char *encryptedData;
 	std::string data = boost::lexical_cast<std::string>(req.parsedRequest);
 	int dataLen = data.length();
-	std::cout << "DATA : " << data << std::endl;
-	std::cout << "DATALEN : " << dataLen << std::endl;
 	std::string logMsg = 	"vpn request, " 
 												+ req.clientIP + ":" 
 												+ req.clientPort;
@@ -34,7 +32,7 @@ void RequestHandler::handleRequest(request& req, response& res)
 	nipoLog.write("Encrypted request", nipoLog.levelDebug);
 	nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
 	nipoLog.write("Sending request to nipoServer", nipoLog.levelDebug);
-	std::string result = proxy.send((char *)encryptedData);
+	std::string result = proxy.send((char *)encryptedData, dataLen);
 	nipoLog.write("Response recieved from niposerver", nipoLog.levelDebug);
 	nipoLog.write("\n"+result+"\n", nipoLog.levelDebug);
 	response newResponse;
@@ -60,7 +58,7 @@ void request::parse(std::string request)
 	boost::beast::flat_buffer buf;
 	boost::system::error_code ec;
 	boost::beast::http::request<boost::beast::http::string_body> req;
-	for (req; !ec && read(pipe, buf, req, ec); req.clear()) {
+	for (req; !ec && boost::beast::http::read(pipe, buf, req, ec); req.clear()) {
 		parsedRequest = req;
 		content = req.body().data();
 		method = req.method();
