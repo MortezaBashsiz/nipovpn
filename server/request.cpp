@@ -59,13 +59,15 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			nipoLog.write("Generating response for nipoAgent ", nipoLog.levelDebug);
 			res.content = (char *)encryptedData;
 			res.status = response::ok;
-			res.headers.resize(3);
+			res.headers.resize(4);
+			res.headers[0].name = "Host";
+			res.headers[0].value = "google.com";
 			res.headers[1].name = "Accept";
 			res.headers[1].value = "*/*";
-			res.headers[0].name = "Content-Length";
-			res.headers[0].value = std::to_string(newRequestLength);
-			res.headers[2].name = "Content-Type";
-			res.headers[2].value = "application/javascript";
+			res.headers[2].name = "Content-Size";
+			res.headers[2].value = std::to_string(newRequestLength);
+			res.headers[3].name = "Content-Type";
+			res.headers[3].value = "application/javascript";
 			nipoLog.write("Response generated for nipoAgent ", nipoLog.levelDebug);
 			nipoLog.write(res.toString(), nipoLog.levelDebug);
 			std::string logMsg = 	"vpn request, " 

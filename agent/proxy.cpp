@@ -9,7 +9,7 @@ Proxy::~Proxy(){}
 
 std::string Proxy::send(std::string encryptedBody, int dataLen)
 {
-	boost::beast::http::response<boost::beast::http::string_body> res;
+	boost::beast::http::response<boost::beast::http::dynamic_body> res;
 	try
 	{
 		boost::asio::io_context ioc;
