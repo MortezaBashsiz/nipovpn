@@ -42,6 +42,7 @@ void RequestHandler::handleRequest(request& req, response& res)
 	int responseContentLength = std::stoi(newResponse.contentLength);
 	char *plainData = (char *)nipoEncrypt.decryptAes((unsigned char *)res.encryptedContent.c_str(), &responseContentLength);
 	nipoLog.write("Decrypt recieved response from niposerver", nipoLog.levelDebug);
+	nipoLog.write(plainData, nipoLog.levelDebug);
 	res.parse(plainData);
 	nipoLog.write("Sending response to client", nipoLog.levelDebug);
 	nipoLog.write(res.toString(), nipoLog.levelDebug);
