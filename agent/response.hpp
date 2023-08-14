@@ -23,10 +23,10 @@ struct response{
 
 	std::string toString()
 	{
-		return 	"content : , \n " + content + ", \n"
-						+ "encryptedContent : , \n " + encryptedContent + ", \n"
-						+ "contentLength : , \n " + contentLength + ", \n"
-						+ "parsed headers : , \n " + boost::lexical_cast<std::string>(parsedResponse.base()) + ", \n";
+		return 	"content : \n " + content + " \n"
+						+ "encryptedContent : \n " + encryptedContent + " \n"
+						+ "contentLength : \n " + contentLength + " \n"
+						+ "parsed headers : \n " + boost::lexical_cast<std::string>(parsedResponse.base()) + " \n";
 	}
 
 };

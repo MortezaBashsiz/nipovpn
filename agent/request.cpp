@@ -48,11 +48,11 @@ void RequestHandler::handleRequest(request& req, response& res)
 	decodedData = nipoEncrypt.decode64(newResponse.parsedResponse.body().data());
 	nipoLog.write("Decoded recieved response", nipoLog.levelDebug);
 	nipoLog.write(decodedData, nipoLog.levelDebug);
-	nipoLog.write("Sending request to nipoServer", nipoLog.levelDebug);
 	char *plainData = (char *)nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &responseContentLength);
 	nipoLog.write("Decrypt recieved response from niposerver", nipoLog.levelDebug);
 	nipoLog.write(plainData, nipoLog.levelDebug);
 	res.parse(plainData);
+	res.content = res.encryptedContent;
 	nipoLog.write("Sending response to client", nipoLog.levelDebug);
 	nipoLog.write(res.toString(), nipoLog.levelDebug);
 	return;
