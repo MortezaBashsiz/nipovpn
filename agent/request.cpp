@@ -1,16 +1,4 @@
 #include "request.hpp"
-#include "response.hpp"
-#include "header.hpp"
-#include "encrypt.hpp"
-#include "proxy.hpp"
-#include "general.hpp"
-
-#include <boost/lexical_cast.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio/connect.hpp>
-#include <boost/asio/ip/tcp.hpp>
 
 RequestHandler::RequestHandler(Config config) : nipoLog(config), nipoEncrypt(config), nipoProxy(nipoConfig) {
 	nipoConfig = config;

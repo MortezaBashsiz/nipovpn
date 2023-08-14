@@ -10,6 +10,8 @@
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 
+#include "header.hpp"
+
 const char miscNameValueSeparator[] = { ':', ' ' };
 const char miscCrlf[] = { '\r', '\n' };
 
@@ -17,6 +19,7 @@ struct response{
 	std::string content;
 	std::string encryptedContent;
 	std::string contentLength;
+	std::vector<header> headers;
 	std::vector<boost::asio::const_buffer> toBuffers();
 	boost::beast::http::response<boost::beast::http::string_body> parsedResponse;
 	void parse(std::string response);

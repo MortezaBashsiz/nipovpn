@@ -11,6 +11,10 @@
 #include <boost/beast/http.hpp>
 #include <boost/process/async_pipe.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/asio/connect.hpp>
+#include <boost/asio/ip/tcp.hpp>
 
 struct request{
 	std::string host;
