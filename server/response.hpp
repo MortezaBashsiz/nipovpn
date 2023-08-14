@@ -7,13 +7,13 @@
 
 #include "header.hpp"
 
-const std::string statusStringOk = "HTTP/1.0 200 OK\r\n";
-const std::string statusStringBadRequest = "HTTP/1.0 400 Bad Request\r\n";
-const std::string statusStringUnauthorized = "HTTP/1.0 401 Unauthorized\r\n";
-const std::string statusStringForbidden = "HTTP/1.0 403 Forbidden\r\n";
-const std::string statusStringNotFound = "HTTP/1.0 404 Not Found\r\n";
-const std::string statusStringInternalServerError = "HTTP/1.0 500 Internal Server Error\r\n";
-const std::string statusStringServiceUnavailable = "HTTP/1.0 503 Service Unavailable\r\n";
+const std::string statusStringOk = "HTTP/1.1 200 OK\r\n";
+const std::string statusStringBadRequest = "HTTP/1.1 400 Bad Request\r\n";
+const std::string statusStringUnauthorized = "HTTP/1.1 401 Unauthorized\r\n";
+const std::string statusStringForbidden = "HTTP/1.1 403 Forbidden\r\n";
+const std::string statusStringNotFound = "HTTP/1.1 404 Not Found\r\n";
+const std::string statusStringInternalServerError = "HTTP/1.1 500 Internal Server Error\r\n";
+const std::string statusStringServiceUnavailable = "HTTP/1.1 503 Service Unavailable\r\n";
 
 const char miscNameValueSeparator[] = { ':', ' ' };
 const char miscCrlf[] = { '\r', '\n' };
@@ -47,13 +47,13 @@ struct response{
 		{
 			allHeaders += headers[i].name + " : " + headers[i].value + ", \n";
 		}
-		return	allHeaders + " , \n"
+		return	statusToString(status)+ " , \n"
+						+ allHeaders + " , \n"
 						+	"content : \n " + content + ", \n";
 	}
 	static response stockResponse(statusType status);
+	std::string statusToString(statusType status);
+	boost::asio::const_buffer statusToBuffer(statusType status);
 };
-
-std::string statusToString(response::statusType status);
-boost::asio::const_buffer statusToBuffer(response::statusType status);
 
 #endif //RESPONSE_HPP

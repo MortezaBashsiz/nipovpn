@@ -24,8 +24,6 @@ unsigned char* Encrypt::encryptAes(unsigned char *plaintext, int *len)
   EVP_EncryptUpdate(encryptEvp, ciphertext, &c_len, plaintext, *len);
   EVP_EncryptFinal_ex(encryptEvp, ciphertext+c_len, &f_len);
   *len = c_len + f_len;
-  std::cout << "c_len : " << c_len << std::endl;
-  std::cout << "ciphertext : " << ciphertext << std::endl;
   return ciphertext;
 }
 
@@ -37,8 +35,6 @@ unsigned char* Encrypt::decryptAes(unsigned char *ciphertext, int *len)
   EVP_DecryptUpdate(decryptEvp, plaintext, &p_len, ciphertext, *len);
   EVP_DecryptFinal_ex(decryptEvp, plaintext+p_len, &f_len);
   *len = p_len + f_len;
-  std::cout << "p_len : " << p_len << std::endl;
-  std::cout << "plaintext : " << plaintext << std::endl;
   return plaintext;
 }
 

@@ -42,7 +42,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 															+ boost::lexical_cast<std::string>(originalRequest.method) + ", " 
 															+ originalRequest.uri + ", " 
 															+ to_string(res.content.size()) + ", " 
-															+ statusToString(res.status);
+															+ res.statusToString(res.status);
 				nipoLog.write(logMsg , nipoLog.levelInfo);
 				return;
 			}
@@ -55,16 +55,17 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			unsigned char *encryptedData;
 			encryptedData = nipoEncrypt.encryptAes((unsigned char *)newResponse.c_str(), &newRequestLength);
 			nipoLog.write("Encrypt response from originserver", nipoLog.levelDebug);
-			nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
+			nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
+			nipoLog.write("Generating response for nipoAgent ", nipoLog.levelDebug);
 			res.content = (char *)encryptedData;
 			res.status = response::ok;
 			res.headers.resize(3);
+			res.headers[1].name = "Accept";
+			res.headers[1].value = "*/*";
 			res.headers[0].name = "Content-Length";
 			res.headers[0].value = std::to_string(newRequestLength);
-			res.headers[1].name = "Accept";
-			res.headers[1].value = "*/*\r\n";
 			res.headers[2].name = "Content-Type";
-			res.headers[2].value = "application/javascript\r\n";
+			res.headers[2].value = "application/javascript";
 			nipoLog.write("Response generated for nipoAgent ", nipoLog.levelDebug);
 			nipoLog.write(res.toString(), nipoLog.levelDebug);
 			std::string logMsg = 	"vpn request, " 
@@ -75,7 +76,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 														+ originalRequest.host + ", "
 														+ originalRequest.port + ", " 
 														+ to_string(req.content.size()) + ", " 
-														+ statusToString(res.status);
+														+ res.statusToString(res.status);
 			nipoLog.write(logMsg , nipoLog.levelInfo);
 			return;
 		};
@@ -89,7 +90,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 													+ boost::lexical_cast<std::string>(req.method) + ", " 
 													+ req.uri + ", " 
 													+ to_string(res.content.size()) + ", " 
-													+ statusToString(res.status);
+													+ res.statusToString(res.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
 	};
@@ -102,7 +103,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 													+ boost::lexical_cast<std::string>(req.method) + ", " 
 													+ req.uri + ", " 
 													+ to_string(res.content.size()) + ", " 
-													+ statusToString(res.status);
+													+ res.statusToString(res.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
 	};
@@ -128,7 +129,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 													+ boost::lexical_cast<std::string>(req.method) + ", " 
 													+ req.uri + ", " 
 													+ to_string(res.content.size()) + ", " 
-													+ statusToString(res.status);
+													+ res.statusToString(res.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
 	};
@@ -147,7 +148,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 												+ boost::lexical_cast<std::string>(req.method) + ", " 
 												+ req.uri + ", " 
 												+ to_string(res.content.size()) + ", "
-												+ statusToString(res.status);
+												+ res.statusToString(res.status);
 	nipoLog.write(logMsg , nipoLog.levelInfo);
 };
 

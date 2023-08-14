@@ -1,6 +1,6 @@
 #include "response.hpp"
 
-boost::asio::const_buffer statusToBuffer(response::statusType status) {
+boost::asio::const_buffer response::statusToBuffer(response::statusType status) {
 	switch (status){
 	case response::ok:
 		return boost::asio::buffer(statusStringOk);
@@ -21,7 +21,7 @@ boost::asio::const_buffer statusToBuffer(response::statusType status) {
 	};
 };
 
-std::string statusToString(response::statusType status) {
+std::string response::statusToString(response::statusType status) {
 	switch (status){
 	case response::ok:
 		return statusStringOk;
@@ -43,15 +43,15 @@ std::string statusToString(response::statusType status) {
 };
 
 response response::stockResponse(response::statusType status) {
-	response resp;
-	resp.status = status;
-	resp.content = statusToString(status);
-	resp.headers.resize(2);
-	resp.headers[0].name = "Content-Length";
-	resp.headers[0].value = std::to_string(resp.content.size());
-	resp.headers[1].name = "Content-Type";
-	resp.headers[1].value = "text/html";
-	return resp;
+	response res;
+	res.status = status;
+	res.content = res.statusToString(status);
+	res.headers.resize(2);
+	res.headers[0].name = "Content-Length";
+	res.headers[0].value = std::to_string(res.content.size());
+	res.headers[1].name = "Content-Type";
+	res.headers[1].value = "text/html";
+	return res;
 };
 
 std::vector<boost::asio::const_buffer> response::toBuffers() {
