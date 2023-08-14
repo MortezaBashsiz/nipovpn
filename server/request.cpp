@@ -51,13 +51,13 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			}
 			Proxy proxy(nipoConfig);
 			nipoLog.write("Send request to the originserver ", nipoLog.levelDebug);
-			std::string newResponse = proxy.send(originalRequest);
+			std::string originalResponse = proxy.send(originalRequest);
 			nipoLog.write("Response recieved from original server ", nipoLog.levelDebug);
-			nipoLog.write("\n"+newResponse+"\n", nipoLog.levelDebug);
-			int newResponseLength = newResponse.length();
+			nipoLog.write("\n"+originalResponse+"\n", nipoLog.levelDebug);
+			int originalResponseLength = originalResponse.length();
 			unsigned char *encryptedData;
 			nipoLog.write("Encrypting response from originserver", nipoLog.levelDebug);
-			encryptedData = nipoEncrypt.encryptAes((unsigned char *)newResponse.c_str(), &newResponseLength);
+			encryptedData = nipoEncrypt.encryptAes((unsigned char *)originalResponse.c_str(), &originalResponseLength);
 			nipoLog.write("Encrypted response from originserver", nipoLog.levelDebug);
 			nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
 			encodedData = nipoEncrypt.encode64((char *)encryptedData);
@@ -72,7 +72,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			res.headers[1].name = "Accept";
 			res.headers[1].value = "*/*";
 			res.headers[2].name = "Content-Size";
-			res.headers[2].value = std::to_string(newResponseLength);
+			res.headers[2].value = std::to_string(originalResponseLength);
 			res.headers[3].name = "Content-Type";
 			res.headers[3].value = "application/javascript";
 			nipoLog.write("Generated response for nipoAgent ", nipoLog.levelDebug);
