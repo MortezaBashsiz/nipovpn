@@ -29,6 +29,7 @@ void response::parse(std::string response)
 		parsedResponse = res;
 		contentLength = res["Content-Size"];
 		encryptedContent = res.body().data();
+		content = res.body().data();
 		int i = 1;
 		for (auto& h : res.base()) {
 			i+=1;
