@@ -3,6 +3,10 @@
 
 #include <openssl/evp.h>
 #include <openssl/aes.h>
+#include <boost/archive/iterators/binary_from_base64.hpp>
+#include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "config.hpp"
 #include "log.hpp"
@@ -16,6 +20,8 @@ public:
 	EVP_CIPHER_CTX* decryptEvp = EVP_CIPHER_CTX_new();
 	unsigned char *encryptAes(unsigned char *plaintext, int *len);
 	unsigned char *decryptAes(unsigned char *ciphertext, int *len);
+	std::string decode64(const std::string &val);
+	std::string encode64(const std::string &val);	
 	
 	Encrypt(Config config);
 	~Encrypt();

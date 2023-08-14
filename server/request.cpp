@@ -18,14 +18,17 @@ RequestHandler::RequestHandler(Config config, const std::string& docRoot) : docR
 
 void RequestHandler::handleRequest(request& req, response& res) {
 	std::string requestPath;
+	std::string encodedData, decodedData;
 	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
 		std::string reqPath = nipoConfig.config.users[counter].endpoint;
 		if (req.uri == reqPath) {
 			int contentLengthInt = std::stoi(req.contentLength);
 			nipoLog.write("Recieve request from nipoagent", nipoLog.levelDebug);
 			nipoLog.write(req.toString(), nipoLog.levelDebug);
-			std::cout << "REQ BODY: " << std::endl << req.content << std::endl;
-			std::string plainData = (char *)(nipoEncrypt.decryptAes((unsigned char *)req.content.c_str(), &contentLengthInt));
+			decodedData = nipoEncrypt.decode64(req.content);
+			nipoLog.write("Decoded recieved request", nipoLog.levelDebug);
+			nipoLog.write(decodedData, nipoLog.levelDebug);
+			std::string plainData = (char *)(nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &contentLengthInt));
 			nipoLog.write("Decrypt request from nipoagent", nipoLog.levelDebug);
 			nipoLog.write(plainData, nipoLog.levelDebug);
 			request originalRequest;
@@ -51,13 +54,17 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			std::string newResponse = proxy.send(originalRequest);
 			nipoLog.write("Response recieved from original server ", nipoLog.levelDebug);
 			nipoLog.write("\n"+newResponse+"\n", nipoLog.levelDebug);
-			int newRequestLength = newResponse.length();
+			int newResponseLength = newResponse.length();
 			unsigned char *encryptedData;
-			encryptedData = nipoEncrypt.encryptAes((unsigned char *)newResponse.c_str(), &newRequestLength);
-			nipoLog.write("Encrypt response from originserver", nipoLog.levelDebug);
+			nipoLog.write("Encrypting response from originserver", nipoLog.levelDebug);
+			encryptedData = nipoEncrypt.encryptAes((unsigned char *)newResponse.c_str(), &newResponseLength);
+			nipoLog.write("Encrypted response from originserver", nipoLog.levelDebug);
 			nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
+			encodedData = nipoEncrypt.encode64((char *)encryptedData);
+			nipoLog.write("Encoded encrypted data", nipoLog.levelDebug);
+			nipoLog.write(encodedData, nipoLog.levelDebug);
 			nipoLog.write("Generating response for nipoAgent ", nipoLog.levelDebug);
-			res.content = (char *)encryptedData;
+			res.content = encodedData;
 			res.status = response::ok;
 			res.headers.resize(4);
 			res.headers[0].name = "Host";
@@ -65,10 +72,10 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			res.headers[1].name = "Accept";
 			res.headers[1].value = "*/*";
 			res.headers[2].name = "Content-Size";
-			res.headers[2].value = std::to_string(newRequestLength);
+			res.headers[2].value = std::to_string(newResponseLength);
 			res.headers[3].name = "Content-Type";
 			res.headers[3].value = "application/javascript";
-			nipoLog.write("Response generated for nipoAgent ", nipoLog.levelDebug);
+			nipoLog.write("Generated response for nipoAgent ", nipoLog.levelDebug);
 			nipoLog.write(res.toString(), nipoLog.levelDebug);
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
@@ -182,7 +189,6 @@ bool RequestHandler::urlDecode(const std::string& in, std::string& out) {
 
 void request::parse(std::string request)
 {
-	std::cout << "BEFOR PARSE " << std::endl << request << std::endl;
 	boost::asio::io_context ctx;
 	boost::process::async_pipe pipe(ctx);
 	write(pipe, boost::asio::buffer(request));
@@ -197,7 +203,7 @@ void request::parse(std::string request)
 		httpVersion = req.version();
 		uri = req.target();
 		userAgent = boost::lexical_cast<std::string>(req["User-Agent"]);
-		contentLength = req["Content-Length"];
+		contentLength = req["Content-Size"];
 		std::vector<std::string> list = splitString(req["Host"], ':');
 		host = list[0];
 		if (list.size() == 2) 
@@ -207,7 +213,6 @@ void request::parse(std::string request)
 		if(ec && ec != boost::beast::errc::not_connected)
 				throw boost::beast::system_error{ec};
 	}
-	std::cout << "AFTER PARSE " << std::endl << boost::lexical_cast<std::string>(req) << std::endl;
 };
 
 bool tolowerCompare(char a, char b)

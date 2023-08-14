@@ -20,6 +20,7 @@ void RequestHandler::handleRequest(request& req, response& res)
 {
 	Proxy proxy(nipoConfig);
 	unsigned char *encryptedData;
+	std::string encodedData, decodedData;
 	std::string data = boost::lexical_cast<std::string>(req.parsedRequest);
 	int dataLen = data.length();
 	std::string logMsg = 	"vpn request, " 
@@ -31,8 +32,12 @@ void RequestHandler::handleRequest(request& req, response& res)
 	encryptedData = nipoEncrypt.encryptAes((unsigned char *)data.c_str(), &dataLen);
 	nipoLog.write("Encrypted request", nipoLog.levelDebug);
 	nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
+	nipoLog.write("Encoding encrypted request", nipoLog.levelDebug);
+	encodedData = nipoEncrypt.encode64((char *)encryptedData);
+	nipoLog.write("Encoded encrypted request", nipoLog.levelDebug);
+	nipoLog.write(encodedData, nipoLog.levelDebug);
 	nipoLog.write("Sending request to nipoServer", nipoLog.levelDebug);
-	std::string result = proxy.send((char *)encryptedData, dataLen);
+	std::string result = proxy.send(encodedData, dataLen);
 	nipoLog.write("Response recieved from niposerver", nipoLog.levelDebug);
 	nipoLog.write("\n"+result+"\n", nipoLog.levelDebug);
 	response newResponse;
@@ -40,7 +45,11 @@ void RequestHandler::handleRequest(request& req, response& res)
 	nipoLog.write("Parsed response from niposerver", nipoLog.levelDebug);
 	nipoLog.write(newResponse.toString(), nipoLog.levelDebug);
 	int responseContentLength = std::stoi(newResponse.contentLength);
-	char *plainData = (char *)nipoEncrypt.decryptAes((unsigned char *)res.encryptedContent.c_str(), &responseContentLength);
+	decodedData = nipoEncrypt.decode64(newResponse.parsedResponse.body().data());
+	nipoLog.write("Decoded recieved response", nipoLog.levelDebug);
+	nipoLog.write(decodedData, nipoLog.levelDebug);
+	nipoLog.write("Sending request to nipoServer", nipoLog.levelDebug);
+	char *plainData = (char *)nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &responseContentLength);
 	nipoLog.write("Decrypt recieved response from niposerver", nipoLog.levelDebug);
 	nipoLog.write(plainData, nipoLog.levelDebug);
 	res.parse(plainData);
