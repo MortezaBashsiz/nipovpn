@@ -33,6 +33,4 @@ private:
 	int initAes(unsigned char *key_data, int key_data_len, unsigned char *salt, EVP_CIPHER_CTX *e_ctx, EVP_CIPHER_CTX *d_ctx);
 };
 
-
-
 #endif //ENCRYPT_HPP

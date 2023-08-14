@@ -10,6 +10,7 @@
 #include "header.hpp"
 #include "response.hpp"
 #include "request.hpp"
+#include "encrypt.hpp"
 
 class ConnectionManager;
 

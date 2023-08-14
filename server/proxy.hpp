@@ -3,7 +3,6 @@
 
 #include "config.hpp"
 #include "log.hpp"
-#include "header.hpp"
 #include "request.hpp"
 
 #include <boost/beast/core.hpp>

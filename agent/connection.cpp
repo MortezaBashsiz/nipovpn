@@ -1,5 +1,4 @@
 #include "connection.hpp"
-#include "encrypt.hpp"
 
 Connection::Connection(boost::asio::ip::tcp::socket socket,
 		ConnectionManager& manager, RequestHandler& handler, Config config)
