@@ -2,7 +2,7 @@
 
 std::vector<boost::asio::const_buffer> response::toBuffers() {
 	std::vector<boost::asio::const_buffer> buffers;
-	buffers.push_back(boost::asio::buffer("HTTP/1.1 200 OK\r\n"));
+	buffers.push_back(boost::asio::buffer(status));
 	for (std::size_t i = 0; i < headers.size(); ++i){
 		header& h = headers[i];
 		buffers.push_back(boost::asio::buffer(h.name));
@@ -26,6 +26,7 @@ void response::parse(std::string response)
 	boost::system::error_code ec;
 	boost::beast::http::response<boost::beast::http::string_body> res;
 	for (res; !ec && boost::beast::http::read(pipe, buf, res, ec); res.clear()) {
+		status =  std::string("HTTP/1.1 ") + boost::lexical_cast<std::string>(res.result_int()) + " " + boost::lexical_cast<std::string>(res.result()) + "\r\n";
 		parsedResponse = res;
 		contentLength = res["Content-Size"];
 		encryptedContent = res.body().data();
