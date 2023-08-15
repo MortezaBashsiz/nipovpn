@@ -43,7 +43,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			std::string originalResponse = proxy.send(originalRequest);
 			nipoLog.write("Response recieved from original server ", nipoLog.levelDebug);
 			nipoLog.write("\n"+originalResponse+"\n", nipoLog.levelDebug);
-			int originalResponseLength = originalResponse.length();
+			int originalResponseLength = originalResponse.length()+1;
 			unsigned char *encryptedData;
 			nipoLog.write("Encrypting response from originserver", nipoLog.levelDebug);
 			encryptedData = nipoEncrypt.encryptAes((unsigned char *)originalResponse.c_str(), &originalResponseLength);

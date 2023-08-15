@@ -10,7 +10,7 @@ void RequestHandler::handleRequest(request& req, response& res)
 	unsigned char *encryptedData;
 	std::string encodedData, decodedData;
 	std::string data = boost::lexical_cast<std::string>(req.parsedRequest);
-	int dataLen = data.length();
+	int dataLen = data.length()+1;
 	std::string logMsg = 	"vpn request, " 
 												+ req.clientIP + ":" 
 												+ req.clientPort;
