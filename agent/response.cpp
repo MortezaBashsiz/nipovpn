@@ -26,7 +26,11 @@ void response::parse(std::string response)
 	boost::system::error_code ec;
 	boost::beast::http::response<boost::beast::http::string_body> res;
 	for (res; !ec && boost::beast::http::read(pipe, buf, res, ec); res.clear()) {
-		status =  std::string("HTTP/1.1 ") + boost::lexical_cast<std::string>(res.result_int()) + " " + boost::lexical_cast<std::string>(res.result()) + "\r\n";
+		unsigned versionMajor = res.version() / 10;
+		unsigned versionMinor = res.version() % 10;
+		status =  std::string("HTTP/")+ std::to_string(versionMajor) + "." + std::to_string(versionMinor) 
+							+ " " + boost::lexical_cast<std::string>(res.result_int()) 
+							+ " " + boost::lexical_cast<std::string>(res.result()) + "\r\n";
 		parsedResponse = res;
 		contentLength = res["Content-Size"];
 		encryptedContent = res.body().data();
