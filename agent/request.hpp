@@ -54,7 +54,6 @@ class RequestHandler {
 		Log nipoLog;
 		Config nipoConfig;
 		Encrypt nipoEncrypt;
-		Proxy nipoProxy;
 	
 	private:
 		std::string docRoot_;

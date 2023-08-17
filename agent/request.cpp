@@ -1,6 +1,6 @@
 #include "request.hpp"
 
-RequestHandler::RequestHandler(Config config) : nipoLog(config), nipoEncrypt(config), nipoProxy(nipoConfig) {
+RequestHandler::RequestHandler(Config config) : nipoLog(config), nipoEncrypt(config) {
 	nipoConfig = config;
 }
 
