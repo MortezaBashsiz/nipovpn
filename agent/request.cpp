@@ -40,7 +40,6 @@ void RequestHandler::handleRequest(request& req, response& res)
 	nipoLog.write("Decrypt recieved response from niposerver", nipoLog.levelDebug);
 	nipoLog.write(plainData, nipoLog.levelDebug);
 	res.parse(plainData);
-	res.content = res.encryptedContent;
 	nipoLog.write("Sending response to client", nipoLog.levelDebug);
 	nipoLog.write(res.toString(), nipoLog.levelDebug);
 	return;

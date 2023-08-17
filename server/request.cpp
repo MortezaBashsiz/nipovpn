@@ -73,7 +73,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 														+ originalRequest.uri + ", "
 														+ originalRequest.host + ", "
 														+ originalRequest.port + ", " 
-														+ to_string(req.content.size()) + ", " 
+														+ to_string(req.content.length()) + ", " 
 														+ res.statusToString(res.status);
 			nipoLog.write(logMsg , nipoLog.levelInfo);
 			return;
