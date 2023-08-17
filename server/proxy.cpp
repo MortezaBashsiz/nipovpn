@@ -14,16 +14,34 @@ std::string Proxy::send(request request_)
 	{
 		boost::asio::io_context ioc;
 		boost::asio::ip::tcp::resolver resolver(ioc);
-		boost::beast::tcp_stream stream(ioc);
 		auto const results = resolver.resolve(request_.host, request_.port);
-		stream.connect(results);
-		boost::beast::http::write(stream, request_.parsedRequest);
-		boost::beast::flat_buffer buffer;
-		boost::beast::http::read(stream, buffer, res);
-		boost::beast::error_code ec;
-		stream.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-		if(ec && ec != boost::beast::errc::not_connected)
-				throw boost::beast::system_error{ec};
+		if ( request_.method == boost::beast::http::verb::connect)
+		{
+			boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tls);
+			ssl_context.set_default_verify_paths();
+			boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket(ioc, ssl_context);
+			boost::asio::connect(socket.next_layer(), results);
+			socket.set_verify_mode(boost::asio::ssl::verify_peer);
+			socket.set_verify_callback(boost::asio::ssl::host_name_verification(request_.host));
+			if(! SSL_set_tlsext_host_name(socket.native_handle(), request_.host.c_str()))
+			{
+					throw boost::system::system_error(
+							::ERR_get_error(), boost::asio::error::get_ssl_category());
+			}
+			socket.handshake(boost::asio::ssl::stream<boost::asio::ip::tcp::socket>::client);
+		} 
+		else 
+		{
+			boost::beast::tcp_stream stream(ioc);
+			stream.connect(results);
+			boost::beast::http::write(stream, request_.parsedRequest);
+			boost::beast::flat_buffer buffer;
+			boost::beast::http::read(stream, buffer, res);
+			boost::beast::error_code ec;
+			stream.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+			if(ec && ec != boost::beast::errc::not_connected)
+					throw boost::beast::system_error{ec};
+		}
 	}
 	catch(std::exception const& e)
 	{

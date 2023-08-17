@@ -11,6 +11,7 @@
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/asio/ssl.hpp>
 
 class Proxy
 {
