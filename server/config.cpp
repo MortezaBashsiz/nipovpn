@@ -26,8 +26,9 @@ Config::Config(std::string file)
 		{
 			if (configJson["users"][item]["token"].asString() != "")
 			{
-				config.users[item].salt = configJson["users"][item]["salt"].asInt();
+				config.users[item].encryption	= configJson["users"][item]["encryption"].asString();
 				config.users[item].token = configJson["users"][item]["token"].asString();
+				config.users[item].salt = configJson["users"][item]["salt"].asInt();
 				config.users[item].srcIp = configJson["users"][item]["srcIp"].asString();
 				config.users[item].endpoint = configJson["users"][item]["endpoint"].asString();
 			};
@@ -86,7 +87,7 @@ returnMsgCode Config::validate()
 		result.message	= "[ERROR]: specified config logFile file does not exists or is not readable : " + config.logFile;
 		result.code = 1;
 	};
-	for (int item = 0; item < SERVER_CONFIG_MAX_USER_COUNT; item += 1)
+	for (int item = 0; item < config.usersCount; item += 1)
 	{
 		if (config.users[item].token != "")
 		{
@@ -96,6 +97,11 @@ returnMsgCode Config::validate()
 				result.code = 1;
 				break;
 			};
+		};
+		if (!(config.users[item].encryption == "yes" || config.users[item].encryption == "no")){
+			result.message	= "[ERROR]: specified encryption is not correct, must be yes or no: " + config.users[item].encryption;
+			result.code = 1;
+			break;
 		};
 	};
 	return result;

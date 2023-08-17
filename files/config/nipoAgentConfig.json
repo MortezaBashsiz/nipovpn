@@ -5,6 +5,7 @@
 	"serverPort": 80,
 	"logLevel": 4,
 	"logFile": "/var/log/nipoagent/nipo.log",
+	"encryption": "no",
 	"token": "af445adb-2434-4975-9445-2c1b223d556e",
 	"salt": 123456,
 	"endPoint": "/api01",

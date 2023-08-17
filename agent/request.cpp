@@ -17,11 +17,16 @@ void RequestHandler::handleRequest(request& req, response& res)
 	nipoLog.write(logMsg, nipoLog.levelInfo);
 	nipoLog.write("Recieved request from client", nipoLog.levelDebug);
 	nipoLog.write(req.toString(), nipoLog.levelDebug);
-	encryptedData = nipoEncrypt.encryptAes((unsigned char *)data.c_str(), &dataLen);
-	nipoLog.write("Encrypted request", nipoLog.levelDebug);
-	nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
-	nipoLog.write("Encoding encrypted request", nipoLog.levelDebug);
-	encodedData = nipoEncrypt.encode64((char *)encryptedData);
+	if (nipoConfig.config.encryption == "yes")
+	{
+		encryptedData = nipoEncrypt.encryptAes((unsigned char *)data.c_str(), &dataLen);
+		nipoLog.write("Encrypted request", nipoLog.levelDebug);
+		nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
+		nipoLog.write("Encoding encrypted request", nipoLog.levelDebug);
+		encodedData = nipoEncrypt.encode64((char *)encryptedData);
+	} else if(nipoConfig.config.encryption == "no") {
+			encodedData = nipoEncrypt.encode64(data);
+	}
 	nipoLog.write("Encoded encrypted request", nipoLog.levelDebug);
 	nipoLog.write(encodedData, nipoLog.levelDebug);
 	nipoLog.write("Sending request to nipoServer", nipoLog.levelDebug);
@@ -36,10 +41,15 @@ void RequestHandler::handleRequest(request& req, response& res)
 	decodedData = nipoEncrypt.decode64(newResponse.parsedResponse.body().data());
 	nipoLog.write("Decoded recieved response", nipoLog.levelDebug);
 	nipoLog.write(decodedData, nipoLog.levelDebug);
-	char *plainData = (char *)nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &responseContentLength);
-	nipoLog.write("Decrypt recieved response from niposerver", nipoLog.levelDebug);
-	nipoLog.write(plainData, nipoLog.levelDebug);
-	res.parse(plainData);
+	if (nipoConfig.config.encryption == "yes")
+	{
+		char *plainData = (char *)nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &responseContentLength);
+		nipoLog.write("Decrypt recieved response from niposerver", nipoLog.levelDebug);
+		nipoLog.write(plainData, nipoLog.levelDebug);
+		res.parse(plainData);
+	} else if(nipoConfig.config.encryption == "no") {
+		res.parse(decodedData);
+	}
 	nipoLog.write("Sending response to client", nipoLog.levelDebug);
 	nipoLog.write(res.toString(), nipoLog.levelDebug);
 	return;

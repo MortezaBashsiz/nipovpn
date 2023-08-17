@@ -17,6 +17,7 @@ Config::Config(string file){
 		config.serverPort	= configJson["serverPort"].asInt();
 		config.logLevel	= configJson["logLevel"].asInt();
 		config.logFile	= configJson["logFile"].asString();
+		config.encryption	= configJson["encryption"].asString();
 		config.token	= configJson["token"].asString();
 		config.salt	= configJson["salt"].asInt();
 		config.endPoint	= configJson["endPoint"].asString();
@@ -56,6 +57,10 @@ returnMsgCode Config::validate(){
 	};
 	if (! fileExists(config.logFile)){
 		result.message	= "[ERROR]: specified config logFile file does not exists or is not readable : " + config.logFile;
+		result.code = 1;
+	};
+	if (!(config.encryption == "yes" || config.encryption == "no")){
+		result.message	= "[ERROR]: specified encryption is not correct, must be yes or no: " + config.encryption;
 		result.code = 1;
 	};
 	return result;

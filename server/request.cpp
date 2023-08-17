@@ -17,12 +17,18 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			decodedData = nipoEncrypt.decode64(req.content);
 			nipoLog.write("Decoded recieved request", nipoLog.levelDebug);
 			nipoLog.write(decodedData, nipoLog.levelDebug);
-			std::string plainData = (char *)(nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &contentLengthInt));
-			nipoLog.write("Decrypt request from nipoagent", nipoLog.levelDebug);
-			nipoLog.write(plainData, nipoLog.levelDebug);
 			request originalRequest;
-			nipoLog.write("Parsing request from nipoagent", nipoLog.levelDebug);
-			originalRequest.parse(plainData);
+			if (nipoConfig.config.users[counter].encryption == "yes")
+			{
+				std::string plainData = (char *)(nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &contentLengthInt));
+				nipoLog.write("Decrypt request from nipoagent", nipoLog.levelDebug);
+				nipoLog.write(plainData, nipoLog.levelDebug);
+				nipoLog.write("Parsing request from nipoagent", nipoLog.levelDebug);
+				originalRequest.parse(plainData);
+			} else if(nipoConfig.config.users[counter].encryption == "no") {
+				nipoLog.write("Parsing request from nipoagent", nipoLog.levelDebug);
+				originalRequest.parse(decodedData);
+			}
 			nipoLog.write("Parsed request from nipoagent", nipoLog.levelDebug);
 			nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
 			if (originalRequest.method == boost::beast::http::verb::unknown)
@@ -44,12 +50,16 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			nipoLog.write("Response recieved from original server ", nipoLog.levelDebug);
 			nipoLog.write("\n"+originalResponse+"\n", nipoLog.levelDebug);
 			int originalResponseLength = originalResponse.length()+1;
-			unsigned char *encryptedData;
-			nipoLog.write("Encrypting response from originserver", nipoLog.levelDebug);
-			encryptedData = nipoEncrypt.encryptAes((unsigned char *)originalResponse.c_str(), &originalResponseLength);
-			nipoLog.write("Encrypted response from originserver", nipoLog.levelDebug);
-			nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
-			encodedData = nipoEncrypt.encode64((char *)encryptedData);
+			if (nipoConfig.config.users[counter].encryption == "yes")
+			{
+				unsigned char *encryptedData;
+				nipoLog.write("Encrypting response from originserver", nipoLog.levelDebug);
+				encryptedData = nipoEncrypt.encryptAes((unsigned char *)originalResponse.c_str(), &originalResponseLength);
+				nipoLog.write("Encrypted response from originserver", nipoLog.levelDebug);
+				nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
+			} else if(nipoConfig.config.users[counter].encryption == "no") {
+				encodedData = nipoEncrypt.encode64(originalResponse);
+			}
 			nipoLog.write("Encoded encrypted data", nipoLog.levelDebug);
 			nipoLog.write(encodedData, nipoLog.levelDebug);
 			nipoLog.write("Generating response for nipoAgent ", nipoLog.levelDebug);

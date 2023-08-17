@@ -12,8 +12,9 @@ class Config
 {
 private:
 	struct userStruct{
-		int salt;
+		std::string encryption;
 		std::string token;
+		int salt;
 		std::string srcIp;
 		std::string endpoint;
 	};
@@ -28,8 +29,9 @@ private:
 		unsigned short threads;
 		unsigned short usersCount;
 		userStruct users[SERVER_CONFIG_MAX_USER_COUNT]{
-			12345,
+			"no",
 			"4b445619-a2f7-48fd-9060-04252e10adee",
+			12345,
 			"0.0.0.0",
 			"api01"
 		};
