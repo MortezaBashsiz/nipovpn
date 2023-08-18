@@ -10,6 +10,7 @@ Proxy::~Proxy(){}
 std::string Proxy::send(request request_)
 {
 	boost::beast::http::response<boost::beast::http::string_body> res;
+	std::string result;
 	try
 	{
 		boost::asio::io_context ioc;
@@ -29,6 +30,7 @@ std::string Proxy::send(request request_)
 							::ERR_get_error(), boost::asio::error::get_ssl_category());
 			}
 			socket.handshake(boost::asio::ssl::stream<boost::asio::ip::tcp::socket>::client);
+			result = "HTTP/1.0 200 Connection established\r\n";
 		} 
 		else 
 		{
@@ -41,11 +43,12 @@ std::string Proxy::send(request request_)
 			stream.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
 			if(ec && ec != boost::beast::errc::not_connected)
 					throw boost::beast::system_error{ec};
+			result = boost::lexical_cast<std::string>(res);
 		}
 	}
 	catch(std::exception const& e)
 	{
 			std::cerr << "Error: " << e.what() << std::endl;
 	}
-	return boost::lexical_cast<std::string>(res);
+	return result;
 }
