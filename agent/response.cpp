@@ -18,6 +18,7 @@ std::vector<boost::asio::const_buffer> response::toBuffers() {
 
 void response::parse(std::string response)
 {
+	// std::cout << "res recieved : " << std::endl << response << std::endl;
 	boost::asio::io_context ctx;
 	boost::process::async_pipe pipe(ctx);
 	write(pipe, boost::asio::buffer(response));
@@ -26,13 +27,14 @@ void response::parse(std::string response)
 	boost::system::error_code ec;
 	boost::beast::http::response<boost::beast::http::string_body> res;
 	for (res; !ec && boost::beast::http::read(pipe, buf, res, ec); res.clear()) {
+		// std::cout << "res version : " << std::endl << res.version() << std::endl;
 		unsigned versionMajor = res.version() / 10;
 		unsigned versionMinor = res.version() % 10;
 		status =  std::string("HTTP/")+ std::to_string(versionMajor) + "." + std::to_string(versionMinor) 
 							+ " " + boost::lexical_cast<std::string>(res.result_int()) 
 							+ " " + boost::lexical_cast<std::string>(res.result()) + "\r\n";
+		// std::cout << "res status : " << std::endl << status << std::endl;
 		parsedResponse = res;
-		contentLength = res["Content-Size"];
 		encryptedContent = res.body().data();
 		content = res.body().data();
 		int i = 1;
@@ -46,5 +48,7 @@ void response::parse(std::string response)
 			headers[j].value = h.value();
 			j+=1;
 		}
+		// std::cout << "res parsed : " << std::endl << boost::lexical_cast<std::string>(parsedResponse) << std::endl;
+		contentLength = res["Content-Size"];
 	}
 }

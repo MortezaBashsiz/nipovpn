@@ -57,6 +57,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 				encryptedData = nipoEncrypt.encryptAes((unsigned char *)originalResponse.c_str(), &originalResponseLength);
 				nipoLog.write("Encrypted response from originserver", nipoLog.levelDebug);
 				nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
+				encodedData = nipoEncrypt.encode64((char *)encryptedData);
 			} else if(nipoConfig.config.users[counter].encryption == "no") {
 				encodedData = nipoEncrypt.encode64(originalResponse);
 			}
