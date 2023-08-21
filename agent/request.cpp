@@ -11,7 +11,7 @@ void RequestHandler::handleRequest(request& req, response& res)
 	std::string encodedData, decodedData;
 	std::string data = boost::lexical_cast<std::string>(req.parsedRequest);
 	int dataLen = data.length()+1;
-	std::string logMsg = 	"vpn request, " 
+	std::string logMsg = 	"vpn request " 
 												+ req.clientIP + ":" 
 												+ req.clientPort;
 	nipoLog.write(logMsg, nipoLog.levelInfo);

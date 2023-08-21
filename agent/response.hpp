@@ -26,10 +26,12 @@ struct response{
 
 	std::string toString()
 	{
-		return 	"status : \n " + status + " \n"
-						+ "content : \n " + content + " \n"
-						+ "contentLength : \n " + contentLength + " \n"
-						+ "parsed headers : \n " + boost::lexical_cast<std::string>(parsedResponse.base()) + " \n";
+		return 	std::string("\n#######################################################################")
+						+ "status : " + status
+						+ "content : " + content + " \n"
+						+ "contentLength : " + contentLength + " \n"
+						+ "parsed headers : " + boost::lexical_cast<std::string>(parsedResponse.base()) + " \n"
+						+"#######################################################################\n";
 	}
 
 };

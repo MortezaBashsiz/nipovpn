@@ -42,14 +42,16 @@ struct response{
 	
 	std::string toString()
 	{
-		std::string allHeaders = "";
+		std::string allHeaders = "\n";
 		for (std::size_t i = 0; i < headers.size(); ++i)
 		{
 			allHeaders += headers[i].name + " : " + headers[i].value + " \n";
 		}
-		return	statusToString(status)+ "  \n"
+		return	std::string("\n#######################################################################\n")
+						+ statusToString(status)
 						+ allHeaders + " \n"
-						+	"content : \n " + content + " \n";
+						+	"content : \n " + content + " \n"
+						+"#######################################################################\n";
 	}
 	static response stockResponse(statusType status);
 	std::string statusToString(statusType status);

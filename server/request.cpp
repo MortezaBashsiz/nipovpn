@@ -16,7 +16,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			nipoLog.write(req.toString(), nipoLog.levelDebug);
 			decodedData = nipoEncrypt.decode64(req.content);
 			nipoLog.write("Decoded recieved request", nipoLog.levelDebug);
-			nipoLog.write(decodedData, nipoLog.levelDebug);
+			nipoLog.write("\n"+decodedData+"\n", nipoLog.levelDebug);
 			request originalRequest;
 			if (nipoConfig.config.users[counter].encryption == "yes")
 			{
@@ -36,10 +36,10 @@ void RequestHandler::handleRequest(request& req, response& res) {
 				res = response::stockResponse(response::badRequest);
 				std::string logMsg = 	"request, " 
 															+ originalRequest.clientIP + ":" 
-															+ originalRequest.clientPort + ", " 
-															+ boost::lexical_cast<std::string>(originalRequest.method) + ", " 
-															+ originalRequest.uri + ", " 
-															+ to_string(res.content.size()) + ", " 
+															+ originalRequest.clientPort + " " 
+															+ boost::lexical_cast<std::string>(originalRequest.method) + " " 
+															+ originalRequest.uri + " " 
+															+ to_string(res.content.size()) + " " 
 															+ res.statusToString(res.status);
 				nipoLog.write(logMsg , nipoLog.levelInfo);
 				return;
@@ -79,12 +79,12 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			nipoLog.write(res.toString(), nipoLog.levelDebug);
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
-														+ req.clientPort + ", " 
-														+ boost::lexical_cast<std::string>(originalRequest.method) + ", " 
-														+ originalRequest.uri + ", "
-														+ originalRequest.host + ", "
-														+ originalRequest.port + ", " 
-														+ to_string(req.content.length()) + ", " 
+														+ req.clientPort + " " 
+														+ boost::lexical_cast<std::string>(originalRequest.method) + " " 
+														+ originalRequest.uri + " "
+														+ originalRequest.host + " "
+														+ originalRequest.port + " " 
+														+ to_string(req.content.length()) + " " 
 														+ res.statusToString(res.status);
 			nipoLog.write(logMsg , nipoLog.levelInfo);
 			return;
@@ -95,10 +95,10 @@ void RequestHandler::handleRequest(request& req, response& res) {
 		res = response::stockResponse(response::badRequest);
 		std::string logMsg = 	"request, " 
 													+ req.clientIP + ":" 
-													+ req.clientPort + ", " 
-													+ boost::lexical_cast<std::string>(req.method) + ", " 
-													+ req.uri + ", " 
-													+ to_string(res.content.size()) + ", " 
+													+ req.clientPort + " " 
+													+ boost::lexical_cast<std::string>(req.method) + " " 
+													+ req.uri + " " 
+													+ to_string(res.content.size()) + " " 
 													+ res.statusToString(res.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
@@ -108,10 +108,10 @@ void RequestHandler::handleRequest(request& req, response& res) {
 		res = response::stockResponse(response::badRequest);
 		std::string logMsg = 	"request, " 
 													+ req.clientIP + ":" 
-													+ req.clientPort + ", " 
-													+ boost::lexical_cast<std::string>(req.method) + ", " 
-													+ req.uri + ", " 
-													+ to_string(res.content.size()) + ", " 
+													+ req.clientPort + " " 
+													+ boost::lexical_cast<std::string>(req.method) + " " 
+													+ req.uri + " " 
+													+ to_string(res.content.size()) + " " 
 													+ res.statusToString(res.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
@@ -134,10 +134,10 @@ void RequestHandler::handleRequest(request& req, response& res) {
 		res = response::stockResponse(response::notFound);
 		std::string logMsg = 	"request, " 
 													+ req.clientIP + ":" 
-													+ req.clientPort + ", " 
-													+ boost::lexical_cast<std::string>(req.method) + ", " 
-													+ req.uri + ", " 
-													+ to_string(res.content.size()) + ", " 
+													+ req.clientPort + " " 
+													+ boost::lexical_cast<std::string>(req.method) + " " 
+													+ req.uri + " " 
+													+ to_string(res.content.size()) + " " 
 													+ res.statusToString(res.status);
 		nipoLog.write(logMsg , nipoLog.levelInfo);
 		return;
@@ -153,10 +153,10 @@ void RequestHandler::handleRequest(request& req, response& res) {
 	res.headers[1].value = mimeExtensionToType(extension);
 	std::string logMsg = 	"request, "
 												+ req.clientIP + ":" 
-												+ req.clientPort + ", "
-												+ boost::lexical_cast<std::string>(req.method) + ", " 
-												+ req.uri + ", " 
-												+ to_string(res.content.size()) + ", "
+												+ req.clientPort + " "
+												+ boost::lexical_cast<std::string>(req.method) + " " 
+												+ req.uri + " " 
+												+ to_string(res.content.size()) + " "
 												+ res.statusToString(res.status);
 	nipoLog.write(logMsg , nipoLog.levelInfo);
 };
