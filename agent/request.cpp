@@ -59,10 +59,6 @@ void RequestHandler::handleRequest(request& req, response& res)
 void request::parse(std::string request)
 {
 	boost::asio::io_context ctx;
-	boost::process::async_pipe pipe(ctx);
-	write(pipe, boost::asio::buffer(request));
-	::close(pipe.native_sink());
-	boost::beast::flat_buffer buf;
 	boost::system::error_code ec;
 	boost::beast::http::request_parser<boost::beast::http::string_body> parser;
 	parser.eager(true);

@@ -39,10 +39,7 @@ void response::parse(std::string response)
 	for (auto& h : res.base()) {
 		headers[j].name = h.name_string();
 		headers[j].value = h.value();
-		std::cout << "H, " << headers[j].name << " : " << headers[j].value << std::endl;
 		j+=1;
 	}
-	std::cout << "res recieved : " << std::endl << response << std::endl;
-	std::cout << "res parsed : " << std::endl << boost::lexical_cast<std::string>(res) << std::endl;
 	contentLength = res["Content-Size"];
 }

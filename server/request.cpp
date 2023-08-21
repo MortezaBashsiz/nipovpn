@@ -190,28 +190,23 @@ bool RequestHandler::urlDecode(const std::string& in, std::string& out) {
 void request::parse(std::string request)
 {
 	boost::asio::io_context ctx;
-	boost::process::async_pipe pipe(ctx);
-	write(pipe, boost::asio::buffer(request));
-	::close(pipe.native_sink());
-	boost::beast::flat_buffer buf;
 	boost::system::error_code ec;
-	boost::beast::http::request<boost::beast::http::string_body> req;
-	for (req; !ec && boost::beast::http::read(pipe, buf, req, ec); req.clear()) {
-		parsedRequest = req;
-		content = req.body().data();
-		method = req.method();
-		httpVersion = req.version();
-		uri = req.target();
-		userAgent = boost::lexical_cast<std::string>(req["User-Agent"]);
-		contentLength = req["Content-Size"];
-		std::vector<std::string> list = splitString(req["Host"], ':');
-		host = list[0];
-		if (list.size() == 2) 
-		{
-			port = list[1];
-		}
-		if(ec && ec != boost::beast::errc::not_connected)
-				throw boost::beast::system_error{ec};
+	boost::beast::http::request_parser<boost::beast::http::string_body> parser;
+	parser.eager(true);
+	parser.put(boost::asio::buffer(request), ec);
+	boost::beast::http::request<boost::beast::http::string_body> req = parser.get();
+	parsedRequest = req;
+	content = req.body().data();
+	method = req.method();
+	httpVersion = req.version();
+	uri = req.target();
+	userAgent = boost::lexical_cast<std::string>(req["User-Agent"]);
+	contentLength = req["Content-Length"];
+	std::vector<std::string> list = splitString(req["Host"], ':');
+	host = list[0];
+	if (list.size() == 2) 
+	{
+		port = list[1];
 	}
 };
 
