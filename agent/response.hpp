@@ -26,7 +26,7 @@ struct response{
 
 	std::string toString()
 	{
-		return 	std::string("\n#######################################################################")
+		return 	std::string("\n#######################################################################\n")
 						+ "status : " + status
 						+ "content : " + content + " \n"
 						+ "contentLength : " + contentLength + " \n"
