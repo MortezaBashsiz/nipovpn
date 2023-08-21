@@ -18,37 +18,31 @@ std::vector<boost::asio::const_buffer> response::toBuffers() {
 
 void response::parse(std::string response)
 {
-	// std::cout << "res recieved : " << std::endl << response << std::endl;
-	boost::asio::io_context ctx;
-	boost::process::async_pipe pipe(ctx);
-	write(pipe, boost::asio::buffer(response));
-	::close(pipe.native_sink());
-	boost::beast::flat_buffer buf;
-	boost::system::error_code ec;
-	boost::beast::http::response<boost::beast::http::string_body> res;
-	for (res; !ec && boost::beast::http::read(pipe, buf, res, ec); res.clear()) {
-		// std::cout << "res version : " << std::endl << res.version() << std::endl;
-		unsigned versionMajor = res.version() / 10;
-		unsigned versionMinor = res.version() % 10;
-		status =  std::string("HTTP/")+ std::to_string(versionMajor) + "." + std::to_string(versionMinor) 
-							+ " " + boost::lexical_cast<std::string>(res.result_int()) 
-							+ " " + boost::lexical_cast<std::string>(res.result()) + "\r\n";
-		// std::cout << "res status : " << std::endl << status << std::endl;
-		parsedResponse = res;
-		encryptedContent = res.body().data();
-		content = res.body().data();
-		int i = 1;
-		for (auto& h : res.base()) {
-			i+=1;
-		}
-		headers.resize(i);
-		int j = 0;
-		for (auto& h : res.base()) {
-			headers[j].name = h.name_string();
-			headers[j].value = h.value();
-			j+=1;
-		}
-		// std::cout << "res parsed : " << std::endl << boost::lexical_cast<std::string>(parsedResponse) << std::endl;
-		contentLength = res["Content-Size"];
+	boost::beast::error_code ec;
+	boost::beast::http::response_parser<boost::beast::http::string_body> parser;
+	parser.eager(true);
+	parser.put(boost::asio::buffer(response), ec);
+	boost::beast::http::response<boost::beast::http::string_body> res = parser.get();
+	unsigned versionMajor = res.version() / 10;
+	unsigned versionMinor = res.version() % 10;
+	status =  std::string("HTTP/")+ std::to_string(versionMajor) + "." + std::to_string(versionMinor) 
+						+ " " + boost::lexical_cast<std::string>(res.result_int()) 
+						+ " " + boost::lexical_cast<std::string>(res.result()) + "\r\n";
+	parsedResponse = res;
+	content = res.body().data();
+	int i = 1;
+	for (auto& h : res.base()) {
+		i+=1;
 	}
+	headers.resize(i);
+	int j = 0;
+	for (auto& h : res.base()) {
+		headers[j].name = h.name_string();
+		headers[j].value = h.value();
+		std::cout << "H, " << headers[j].name << " : " << headers[j].value << std::endl;
+		j+=1;
+	}
+	std::cout << "res recieved : " << std::endl << response << std::endl;
+	std::cout << "res parsed : " << std::endl << boost::lexical_cast<std::string>(res) << std::endl;
+	contentLength = res["Content-Size"];
 }

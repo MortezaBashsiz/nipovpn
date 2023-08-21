@@ -18,7 +18,6 @@ const char miscCrlf[] = { '\r', '\n' };
 struct response{
 	std::string status;
 	std::string content;
-	std::string encryptedContent;
 	std::string contentLength;
 	std::vector<header> headers;
 	std::vector<boost::asio::const_buffer> toBuffers();
@@ -29,7 +28,6 @@ struct response{
 	{
 		return 	"status : \n " + status + " \n"
 						+ "content : \n " + content + " \n"
-						+ "encryptedContent : \n " + encryptedContent + " \n"
 						+ "contentLength : \n " + contentLength + " \n"
 						+ "parsed headers : \n " + boost::lexical_cast<std::string>(parsedResponse.base()) + " \n";
 	}

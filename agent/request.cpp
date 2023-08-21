@@ -64,21 +64,22 @@ void request::parse(std::string request)
 	::close(pipe.native_sink());
 	boost::beast::flat_buffer buf;
 	boost::system::error_code ec;
-	boost::beast::http::request<boost::beast::http::string_body> req;
-	for (req; !ec && boost::beast::http::read(pipe, buf, req, ec); req.clear()) {
-		parsedRequest = req;
-		content = req.body().data();
-		method = req.method();
-		httpVersion = req.version();
-		uri = req.target();
-		userAgent = boost::lexical_cast<std::string>(req["User-Agent"]);
-		contentLength = req["Content-Length"];
-		std::vector<std::string> list = splitString(req["Host"], ':');
-		host = list[0];
-		if (list.size() == 2) 
-		{
-			port = list[1];
-		}
+	boost::beast::http::request_parser<boost::beast::http::string_body> parser;
+	parser.eager(true);
+	parser.put(boost::asio::buffer(request), ec);
+	boost::beast::http::request<boost::beast::http::string_body> req = parser.get();
+	parsedRequest = req;
+	content = req.body().data();
+	method = req.method();
+	httpVersion = req.version();
+	uri = req.target();
+	userAgent = boost::lexical_cast<std::string>(req["User-Agent"]);
+	contentLength = req["Content-Length"];
+	std::vector<std::string> list = splitString(req["Host"], ':');
+	host = list[0];
+	if (list.size() == 2) 
+	{
+		port = list[1];
 	}
 };
 
