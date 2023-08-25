@@ -15,7 +15,10 @@ void RequestHandler::handleRequest(request& req, response& res)
 												+ req.clientIP + ":" 
 												+ req.clientPort + " "
 												+ boost::lexical_cast<std::string>(req.method) + " "
-												+ req.uri;
+												+ req.httpVersion + " "
+												+ req.uri + " "
+												+ req.userAgent + " "
+												+ req.contentLength;
 	nipoLog.write(logMsg, nipoLog.levelInfo);
 	nipoLog.write("Recieved request from client", nipoLog.levelDebug);
 	nipoLog.write(req.toString(), nipoLog.levelDebug);
