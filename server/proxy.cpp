@@ -32,7 +32,7 @@ std::string Proxy::send(request request_)
 			      ::ERR_get_error(), boost::asio::error::get_ssl_category());
 			}
 			socket.handshake(boost::asio::ssl::stream<boost::asio::ip::tcp::socket>::client);
-			result = "HTTP/1.0 200 Connection Established\r\n";
+			result = "HTTP/1.1 200 Connection established\r\n";
 		} 
 		else 
 		{

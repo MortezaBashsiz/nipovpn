@@ -30,7 +30,7 @@ void response::parse(std::string response)
 						+ " " + boost::lexical_cast<std::string>(res.result()) + "\r\n";
 	parsedResponse = res;
 	content = res.body().data();
-	int i = 1;
+	int i = 0;
 	for (auto& h : res.base()) {
 		i+=1;
 	}
