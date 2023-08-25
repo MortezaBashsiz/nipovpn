@@ -27,7 +27,7 @@ void response::parse(std::string response)
 	unsigned versionMinor = res.version() % 10;
 	status =  std::string("HTTP/")+ std::to_string(versionMajor) + "." + std::to_string(versionMinor) 
 						+ " " + boost::lexical_cast<std::string>(res.result_int()) 
-						+ " " + boost::lexical_cast<std::string>(res.result()) + "\r\n";
+						+ " " + boost::lexical_cast<std::string>(res.reason()) + "\r\n";
 	parsedResponse = res;
 	content = res.body().data();
 	int i = 0;
