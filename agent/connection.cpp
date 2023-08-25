@@ -30,8 +30,12 @@ void Connection::doRead() {
 			request_.clientIP = socket_.remote_endpoint().address().to_string();
 			request_.clientPort = std::to_string(socket_.remote_endpoint().port());
 			RequestHandler_.handleRequest(request_, response_);
-			doWrite();
-			doRead();
+			if (response_.status != "")
+			{
+				doWrite();
+			} else {
+				doRead();
+			}
 		} else if (ec != boost::asio::error::operation_aborted) {
 			ConnectionManager_.stop(shared_from_this());
 		}
