@@ -25,6 +25,7 @@ void Connection::doRead() {
 	socket_.async_read_some(boost::asio::buffer(buffer_), [this, self](boost::system::error_code ec, std::size_t bytesTransferred) {
 		char data[bytesTransferred];
 		std::memcpy(data, buffer_.data(), bytesTransferred);
+		std::cout << "PACKET : " << std::endl << data << std::endl;
 		if (!ec) {
 			request_.parse(data);
 			request_.clientIP = socket_.remote_endpoint().address().to_string();

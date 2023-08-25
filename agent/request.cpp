@@ -13,7 +13,9 @@ void RequestHandler::handleRequest(request& req, response& res)
 	int dataLen = data.length()+1;
 	std::string logMsg = 	"vpn request " 
 												+ req.clientIP + ":" 
-												+ req.clientPort;
+												+ req.clientPort + " "
+												+ boost::lexical_cast<std::string>(req.method) + " "
+												+ req.uri;
 	nipoLog.write(logMsg, nipoLog.levelInfo);
 	nipoLog.write("Recieved request from client", nipoLog.levelDebug);
 	nipoLog.write(req.toString(), nipoLog.levelDebug);
