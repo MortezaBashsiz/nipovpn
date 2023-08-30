@@ -10,6 +10,8 @@ Connection::Connection(boost::asio::ip::tcp::socket socket,
 		nipoProxy(config)
 {
 	nipoConfig = config;
+	boost::asio::socket_base::keep_alive option(true);
+	socket_.set_option(option);
 }
 
 void Connection::start() {
