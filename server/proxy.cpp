@@ -20,19 +20,18 @@ std::string Proxy::send(request request_)
 		auto const results = resolver.resolve(request_.host, request_.port);
 		if ( request_.method == boost::beast::http::verb::connect)
 		{
-			boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tls);
-			ssl_context.set_default_verify_paths();
-			boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket(ioc, ssl_context);
-			boost::asio::connect(socket.next_layer(), results);
-			socket.set_verify_mode(boost::asio::ssl::verify_peer);
-			socket.set_verify_callback(boost::asio::ssl::host_name_verification(request_.host));
-			if(! SSL_set_tlsext_host_name(socket.native_handle(), request_.host.c_str()))
-			{
-			  throw boost::system::system_error(
-			      ::ERR_get_error(), boost::asio::error::get_ssl_category());
+			try {
+
+				boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tls);
+				ssl_context.set_default_verify_paths();
+				boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket(ioc, ssl_context);
+				boost::asio::connect(socket.next_layer(), results);
+				result = "HTTP/1.1 200 Connection established\r\n";
+			} 
+			catch(std::exception const& e) {
+				std::cerr << "Error: " << e.what() << std::endl;
+				result = "HTTP/1.1 503 Service Unavailable\r\n";
 			}
-			socket.handshake(boost::asio::ssl::stream<boost::asio::ip::tcp::socket>::client);
-			result = "HTTP/1.1 200 Connection established\r\n";
 		} 
 		else 
 		{
