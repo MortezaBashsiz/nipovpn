@@ -30,7 +30,7 @@ class Session : public std::enable_shared_from_this<Session> {
 		boost::asio::ip::tcp::socket socket_;
 		SessionManager& SessionManager_;
 		RequestHandler& RequestHandler_;
-		std::array<char, 8192> buffer_;
+		std::array<char, 18192> buffer_;
 		request request_;
 		response response_;
 };

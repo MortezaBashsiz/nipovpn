@@ -33,12 +33,7 @@ void Session::doRead() {
 			request_.clientIP = socket_.remote_endpoint().address().to_string();
 			request_.clientPort = std::to_string(socket_.remote_endpoint().port());
 			RequestHandler_.handleRequest(request_, response_);
-			if (response_.status != "")
-			{
-				doWrite();
-			} else {
-				doRead();
-			}
+			doWrite();
 		} else if (ec != boost::asio::error::operation_aborted) {
 			SessionManager_.stop(shared_from_this());
 		}
@@ -47,16 +42,8 @@ void Session::doRead() {
 
 void Session::doWrite() {
 	auto self(shared_from_this());
-	boost::asio::async_write(socket_, response_.toBuffers(), [this, self](boost::system::error_code ec, std::size_t) {
-		if (!ec) {
-			boost::system::error_code ignored_ec;
-			socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both,
-				ignored_ec);
-		}
-		if (ec != boost::asio::error::operation_aborted) {
-			SessionManager_.stop(shared_from_this());
-		}
-	});
+	boost::asio::async_write(socket_, response_.toBuffers(), [this, self](boost::system::error_code ec, std::size_t) {});
+	doRead();
 }
 
 SessionManager::SessionManager(Config config) : nipoLog(config){
