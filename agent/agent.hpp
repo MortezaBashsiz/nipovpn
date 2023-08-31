@@ -3,7 +3,7 @@
 
 #include "config.hpp"
 #include "log.hpp"
-#include "connection.hpp"
+#include "session.hpp"
 
 #include <boost/asio.hpp>
 
@@ -22,7 +22,7 @@ class agent {
 		boost::asio::io_context io_context_;
 		boost::asio::signal_set signals_;
 		boost::asio::ip::tcp::acceptor acceptor_;
-		ConnectionManager ConnectionManager_;
+		SessionManager SessionManager_;
 		RequestHandler RequestHandler_;
 };
 
