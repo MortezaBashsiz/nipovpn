@@ -11,7 +11,7 @@ int main(int argc=0, char* argv[]=0){
 	nipoLog.write("starting in agent mode", nipoLog.levelInfo);
 	try {
 		agent nipoAgent(nipoConfig);
-		nipoAgent.run();
+		// start agent
 	}
 	catch (std::exception& e) {
 		nipoLog.write(e.what(), nipoLog.levelError);

@@ -12,7 +12,7 @@ int main(int argc=0, char* argv[]=0){
 
 	try {
 		server nipoServer(nipoConfig);
-		nipoServer.run();
+		// run server
 	}
 	catch (std::exception& e) {
 		nipoLog.write(e.what(), nipoLog.levelError);
