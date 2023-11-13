@@ -41,8 +41,8 @@ cleanserver:
 	rm $(SERVERSRC)/*.o
 	rm niposerver
 
-agent: agentConfig agentLog agentGeneral agentSession agentRequest agentResponse agentEncrypt agentProxy
-	cd $(AGENTSRC) && $(CC) $(CFLAGS) -o ../nipoagent main.cpp agent.cpp config.o log.o general.o session.o request.o response.o encrypt.o proxy.o
+agent: agentConfig agentLog agentGeneral agentSession agentRequest agentResponse agentEncrypt agentProxy agentTls
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -o ../nipoagent main.cpp agent.cpp config.o log.o general.o session.o request.o response.o encrypt.o proxy.o tls.o
 
 agentConfig:
 	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c config.cpp
@@ -67,6 +67,9 @@ agentEncrypt:
 
 agentProxy:
 	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c proxy.cpp 
+
+agentTls:
+	cd $(AGENTSRC) && $(CC) $(CFLAGS) -c tls.cpp 
 
 cleanagent:
 	rm $(AGENTSRC)/*.o

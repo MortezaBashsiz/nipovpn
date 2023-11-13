@@ -55,3 +55,11 @@ mainArgs validateMainArgs(short argc, char* argv[])
 	}
 	return mainArgs;
 };
+
+unsigned int hexToInt(std::string hexString){
+	std::stringstream hexStr;
+	unsigned int result;
+	hexStr << std::hex << hexString;
+	hexStr >> result;
+	return result;
+}
