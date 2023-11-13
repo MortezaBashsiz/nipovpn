@@ -21,14 +21,15 @@ public:
 	std::string type = "NULL",
 	 						version = "NULL",
 	 						contentLength = "NULL",
-	 						message = "NULL",
+	 						messageType = "NULL",
 	 						messageLength = "NULL",
-	 						protocolVersion = "NULL",
-	 						randomValue = "NULL";
+	 						clientVersion = "NULL",
+	 						clientRandomValue = "NULL";
 	unsigned short port;
-	unsigned char* data;
+	std::array<unsigned char, 8192> data;
 
 	void parseTlsHeader();
+	std::string getStrFromDataPos(unsigned short start, unsigned short end);
 
 	TlsRequest(Config config);
 	~TlsRequest();

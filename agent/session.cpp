@@ -29,16 +29,8 @@ void Session::doRead() {
 		unsigned char data[bytesTransferred];
 		std::memcpy(data, buffer_.data(), bytesTransferred);
 		if (!ec) {
-			nipoTlsRequest.data=data;
+			nipoTlsRequest.data=buffer_;
 			nipoTlsRequest.parseTlsHeader();
-			std::cout << "SIZE IN SESSION.CPP : " << sizeof(data) << std::endl;
-			for (int i = 0; i < sizeof(data); i+=1) {
-				printf("%02x ", data[i]);
-				if ((i + 1) % 16 == 0) {
-					std::cout << std::endl;
-				}
-			}
-			std::cout << std::endl;
 			request_.parse(reinterpret_cast<char*>(data));
 			request_.clientIP = socket_.remote_endpoint().address().to_string();
 			request_.clientPort = std::to_string(socket_.remote_endpoint().port());
