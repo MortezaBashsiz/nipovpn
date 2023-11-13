@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <sstream>
 
 struct returnMsgCode{
 	int code;
@@ -22,5 +23,6 @@ bool isInteger(std::string number);
 std::vector<std::string> splitString(const std::string &str, char delim);
 bool isIPAddress(std::string ipaddress);
 mainArgs validateMainArgs(short argc, char* argv[]);
+unsigned int hexToInt(std::string hexString);
 
 #endif // GENERAL_HPP

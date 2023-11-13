@@ -7,7 +7,8 @@ Session::Session(boost::asio::ip::tcp::socket socket,
 		RequestHandler_(handler),
 		nipoLog(config),
 		nipoEncrypt(config),
-		nipoProxy(config)
+		nipoProxy(config),
+		nipoTlsRequest(config)
 {
 	nipoConfig = config;
 	boost::asio::socket_base::keep_alive option(true);
@@ -25,11 +26,20 @@ void Session::stop() {
 void Session::doRead() {
 	auto self(shared_from_this());
 	socket_.async_read_some(boost::asio::buffer(buffer_), [this, self](boost::system::error_code ec, std::size_t bytesTransferred) {
-		char data[bytesTransferred];
+		unsigned char data[bytesTransferred];
 		std::memcpy(data, buffer_.data(), bytesTransferred);
-		std::cout << "PACKET : " << std::endl << data << std::endl;
 		if (!ec) {
-			request_.parse(data);
+			nipoTlsRequest.data=data;
+			nipoTlsRequest.parseTlsHeader();
+			std::cout << "SIZE IN SESSION.CPP : " << sizeof(data) << std::endl;
+			for (int i = 0; i < sizeof(data); i+=1) {
+				printf("%02x ", data[i]);
+				if ((i + 1) % 16 == 0) {
+					std::cout << std::endl;
+				}
+			}
+			std::cout << std::endl;
+			request_.parse(reinterpret_cast<char*>(data));
 			request_.clientIP = socket_.remote_endpoint().address().to_string();
 			request_.clientPort = std::to_string(socket_.remote_endpoint().port());
 			RequestHandler_.handleRequest(request_, response_);
