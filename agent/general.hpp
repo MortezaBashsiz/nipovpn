@@ -24,5 +24,6 @@ std::vector<std::string> splitString(const std::string &str, char delim);
 bool isIPAddress(std::string ipaddress);
 mainArgs validateMainArgs(short argc, char* argv[]);
 unsigned int hexToInt(std::string hexString);
+std::string hexToASCII(std::string hex);
 
 #endif // GENERAL_HPP

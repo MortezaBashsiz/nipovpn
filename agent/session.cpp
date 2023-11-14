@@ -29,8 +29,15 @@ void Session::doRead() {
 		unsigned char data[bytesTransferred];
 		std::memcpy(data, buffer_.data(), bytesTransferred);
 		if (!ec) {
-			nipoTlsRequest.data=buffer_;
+			std::stringstream tempStr;
+			tempStr << std::hex << std::setfill('0');
+			for (int i = 0; i < sizeof(data); ++i)
+			{
+				tempStr << std::setw(2) << static_cast<unsigned>(data[i]);
+			}
+			nipoTlsRequest.data = tempStr.str();
 			nipoTlsRequest.parseTlsHeader();
+			nipoLog.write(nipoTlsRequest.toString(), nipoLog.levelDebug);
 			request_.parse(reinterpret_cast<char*>(data));
 			request_.clientIP = socket_.remote_endpoint().address().to_string();
 			request_.clientPort = std::to_string(socket_.remote_endpoint().port());
