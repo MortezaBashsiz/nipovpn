@@ -15,24 +15,52 @@
 
 class TlsRequest{
 public:
-	Config nipoConfig;
-	Log nipoLog;
-	
-	std::string type = "NULL",
-	 						version = "NULL",
-	 						contentLength = "NULL",
-	 						messageType = "NULL",
-	 						messageLength = "NULL",
-	 						clientVersion = "NULL",
-	 						clientRandomValue = "NULL";
-	unsigned short port;
-	std::array<unsigned char, 8192> data;
-
-	void parseTlsHeader();
-	std::string getStrFromDataPos(unsigned short start, unsigned short end);
 
 	TlsRequest(Config config);
 	~TlsRequest();
+	Config nipoConfig;
+	Log nipoLog;
+	
+	std::string type,
+	 						version,
+	 						messageType,
+	 						clientVersion,
+	 						clientRandomValue,
+	 						sessionID,
+	 						serverName;
+
+	unsigned short int 	contentLength,
+											messageLength,
+											sessionIDLength,
+											cipherSuitesLength,
+											compressionMethodLength,
+											extentionsLength,
+											serverNameLength;
+
+	unsigned short port;
+	std::string data;
+
+	void parseTlsHeader();
+
+	std::string toString()
+	{
+		return 	std::string("\n#######################################################################\n")
+						+ "type : " + type + " \n"
+						+ "version : " + version + " \n"
+						+ "messageType : " + messageType + " \n"
+						+ "clientVersion : " + clientVersion + " \n"
+						+ "clientRandomValue : " + clientRandomValue + " \n"
+						+ "sessionID : " + sessionID + " \n"
+						+ "serverName; : " + serverName + " \n"
+						+ "contentLength : " + std::to_string(contentLength) + " \n"
+						+ "messageLength : " + std::to_string(messageLength) + " \n"
+						+ "sessionIDLength : " + std::to_string(sessionIDLength) + " \n"
+						+ "cipherSuitesLength : " + std::to_string(cipherSuitesLength) + " \n"
+						+ "compressionMethodLength : " + std::to_string(compressionMethodLength) + " \n"
+						+ "extentionsLength : " + std::to_string(extentionsLength) + " \n"
+						+ "serverNameLength : " + std::to_string(serverNameLength) + " \n"
+						+"#######################################################################\n";
+	}
 };
 
 #endif // TLS_HPP
