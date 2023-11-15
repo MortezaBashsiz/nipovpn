@@ -19,6 +19,7 @@ public:
 	Config nipoConfig;
 	Log nipoLog;
 	std::string send(std::string encryptedBody, int dataLen);
+	bool isClientHello;
 };
 
 #endif //PROXY_HPP

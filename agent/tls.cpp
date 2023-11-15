@@ -100,6 +100,7 @@ void Tls::parseClientHello(){
 
 std::string Tls::send(){
 	Proxy proxy(nipoConfig);
+	proxy.isClientHello = true;
 	unsigned char *encryptedData;
 	std::string encodedData, decodedData;
 	int dataLen = data.length();

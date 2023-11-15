@@ -202,6 +202,7 @@ void request::parse(std::string request)
 	uri = req.target();
 	userAgent = boost::lexical_cast<std::string>(req["User-Agent"]);
 	contentLength = req["Content-Length"];
+	isClientHello = req["isClientHello"];
 	std::vector<std::string> list = splitString(req["Host"], ':');
 	host = list[0];
 	if (list.size() == 2) 

@@ -23,6 +23,7 @@ struct request{
 	std::string clientIP;
 	std::string clientPort;
 	std::string httpVersion;
+	std::string isClientHello;
 	std::string userAgent;
 	std::string contentLength = "0";
 	std::string content;
@@ -37,6 +38,7 @@ struct request{
 						+	"clientIP: " + clientIP + "\n"
 						+	"clientPort: " + clientPort + "\n"
 						+	"httpVersion: " + httpVersion + "\n"
+						+	"isClientHello: " +	isClientHello + "\n"
 						+	"contentLength: " +	contentLength + "\n"
 						+	"content :\n " + content + "\n"
 						+ "#######################################################################\n";
