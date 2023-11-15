@@ -100,24 +100,8 @@ void Tls::parseClientHello(){
 
 std::string Tls::send(){
 	Proxy proxy(nipoConfig);
-	proxy.isClientHello = true;
-	unsigned char *encryptedData;
-	std::string encodedData, decodedData;
-	int dataLen = data.length();
-	if (nipoConfig.config.encryption == "yes")
-	{
-		encryptedData = nipoEncrypt.encryptAes((unsigned char *)data.c_str(), &dataLen);
-		nipoLog.write("Encrypted request", nipoLog.levelDebug);
-		nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
-		nipoLog.write("Encoding encrypted request", nipoLog.levelDebug);
-		encodedData = nipoEncrypt.encode64((char *)encryptedData);
-	} else if(nipoConfig.config.encryption == "no") {
-		encodedData = nipoEncrypt.encode64(data);
-	}
-	nipoLog.write("Encoded encrypted request", nipoLog.levelDebug);
-	nipoLog.write(encodedData, nipoLog.levelDebug);
 	nipoLog.write("Sending ClientHello request to nipoServer", nipoLog.levelDebug);
 	nipoLog.write(toString(), nipoLog.levelDebug);
-	std::string result = proxy.send(encodedData, dataLen);
+	std::string result = proxy.sendClientHello(data, clientHello.serverName, "443");
 	return result;
 }

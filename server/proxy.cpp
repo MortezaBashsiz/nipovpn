@@ -7,8 +7,7 @@ Proxy::Proxy(Config config) : nipoLog(config)
 
 Proxy::~Proxy(){}
 
-std::string Proxy::send(request request_)
-{
+std::string Proxy::send(request request_){
 	boost::beast::http::response<boost::beast::http::string_body> res;
 	std::string result;
 	try
@@ -21,7 +20,6 @@ std::string Proxy::send(request request_)
 		if ( request_.method == boost::beast::http::verb::connect)
 		{
 			try {
-
 				boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tls);
 				ssl_context.set_default_verify_paths();
 				boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket(ioc, ssl_context);
@@ -47,7 +45,12 @@ std::string Proxy::send(request request_)
 	}
 	catch(std::exception const& e)
 	{
-			std::cerr << "Error: " << e.what() << std::endl;
+		std::cerr << "Error: " << e.what() << std::endl;
 	}
 	return result;
+}
+
+std::string Proxy::sendClientHello(std::string data, std::string server, std::string port){
+	nipoLog.write("Request sent to nipoServer", nipoLog.levelDebug);
+	return "NO";
 }

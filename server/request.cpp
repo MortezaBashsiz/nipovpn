@@ -1,13 +1,14 @@
 #include "request.hpp"
 #include "proxy.hpp"
+#include "tls.hpp"
 
 RequestHandler::RequestHandler(Config config, const std::string& docRoot) : docRoot_(docRoot), nipoLog(config), nipoEncrypt(config) {
 	nipoConfig = config;
 }
 
 void RequestHandler::handleRequest(request& req, response& res) {
-	std::string requestPath;
-	std::string encodedData, decodedData;
+	std::string requestPath, encodedData, decodedData, plainData, originalResponse;
+	Tls nipoTls(nipoConfig);
 	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
 		std::string reqPath = nipoConfig.config.users[counter].endpoint;
 		if (req.uri == reqPath) {
@@ -20,14 +21,28 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			request originalRequest;
 			if (nipoConfig.config.users[counter].encryption == "yes")
 			{
-				std::string plainData = (char *)(nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &contentLengthInt));
+				plainData = (char *)(nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &contentLengthInt));
 				nipoLog.write("Decrypt request from nipoagent", nipoLog.levelDebug);
 				nipoLog.write(plainData, nipoLog.levelDebug);
 				nipoLog.write("Parsing request from nipoagent", nipoLog.levelDebug);
-				originalRequest.parse(plainData);
+				if ( req.isClientHello == "1" ){
+					nipoLog.write("Send client hello request to the originserver ", nipoLog.levelDebug);
+					nipoTls.data = plainData;
+					nipoTls.handle();
+					return;
+				} else {
+					originalRequest.parse(plainData);
+				}
 			} else if(nipoConfig.config.users[counter].encryption == "no") {
 				nipoLog.write("Parsing request from nipoagent", nipoLog.levelDebug);
-				originalRequest.parse(decodedData);
+				if ( req.isClientHello == "1" ){
+					nipoLog.write("Send client hello request to the originserver ", nipoLog.levelDebug);
+					nipoTls.data = decodedData;
+					nipoTls.handle();
+					return;
+				} else {
+					originalRequest.parse(decodedData);
+				}
 			}
 			nipoLog.write("Parsed request from nipoagent", nipoLog.levelDebug);
 			nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
@@ -45,8 +60,13 @@ void RequestHandler::handleRequest(request& req, response& res) {
 				return;
 			}
 			Proxy proxy(nipoConfig);
-			nipoLog.write("Send request to the originserver ", nipoLog.levelDebug);
-			std::string originalResponse = proxy.send(originalRequest);
+			if ( req.isClientHello == "1" ){
+				nipoLog.write("Send client hello request to the originserver ", nipoLog.levelDebug);
+				//
+			} else {
+				nipoLog.write("Send request to the originserver ", nipoLog.levelDebug);
+				originalResponse = proxy.send(originalRequest);
+			}
 			nipoLog.write("Response recieved from original server ", nipoLog.levelDebug);
 			nipoLog.write("\n"+originalResponse+"\n", nipoLog.levelDebug);
 			int originalResponseLength = originalResponse.length()+1;

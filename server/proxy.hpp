@@ -21,6 +21,7 @@ public:
 	Config nipoConfig;
 	Log nipoLog;
 	std::string send(request request_);
+	std::string sendClientHello(std::string data, std::string server, std::string port);
 };
 
 #endif //PROXY_HPP
