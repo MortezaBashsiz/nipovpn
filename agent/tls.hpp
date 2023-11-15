@@ -3,6 +3,9 @@
 
 #include "config.hpp"
 #include "log.hpp"
+#include "proxy.hpp"
+#include "encrypt.hpp"
+
 
 struct RecordHeader{
 	std::string type,
@@ -34,6 +37,7 @@ public:
 	~Tls();
 	Config nipoConfig;
 	Log nipoLog;
+	Encrypt nipoEncrypt;
 
 	RecordHeader recordHeader;
 	HandshakeHeader handshakeHeader;
