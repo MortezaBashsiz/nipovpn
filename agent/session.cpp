@@ -8,7 +8,7 @@ Session::Session(boost::asio::ip::tcp::socket socket,
 		nipoLog(config),
 		nipoEncrypt(config),
 		nipoProxy(config),
-		nipoTlsRequest(config)
+		nipoTls(config)
 {
 	nipoConfig = config;
 	boost::asio::socket_base::keep_alive option(true);
@@ -35,9 +35,9 @@ void Session::doRead() {
 			{
 				tempStr << std::setw(2) << static_cast<unsigned>(data[i]);
 			}
-			nipoTlsRequest.data = tempStr.str();
-			nipoTlsRequest.parseTlsHeader();
-			nipoLog.write(nipoTlsRequest.toString(), nipoLog.levelDebug);
+			nipoTls.data = tempStr.str();
+			nipoTls.handle();
+			nipoLog.write(nipoTls.toString(), nipoLog.levelDebug);
 			request_.parse(reinterpret_cast<char*>(data));
 			request_.clientIP = socket_.remote_endpoint().address().to_string();
 			request_.clientPort = std::to_string(socket_.remote_endpoint().port());

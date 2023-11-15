@@ -24,7 +24,7 @@ class Session : public std::enable_shared_from_this<Session> {
 		Log nipoLog;
 		Encrypt nipoEncrypt;
 		Proxy nipoProxy;
-		TlsRequest nipoTlsRequest;
+		Tls nipoTls;
 	
 	private:
 		void doRead();
