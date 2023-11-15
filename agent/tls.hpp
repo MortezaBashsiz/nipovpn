@@ -4,61 +4,67 @@
 #include "config.hpp"
 #include "log.hpp"
 
-#define SERVER_NAME_LEN 256
-#define TLS_HEADER_LEN 5
-#define TLS_HANDSHAKE_CONTENT_TYPE 0x16
-#define TLS_HANDSHAKE_TYPE_CLIENT_HELLO 0x01
-
-#ifndef MIN
-#define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
-#endif
-
-class TlsRequest{
-public:
-
-	TlsRequest(Config config);
-	~TlsRequest();
-	Config nipoConfig;
-	Log nipoLog;
-	
+struct RecordHeader{
 	std::string type,
-	 						version,
-	 						messageType,
-	 						clientVersion,
-	 						clientRandomValue,
-	 						sessionID,
-	 						serverName;
+							version;
+	unsigned short int 	contentLength;				
+};
 
-	unsigned short int 	contentLength,
-											messageLength,
-											sessionIDLength,
+struct HandshakeHeader{
+	std::string messageType;
+	unsigned short int 	messageLength;
+};
+
+struct ClientHello{
+	std::string clientVersion,
+							clientRandomValue,
+							sessionID,
+							serverName;
+	unsigned short int 	sessionIDLength,
 											cipherSuitesLength,
 											compressionMethodLength,
 											extentionsLength,
 											serverNameLength;
+};
 
+class Tls{
+public:
+
+	Tls(Config config);
+	~Tls();
+	Config nipoConfig;
+	Log nipoLog;
+
+	RecordHeader recordHeader;
+	HandshakeHeader handshakeHeader;
+	ClientHello clientHello;
+	
 	unsigned short port;
 	std::string data;
 
-	void parseTlsHeader();
+	void handle();
+	void parseRecordHeader();
+	void parseHandshakeHeader();
+	void parseClientHello();
+	std::string send();
 
 	std::string toString()
 	{
 		return 	std::string("\n#######################################################################\n")
-						+ "type : " + type + " \n"
-						+ "version : " + version + " \n"
-						+ "messageType : " + messageType + " \n"
-						+ "clientVersion : " + clientVersion + " \n"
-						+ "clientRandomValue : " + clientRandomValue + " \n"
-						+ "sessionID : " + sessionID + " \n"
-						+ "serverName; : " + serverName + " \n"
-						+ "contentLength : " + std::to_string(contentLength) + " \n"
-						+ "messageLength : " + std::to_string(messageLength) + " \n"
-						+ "sessionIDLength : " + std::to_string(sessionIDLength) + " \n"
-						+ "cipherSuitesLength : " + std::to_string(cipherSuitesLength) + " \n"
-						+ "compressionMethodLength : " + std::to_string(compressionMethodLength) + " \n"
-						+ "extentionsLength : " + std::to_string(extentionsLength) + " \n"
-						+ "serverNameLength : " + std::to_string(serverNameLength) + " \n"
+						+ "type : " + recordHeader.type + " \n"
+						+ "version : " + recordHeader.version + " \n"
+						+ "contentLength : " + std::to_string(recordHeader.contentLength) + " \n"
+						+ "messageType : " + handshakeHeader.messageType + " \n"
+						+ "messageLength : " + std::to_string(handshakeHeader.messageLength) + " \n"
+						+ "clientVersion : " + clientHello.clientVersion + " \n"
+						+ "clientRandomValue : " + clientHello.clientRandomValue + " \n"
+						+ "sessionIDLength : " + std::to_string(clientHello.sessionIDLength) + " \n"
+						+ "sessionID : " + clientHello.sessionID + " \n"
+						+ "cipherSuitesLength : " + std::to_string(clientHello.cipherSuitesLength) + " \n"
+						+ "compressionMethodLength : " + std::to_string(clientHello.compressionMethodLength) + " \n"
+						+ "extentionsLength : " + std::to_string(clientHello.extentionsLength) + " \n"
+						+ "serverNameLength : " + std::to_string(clientHello.serverNameLength) + " \n"
+						+ "serverName; : " + clientHello.serverName + " \n"
 						+"#######################################################################\n";
 	}
 };
