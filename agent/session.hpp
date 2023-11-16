@@ -1,8 +1,6 @@
 #ifndef SESSION_HPP
 #define SESSION_HPP
 
-#include <set>
-
 #include "config.hpp"
 #include "log.hpp"
 #include "response.hpp"

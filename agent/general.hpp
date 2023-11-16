@@ -1,9 +1,11 @@
 #ifndef GENERAL_HPP
 #define GENERAL_HPP
 
+#include <set>
 #include <vector>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <sstream>
 
@@ -25,5 +27,6 @@ bool isIPAddress(std::string ipaddress);
 mainArgs validateMainArgs(short argc, char* argv[]);
 unsigned int hexToInt(std::string hexString);
 std::string hexToASCII(std::string hex);
+std::string hexArrToStr(unsigned char* data);
 
 #endif // GENERAL_HPP
