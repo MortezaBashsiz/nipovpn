@@ -73,13 +73,3 @@ std::string hexToASCII(std::string hex){
 	}
 	return ascii;
 }
-
-std::string hexArrToStr(unsigned char* data){
-	std::stringstream tempStr;
-	tempStr << std::hex << std::setfill('0');
-	for (int i = 0; i < sizeof(data); ++i)
-	{
-		tempStr << std::setw(2) << static_cast<unsigned>(data[i]);
-	}
-	return tempStr.str();
-}

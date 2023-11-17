@@ -12,7 +12,7 @@ void Tls::handle(){
 	parseHandshakeHeader();
 	if (handshakeHeader.messageType == "ClientHello"){
 		parseClientHello();
-		send();
+		result = send();
 	}
 }
 
@@ -100,8 +100,8 @@ void Tls::parseClientHello(){
 
 std::string Tls::send(){
 	Proxy proxy(nipoConfig);
-	nipoLog.write("Sending ClientHello request to nipoServer", nipoLog.levelDebug);
+	nipoLog.write("Sending ClientHello request to originserver", nipoLog.levelDebug);
 	nipoLog.write(toString(), nipoLog.levelDebug);
-	std::string result = proxy.sendClientHello(data, clientHello.serverName, "443");
+	std::string result = proxy.sendClientHello("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", clientHello.serverName, "443");
 	return result;
 }

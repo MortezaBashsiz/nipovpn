@@ -29,6 +29,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 					nipoLog.write("Send client hello request to the originserver ", nipoLog.levelDebug);
 					nipoTls.data = plainData;
 					nipoTls.handle();
+					originalResponse = nipoTls.result;
 					return;
 				} else {
 					originalRequest.parse(plainData);
@@ -39,6 +40,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 					nipoLog.write("Send client hello request to the originserver ", nipoLog.levelDebug);
 					nipoTls.data = decodedData;
 					nipoTls.handle();
+					originalResponse = nipoTls.result;
 					return;
 				} else {
 					originalRequest.parse(decodedData);
@@ -60,10 +62,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 				return;
 			}
 			Proxy proxy(nipoConfig);
-			if ( req.isClientHello == "1" ){
-				nipoLog.write("Send client hello request to the originserver ", nipoLog.levelDebug);
-				//
-			} else {
+			if ( req.isClientHello != "1" ){
 				nipoLog.write("Send request to the originserver ", nipoLog.levelDebug);
 				originalResponse = proxy.send(originalRequest);
 			}

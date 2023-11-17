@@ -6,7 +6,6 @@
 #include "proxy.hpp"
 #include "encrypt.hpp"
 
-
 struct RecordHeader{
 	std::string type,
 							version;
@@ -44,7 +43,7 @@ public:
 	ClientHello clientHello;
 	
 	unsigned short port;
-	std::string data;
+	std::string data, result;
 
 	void handle();
 	void parseRecordHeader();
@@ -69,7 +68,7 @@ public:
 						+ "extentionsLength : " + std::to_string(clientHello.extentionsLength) + " \n"
 						+ "serverNameLength : " + std::to_string(clientHello.serverNameLength) + " \n"
 						+ "serverName; : " + clientHello.serverName + " \n"
-						+"#######################################################################\n";
+						+ "#######################################################################\n";
 	}
 };
 
