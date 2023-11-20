@@ -25,5 +25,6 @@ bool isIPAddress(std::string ipaddress);
 mainArgs validateMainArgs(short argc, char* argv[]);
 unsigned int hexToInt(std::string hexString);
 std::string hexToASCII(std::string hex);
+unsigned char charToHex(char c);
 
 #endif // GENERAL_HPP

@@ -8,6 +8,7 @@ RequestHandler::RequestHandler(Config config, const std::string& docRoot) : docR
 
 void RequestHandler::handleRequest(request& req, response& res) {
 	std::string requestPath, encodedData, decodedData, plainData, originalResponse;
+	Proxy proxy(nipoConfig);
 	Tls nipoTls(nipoConfig);
 	for (int counter=0; counter < nipoConfig.config.usersCount; counter+=1){
 		std::string reqPath = nipoConfig.config.users[counter].endpoint;
@@ -30,7 +31,6 @@ void RequestHandler::handleRequest(request& req, response& res) {
 					nipoTls.data = plainData;
 					nipoTls.handle();
 					originalResponse = nipoTls.result;
-					return;
 				} else {
 					originalRequest.parse(plainData);
 				}
@@ -41,28 +41,26 @@ void RequestHandler::handleRequest(request& req, response& res) {
 					nipoTls.data = decodedData;
 					nipoTls.handle();
 					originalResponse = nipoTls.result;
-					return;
 				} else {
 					originalRequest.parse(decodedData);
 				}
 			}
-			nipoLog.write("Parsed request from nipoagent", nipoLog.levelDebug);
-			nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
-			if (originalRequest.method == boost::beast::http::verb::unknown)
-			{
-				res = response::stockResponse(response::badRequest);
-				std::string logMsg = 	"request, " 
-															+ originalRequest.clientIP + ":" 
-															+ originalRequest.clientPort + " " 
-															+ boost::lexical_cast<std::string>(originalRequest.method) + " " 
-															+ originalRequest.uri + " " 
-															+ to_string(res.content.size()) + " " 
-															+ res.statusToString(res.status);
-				nipoLog.write(logMsg , nipoLog.levelInfo);
-				return;
-			}
-			Proxy proxy(nipoConfig);
 			if ( req.isClientHello != "1" ){
+				nipoLog.write("Parsed request from nipoagent", nipoLog.levelDebug);
+				nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
+				if (originalRequest.method == boost::beast::http::verb::unknown)
+				{
+					res = response::stockResponse(response::badRequest);
+					std::string logMsg = 	"request, " 
+																+ originalRequest.clientIP + ":" 
+																+ originalRequest.clientPort + " " 
+																+ boost::lexical_cast<std::string>(originalRequest.method) + " " 
+																+ originalRequest.uri + " " 
+																+ to_string(res.content.size()) + " " 
+																+ res.statusToString(res.status);
+					nipoLog.write(logMsg , nipoLog.levelInfo);
+					return;
+				}
 				nipoLog.write("Send request to the originserver ", nipoLog.levelDebug);
 				originalResponse = proxy.send(originalRequest);
 			}

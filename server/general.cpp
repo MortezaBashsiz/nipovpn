@@ -73,3 +73,12 @@ std::string hexToASCII(std::string hex){
 	}
 	return ascii;
 }
+
+
+unsigned char charToHex(char c)
+{
+    if ('0' <= c && c <= '9') return c - '0';
+    if ('A' <= c && c <= 'F') return c - 'A' + 10;
+    if ('a' <= c && c <= 'f') return c - 'a' + 10;
+    std::abort();
+}

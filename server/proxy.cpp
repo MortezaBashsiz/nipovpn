@@ -52,20 +52,12 @@ std::string Proxy::send(request request_){
 
 std::string Proxy::sendClientHello(std::string data, std::string server, std::string port){
 	nipoLog.write("Request sent to originserver", nipoLog.levelDebug);
-	boost::asio::io_context io_context;
-
-	boost::asio::ip::tcp::resolver resolver(io_context);
-	auto endpoints = resolver.resolve(server, port);
-	SendTcp sendTcp(io_context, endpoints);
-
-	// std::thread t([&io_context](){ io_context.run(); });
-	message msg;
-  msg.bodyLength(data.length());
-  std::memcpy(msg.body(), data.c_str(), msg.bodyLength());
-  msg.encodeHeader();
-  sendTcp.write(msg);
-  sendTcp.close();
-  // t.join();
-
-	return "NO";
+	boost::beast::flat_buffer buffer;
+	boost::asio::io_service svc;
+	Client client(svc, server, port);
+	std::vector<unsigned char> result(data.size() / 2);
+  for (std::size_t i = 0; i != data.size() / 2; ++i)
+    result[i] = 16 * charToHex(data[2 * i]) + charToHex(data[2 * i + 1]);
+	client.send(result);
+	return "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 }
