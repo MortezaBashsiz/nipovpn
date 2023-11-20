@@ -55,3 +55,30 @@ mainArgs validateMainArgs(short argc, char* argv[])
 	}
 	return mainArgs;
 };
+
+unsigned int hexToInt(std::string hexString){
+	std::stringstream hexStr;
+	unsigned int result;
+	hexStr << std::hex << hexString;
+	hexStr >> result;
+	return result;
+}
+
+std::string hexToASCII(std::string hex){
+	std::string ascii = "";
+	for (size_t i = 0; i < hex.length(); i += 2){
+		std::string part = hex.substr(i, 2);
+		char ch = stoul(part, nullptr, 16);
+		ascii += ch;
+	}
+	return ascii;
+}
+
+
+unsigned char charToHex(char c)
+{
+    if ('0' <= c && c <= '9') return c - '0';
+    if ('A' <= c && c <= 'F') return c - 'A' + 10;
+    if ('a' <= c && c <= 'f') return c - 'a' + 10;
+    std::abort();
+}

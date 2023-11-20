@@ -42,8 +42,14 @@ void RequestHandler::handleRequest(request& req, response& res)
 	newResponse.parse(result);
 	nipoLog.write("Parsed response from niposerver", nipoLog.levelDebug);
 	nipoLog.write(newResponse.toString(), nipoLog.levelDebug);
-	int responseContentLength = std::stoi(newResponse.contentLength);
-	decodedData = nipoEncrypt.decode64(newResponse.parsedResponse.body().data());
+	int responseContentLength;
+	if ( newResponse.contentLength != "" ){
+		responseContentLength = std::stoi(newResponse.contentLength);
+		decodedData = nipoEncrypt.decode64(newResponse.parsedResponse.body().data());
+	} else{
+		responseContentLength = 0;
+		decodedData = "Empty";
+	}
 	nipoLog.write("Decoded recieved response", nipoLog.levelDebug);
 	nipoLog.write(decodedData, nipoLog.levelDebug);
 	if (nipoConfig.config.encryption == "yes")
@@ -59,7 +65,6 @@ void RequestHandler::handleRequest(request& req, response& res)
 	nipoLog.write(res.toString(), nipoLog.levelDebug);
 	return;
 };
-
 
 void request::parse(std::string request)
 {

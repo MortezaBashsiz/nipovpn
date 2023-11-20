@@ -1,9 +1,11 @@
 #ifndef GENERAL_HPP
 #define GENERAL_HPP
 
+#include <set>
 #include <vector>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <sstream>
 
