@@ -29,6 +29,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 				if ( req.isClientHello == "1" ){
 					nipoLog.write("Send client hello request to the originserver ", nipoLog.levelDebug);
 					nipoTls.data = plainData;
+					nipoTls.port = "443";
 					nipoTls.handle();
 					originalResponse = nipoTls.result;
 				} else {
@@ -39,6 +40,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 				if ( req.isClientHello == "1" ){
 					nipoLog.write("Send client hello request to the originserver ", nipoLog.levelDebug);
 					nipoTls.data = decodedData;
+					nipoTls.port = "443";
 					nipoTls.handle();
 					originalResponse = nipoTls.result;
 				} else {

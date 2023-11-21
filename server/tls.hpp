@@ -42,7 +42,7 @@ public:
 	HandshakeHeader handshakeHeader;
 	ClientHello clientHello;
 	
-	unsigned short port;
+	std::string port;
 	std::string data, result;
 
 	void handle();
@@ -67,7 +67,8 @@ public:
 						+ "compressionMethodLength : " + std::to_string(clientHello.compressionMethodLength) + " \n"
 						+ "extentionsLength : " + std::to_string(clientHello.extentionsLength) + " \n"
 						+ "serverNameLength : " + std::to_string(clientHello.serverNameLength) + " \n"
-						+ "serverName; : " + clientHello.serverName + " \n"
+						+ "serverName : " + clientHello.serverName + " \n"
+						+ "port : " + port + " \n"
 						+ "#######################################################################\n";
 	}
 };
