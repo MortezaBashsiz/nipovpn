@@ -58,6 +58,5 @@ std::string Proxy::sendClientHello(std::string data, std::string server, std::st
 	std::vector<unsigned char> result(data.size() / 2);
   for (std::size_t i = 0; i != data.size() / 2; ++i)
     result[i] = 16 * charToHex(data[2 * i]) + charToHex(data[2 * i + 1]);
-	client.send(result);
-	return "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+	return client.send(result);
 }
