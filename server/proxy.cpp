@@ -57,8 +57,8 @@ std::string Proxy::sendClientHello(std::string data, std::string server, std::st
 	Client client(svc, server, port);
 
 	std::vector<unsigned char> result(data.size() / 2);
-  for (std::size_t i = 0; i != data.size() / 2; ++i)
-    result[i] = 16 * charToHex(data[2 * i]) + charToHex(data[2 * i + 1]);
+	for (std::size_t i = 0; i != data.size() / 2; ++i)
+		result[i] = 16 * charToHex(data[2 * i]) + charToHex(data[2 * i + 1]);
 	return client.send(result);
 }
 
@@ -70,20 +70,30 @@ Client::Client(boost::asio::io_service& svc, std::string const& host, std::strin
 };
 
 std::string Client::send(std::vector<unsigned char> message) {
-	auto bytesTransferred = boost::asio::write(socket, boost::asio::buffer(message));
+	boost::system::error_code ec;
+	boost::asio::write(socket, boost::asio::buffer(message), ec);
+	if (ec) {
+		std::cerr << ec.what();
+	}
 	boost::asio::streambuf responseBuffer;
-	bytesTransferred = boost::asio::read(socket, responseBuffer,
-		boost::asio::transfer_exactly(bytesTransferred));
+	int bytesTransferred = boost::asio::read(socket, responseBuffer, boost::asio::transfer_all(), ec);
+	if (ec && ec != boost::asio::error::eof) {
+		std::cerr << ec.what();
+	}
 	unsigned char tempData[bytesTransferred];
-	std::cout << "DEBUG : " << bytesTransferred << std::endl;
 	std::memcpy(tempData, boost::asio::buffer_cast<const void*>(responseBuffer.data()), bytesTransferred);
-	std::cout << "Payload: " << std::endl;
-            for (int i = 0; i < bytesTransferred; ++i) {
-                printf("%02x ", tempData[i]);
-                if ((i + 1) % 16 == 0) {
-                std::cout << std::endl;
-                }
-            }
+	// std::cout << "Payload: " << std::endl;
+	// for (int i = 0; i < bytesTransferred; ++i) {
+	// 	printf("%02x ", tempData[i]);
+	// 	if ((i + 1) % 8 == 0) {
+	// 		std::cout << "   ";
+	// 	}
+	// 	if ((i + 1) % 16 == 0) {
+	// 		std::cout << std::endl;
+	// 	}
+	// }
+	// std::cout << std::endl;
+	// std::cout << "DEBUG : " << bytesTransferred << std::endl;
 	std::stringstream tempStr;
 	tempStr << std::hex << std::setfill('0');
 	for (int i = 0; i < bytesTransferred; ++i)
