@@ -4,11 +4,13 @@ Proxy::Proxy(Config config) : nipoLog(config)
 {
 	nipoConfig = config;
 	isClientHello = false;
+	request, response = "";
+	dataLen = 0;
 }
 
 Proxy::~Proxy(){}
 
-std::string Proxy::send(std::string encryptedBody, int dataLen)
+void Proxy::send()
 {
 	boost::beast::http::response<boost::beast::http::dynamic_body> res;
 	try
@@ -18,13 +20,16 @@ std::string Proxy::send(std::string encryptedBody, int dataLen)
 		boost::beast::tcp_stream stream(ioc);
 		auto const results = resolver.resolve(nipoConfig.config.serverIp, std::to_string(nipoConfig.config.serverPort));
 		stream.connect(results);
-		boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::post, nipoConfig.config.endPoint, nipoConfig.config.httpVersion, "\r\n"};
+		boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::post, 
+																																		 nipoConfig.config.endPoint, 
+																																		 nipoConfig.config.httpVersion, 
+																																		 "\r\n"};
 		req.set(boost::beast::http::field::host, nipoConfig.config.serverIp);
 		req.set(boost::beast::http::field::user_agent, nipoConfig.config.userAgent);
-		req.body() = encryptedBody;
+		req.body() = request;
 		req.set(boost::beast::http::field::accept, "*/*");
 		req.set(boost::beast::http::field::content_type, "application/javascript");
-		req.set(boost::beast::http::field::content_length, std::to_string(encryptedBody.length()));
+		req.set(boost::beast::http::field::content_length, std::to_string(request.length()));
 		req.set("Content-Size", std::to_string(dataLen));
 		req.set("isClientHello", std::to_string(isClientHello));
 		boost::beast::http::write(stream, req);
@@ -40,5 +45,5 @@ std::string Proxy::send(std::string encryptedBody, int dataLen)
 			std::cerr << "Error: " << e.what() << std::endl;
 	}
 	nipoLog.write("Request sent to nipoServer", nipoLog.levelDebug);
-	return boost::lexical_cast<std::string>(res);
+	response = boost::lexical_cast<std::string>(res);
 }

@@ -55,8 +55,50 @@ std::string Proxy::sendClientHello(std::string data, std::string server, std::st
 	boost::beast::flat_buffer buffer;
 	boost::asio::io_service svc;
 	Client client(svc, server, port);
+
 	std::vector<unsigned char> result(data.size() / 2);
-  for (std::size_t i = 0; i != data.size() / 2; ++i)
-    result[i] = 16 * charToHex(data[2 * i]) + charToHex(data[2 * i + 1]);
+	for (std::size_t i = 0; i != data.size() / 2; ++i)
+		result[i] = 16 * charToHex(data[2 * i]) + charToHex(data[2 * i + 1]);
 	return client.send(result);
+}
+
+Client::Client(boost::asio::io_service& svc, std::string const& host, std::string const& port)
+		: io_service(svc), socket(io_service) {
+	boost::asio::ip::tcp::resolver resolver(io_service);
+	boost::asio::ip::tcp::resolver::iterator endpoint = resolver.resolve(boost::asio::ip::tcp::resolver::query(host, port));
+	boost::asio::connect(this->socket, endpoint);
+};
+
+std::string Client::send(std::vector<unsigned char> message) {
+	boost::system::error_code ec;
+	boost::asio::write(socket, boost::asio::buffer(message), ec);
+	if (ec) {
+		std::cerr << ec.what();
+	}
+	boost::asio::streambuf responseBuffer;
+	int bytesTransferred = boost::asio::read(socket, responseBuffer, boost::asio::transfer_all(), ec);
+	if (ec && ec != boost::asio::error::eof) {
+		std::cerr << ec.what();
+	}
+	unsigned char tempData[bytesTransferred];
+	std::memcpy(tempData, boost::asio::buffer_cast<const void*>(responseBuffer.data()), bytesTransferred);
+	// std::cout << "Payload: " << std::endl;
+	// for (int i = 0; i < bytesTransferred; ++i) {
+	// 	printf("%02x ", tempData[i]);
+	// 	if ((i + 1) % 8 == 0) {
+	// 		std::cout << "   ";
+	// 	}
+	// 	if ((i + 1) % 16 == 0) {
+	// 		std::cout << std::endl;
+	// 	}
+	// }
+	// std::cout << std::endl;
+	// std::cout << "DEBUG : " << bytesTransferred << std::endl;
+	std::stringstream tempStr;
+	tempStr << std::hex << std::setfill('0');
+	for (int i = 0; i < bytesTransferred; ++i)
+	{
+		tempStr << std::setw(2) << static_cast<unsigned>(tempData[i]);
+	}
+	return tempStr.str();
 }
