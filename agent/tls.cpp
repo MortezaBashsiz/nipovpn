@@ -107,26 +107,26 @@ void Tls::sendClientHello(response& res){
 	if (nipoConfig.config.encryption == "yes")
 	{
 		encryptedData = nipoEncrypt.encryptAes((unsigned char *)requestStr.c_str(), &dataLen);
-		nipoLog.write("Encrypted request", nipoLog.levelDebug);
+		nipoLog.write("Encrypted ClientHello", nipoLog.levelDebug);
 		nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
-		nipoLog.write("Encoding encrypted request", nipoLog.levelDebug);
+		nipoLog.write("Encoding encrypted ClientHello", nipoLog.levelDebug);
 		encodedData = nipoEncrypt.encode64((char *)encryptedData);
 	} else if(nipoConfig.config.encryption == "no") {
 		encodedData = nipoEncrypt.encode64(requestStr);
 	}
-	nipoLog.write("Encoded encrypted request", nipoLog.levelDebug);
+	nipoLog.write("Encoded encrypted ClientHello", nipoLog.levelDebug);
 	nipoLog.write(encodedData, nipoLog.levelDebug);
-	nipoLog.write("Sending ClientHello request to nipoServer", nipoLog.levelDebug);
+	nipoLog.write("Sending ClientHello to nipoServer", nipoLog.levelDebug);
 	nipoLog.write(toString(), nipoLog.levelDebug);
 
 	proxy.request = encodedData;
 	proxy.dataLen = dataLen;
 	proxy.send();
 
-	nipoLog.write("Response recieved from niposerver", nipoLog.levelDebug);
+	nipoLog.write("ClientHello Response recieved from niposerver", nipoLog.levelDebug);
 	nipoLog.write("\n"+proxy.response+"\n", nipoLog.levelDebug);
 	newResponse.parse(proxy.response);
-	nipoLog.write("Parsed response from niposerver", nipoLog.levelDebug);
+	nipoLog.write("Parsed ClientHello response from niposerver", nipoLog.levelDebug);
 	nipoLog.write(newResponse.toString(), nipoLog.levelDebug);
 	int responseContentLength;
 	if ( newResponse.contentLength != "" ){
@@ -136,17 +136,17 @@ void Tls::sendClientHello(response& res){
 		responseContentLength = 0;
 		decodedData = "Empty";
 	}
-	nipoLog.write("Decoded recieved response", nipoLog.levelDebug);
+	nipoLog.write("Decoded recieved ClientHello response", nipoLog.levelDebug);
 	nipoLog.write(decodedData, nipoLog.levelDebug);
 	if (nipoConfig.config.encryption == "yes")
 	{
 		char *plainData = (char *)nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &responseContentLength);
-		nipoLog.write("Decrypt recieved response from niposerver", nipoLog.levelDebug);
+		nipoLog.write("Decrypt recieved ClientHello response from niposerver", nipoLog.levelDebug);
 		nipoLog.write(plainData, nipoLog.levelDebug);
-		res.parse(plainData);
+		res.content = plainData;
 	} else if(nipoConfig.config.encryption == "no") {
-		res.parse(decodedData);
+		res.content = decodedData;
 	}
-	nipoLog.write("Sending response to client", nipoLog.levelDebug);
+	nipoLog.write("Sending ClientHello response to client", nipoLog.levelDebug);
 	nipoLog.write(res.toString(), nipoLog.levelDebug);
 }
