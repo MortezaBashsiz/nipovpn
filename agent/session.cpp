@@ -35,12 +35,16 @@ void Session::doRead() {
       {
         tempStr << std::setw(2) << static_cast<unsigned>(data[i]);
       }
-      nipoTls.data = tempStr.str();
-			nipoTls.handle();
-			request_.parse(reinterpret_cast<char*>(data));
-			request_.clientIP = socket_.remote_endpoint().address().to_string();
-			request_.clientPort = std::to_string(socket_.remote_endpoint().port());
-			RequestHandler_.handleRequest(request_, response_);
+      nipoTls.requestStr = tempStr.str();
+			nipoTls.parseRecordHeader();
+			if (nipoTls.recordHeader.type == "TLS Handshake"){
+				nipoTls.handle(response_);
+			} else {
+				request_.parse(reinterpret_cast<char*>(data));
+				request_.clientIP = socket_.remote_endpoint().address().to_string();
+				request_.clientPort = std::to_string(socket_.remote_endpoint().port());
+				RequestHandler_.handleRequest(request_, response_);
+			}
 			doWrite();
 		} else if (ec != boost::asio::error::operation_aborted) {
 			SessionManager_.stop(shared_from_this());

@@ -5,6 +5,7 @@
 #include "log.hpp"
 #include "proxy.hpp"
 #include "encrypt.hpp"
+#include "response.hpp"
 
 
 struct RecordHeader{
@@ -44,14 +45,14 @@ public:
 	ClientHello clientHello;
 	
 	unsigned short port;
-	std::string data;
+	std::string requestStr, responseStr;
 
-	void handle();
+	void handle(response& resp);
 	void parseRecordHeader();
 	void parseHandshakeHeader();
 	void parseClientHello();
 
-	std::string sendClientHello();
+	void sendClientHello(response& res);
 
 	std::string toString()
 	{
