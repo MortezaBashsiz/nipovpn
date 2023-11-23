@@ -9,6 +9,8 @@ void RequestHandler::handleRequest(request& req, response& res)
 	Proxy proxy(nipoConfig);
 	unsigned char *encryptedData;
 	std::string encodedData, decodedData;
+	response newResponse;
+
 	std::string data = boost::lexical_cast<std::string>(req.parsedRequest);
 	int dataLen = data.length()+1;
 	std::string logMsg = 	"vpn request " 
@@ -35,11 +37,14 @@ void RequestHandler::handleRequest(request& req, response& res)
 	nipoLog.write("Encoded encrypted request", nipoLog.levelDebug);
 	nipoLog.write(encodedData, nipoLog.levelDebug);
 	nipoLog.write("Sending request to nipoServer", nipoLog.levelDebug);
-	std::string result = proxy.send(encodedData, dataLen);
+	
+	proxy.request = encodedData;
+	proxy.dataLen = dataLen;
+	proxy.send();
+	
 	nipoLog.write("Response recieved from niposerver", nipoLog.levelDebug);
-	nipoLog.write("\n"+result+"\n", nipoLog.levelDebug);
-	response newResponse;
-	newResponse.parse(result);
+	nipoLog.write("\n"+proxy.response+"\n", nipoLog.levelDebug);
+	newResponse.parse(proxy.response);
 	nipoLog.write("Parsed response from niposerver", nipoLog.levelDebug);
 	nipoLog.write(newResponse.toString(), nipoLog.levelDebug);
 	int responseContentLength;

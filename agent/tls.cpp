@@ -12,7 +12,7 @@ void Tls::handle(){
 	parseHandshakeHeader();
 	if (handshakeHeader.messageType == "ClientHello"){
 		parseClientHello();
-		send();
+		sendClientHello();
 	}
 }
 
@@ -98,7 +98,7 @@ void Tls::parseClientHello(){
 	}
 }
 
-std::string Tls::send(){
+std::string Tls::sendClientHello(){
 	Proxy proxy(nipoConfig);
 	proxy.isClientHello = true;
 	unsigned char *encryptedData;
@@ -118,6 +118,10 @@ std::string Tls::send(){
 	nipoLog.write(encodedData, nipoLog.levelDebug);
 	nipoLog.write("Sending ClientHello request to nipoServer", nipoLog.levelDebug);
 	nipoLog.write(toString(), nipoLog.levelDebug);
-	std::string result = proxy.send(encodedData, dataLen);
-	return result;
+
+	proxy.request = encodedData;
+	proxy.dataLen = dataLen;
+	proxy.send();
+	
+	return proxy.response;
 }

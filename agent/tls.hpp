@@ -50,7 +50,8 @@ public:
 	void parseRecordHeader();
 	void parseHandshakeHeader();
 	void parseClientHello();
-	std::string send();
+
+	std::string sendClientHello();
 
 	std::string toString()
 	{
