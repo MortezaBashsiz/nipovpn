@@ -19,8 +19,8 @@ public:
 	Config nipoConfig;
 	Log nipoLog;
 
-	bool isClientHello;
-	std::string request, response;
+	bool isClientHello, isChangeCipherSpec;
+	std::string request, response, serverName;
 	int dataLen;
 	
 	void send();

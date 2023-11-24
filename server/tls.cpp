@@ -7,12 +7,17 @@ Tls::Tls(Config config): nipoLog(config), nipoEncrypt(config){
 Tls::~Tls(){
 }
 
-void Tls::handle(){
-	parseRecordHeader();
-	parseHandshakeHeader();
-	if (handshakeHeader.messageType == "ClientHello"){
-		parseClientHello();
-		result = send();
+void Tls::handle(short unsigned type){
+	if ( type == 1 ){
+		parseRecordHeader();
+		parseHandshakeHeader();
+		if (handshakeHeader.messageType == "ClientHello"){
+			parseClientHello();
+			result = send();
+		}
+	}
+	if ( type == 2 ){
+		// result = send();
 	}
 }
 
@@ -21,7 +26,7 @@ void Tls::parseRecordHeader(){
 	unsigned short pos=0;
 	tmpStr = data.substr(pos, 2);
 	if (tmpStr == "16"){
-		recordHeader.type="TLS Handshake";
+		recordHeader.type="TLSHandshake";
 		pos += 2; // 2
 	
 		tmpStr = data.substr(pos, 2);
@@ -100,7 +105,14 @@ void Tls::parseClientHello(){
 
 std::string Tls::send(){
 	Proxy proxy(nipoConfig);
-	nipoLog.write("Sending ClientHello request to originserver", nipoLog.levelDebug);
+	std::string messageTypeStr="";
+	if (handshakeHeader.messageType == "ClientHello"){
+		messageTypeStr = handshakeHeader.messageType;
+	}
+	if (recordHeader.type == "ChangeCipherSpec"){
+		messageTypeStr = recordHeader.type;
+	}
+	nipoLog.write("Sending " + messageTypeStr + " request to originserver", nipoLog.levelDebug);
 	nipoLog.write(toString(), nipoLog.levelDebug);
 	std::string result = proxy.sendClientHello(data, clientHello.serverName, port);
 	return result;

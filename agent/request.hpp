@@ -20,7 +20,7 @@ struct request{
 	std::string host;
 	std::string port = "80";
 	boost::beast::http::verb method;
-	std::string uri;
+	std::string serverName;
 	std::string clientIP;
 	std::string clientPort;
 	std::string httpVersion;
@@ -34,7 +34,7 @@ struct request{
   {
     return 	std::string("\n#######################################################################")
     				+"\nmethod: " + boost::lexical_cast<std::string>(method) + "\n"
-    				+ "uri: " + uri + "\n"
+    				+ "serverName: " + serverName + "\n"
 						+	"clientIP: " + clientIP + "\n"
 						+	"clientPort: " + clientPort + "\n"
 						+	"httpVersion: " + httpVersion + "\n"

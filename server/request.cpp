@@ -26,28 +26,34 @@ void RequestHandler::handleRequest(request& req, response& res) {
 				nipoLog.write("Decrypt request from nipoagent", nipoLog.levelDebug);
 				nipoLog.write(plainData, nipoLog.levelDebug);
 				nipoLog.write("Parsing request from nipoagent", nipoLog.levelDebug);
-				if ( req.isClientHello == "1" ){
-					nipoLog.write("Send client hello request to the originserver ", nipoLog.levelDebug);
+				if ( req.isClientHello == "1" || req.isChangeCipherSpec == "1" ){
+					nipoLog.write("Send client TLS request to the originserver ", nipoLog.levelDebug);
 					nipoTls.data = plainData;
 					nipoTls.port = "443";
-					nipoTls.handle();
+					if (req.isClientHello == "1")
+						nipoTls.handle(1);
+					if (req.isChangeCipherSpec == "1")
+						nipoTls.handle(2);
 					originalResponse = nipoTls.result;
 				} else {
 					originalRequest.parse(plainData);
 				}
 			} else if(nipoConfig.config.users[counter].encryption == "no") {
 				nipoLog.write("Parsing request from nipoagent", nipoLog.levelDebug);
-				if ( req.isClientHello == "1" ){
-					nipoLog.write("Send client hello request to the originserver ", nipoLog.levelDebug);
+				if ( req.isClientHello == "1" || req.isChangeCipherSpec == "1" ){
+					nipoLog.write("Send client TLS request to the originserver ", nipoLog.levelDebug);
 					nipoTls.data = decodedData;
 					nipoTls.port = "443";
-					nipoTls.handle();
+					if (req.isClientHello == "1")
+						nipoTls.handle(1);
+					if (req.isChangeCipherSpec == "1")
+						nipoTls.handle(2);
 					originalResponse = nipoTls.result;
 				} else {
 					originalRequest.parse(decodedData);
 				}
 			}
-			if ( req.isClientHello != "1" ){
+			if ( req.isClientHello != "1" && req.isChangeCipherSpec != "1"){
 				nipoLog.write("Parsed request from nipoagent", nipoLog.levelDebug);
 				nipoLog.write(originalRequest.toString(), nipoLog.levelDebug);
 				if (originalRequest.method == boost::beast::http::verb::unknown)
@@ -222,6 +228,7 @@ void request::parse(std::string request)
 	userAgent = boost::lexical_cast<std::string>(req["User-Agent"]);
 	contentLength = req["Content-Length"];
 	isClientHello = req["isClientHello"];
+	isChangeCipherSpec = req["isChangeCipherSpec"];
 	std::vector<std::string> list = splitString(req["Host"], ':');
 	host = list[0];
 	if (list.size() == 2) 

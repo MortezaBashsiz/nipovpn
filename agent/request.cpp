@@ -18,7 +18,7 @@ void RequestHandler::handleRequest(request& req, response& res)
 												+ req.clientPort + " "
 												+ boost::lexical_cast<std::string>(req.method) + " "
 												+ req.httpVersion + " "
-												+ req.uri + " "
+												+ req.serverName + " "
 												+ req.userAgent + " "
 												+ req.contentLength;
 	nipoLog.write(logMsg, nipoLog.levelInfo);
@@ -40,6 +40,7 @@ void RequestHandler::handleRequest(request& req, response& res)
 	
 	proxy.request = encodedData;
 	proxy.dataLen = dataLen;
+	proxy.serverName = req.serverName;
 	proxy.send();
 	
 	nipoLog.write("Response recieved from niposerver", nipoLog.levelDebug);
@@ -83,7 +84,7 @@ void request::parse(std::string request)
 	content = req.body().data();
 	method = req.method();
 	httpVersion = req.version();
-	uri = req.target();
+	serverName = req.target();
 	userAgent = boost::lexical_cast<std::string>(req["User-Agent"]);
 	contentLength = req["Content-Length"];
 	std::vector<std::string> list = splitString(req["Host"], ':');

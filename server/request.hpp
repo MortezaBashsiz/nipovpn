@@ -16,17 +16,18 @@
 #include <boost/lexical_cast.hpp>
 
 struct request{
-	std::string host;
-	std::string port = "80";
 	boost::beast::http::verb method = boost::beast::http::verb::get;
-	std::string uri;
-	std::string clientIP;
-	std::string clientPort;
-	std::string httpVersion;
-	std::string isClientHello;
-	std::string userAgent;
-	std::string contentLength = "0";
-	std::string content;
+	std::string host,
+							port = "80" ,
+							uri,
+							clientIP ,
+							clientPort ,
+							httpVersion ,
+							isClientHello ,
+							isChangeCipherSpec ,
+							userAgent ,
+							contentLength = "0" ,
+							content; 
 
 	boost::beast::http::request<boost::beast::http::string_body> parsedRequest;
 	void parse(std::string request);
@@ -39,6 +40,7 @@ struct request{
 						+	"clientPort: " + clientPort + "\n"
 						+	"httpVersion: " + httpVersion + "\n"
 						+	"isClientHello: " +	isClientHello + "\n"
+						+	"isChangeCipherSpec: " + isChangeCipherSpec + "\n"
 						+	"contentLength: " +	contentLength + "\n"
 						+	"content :\n " + content + "\n"
 						+ "#######################################################################\n";

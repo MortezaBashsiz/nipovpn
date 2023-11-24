@@ -32,6 +32,8 @@ void Proxy::send()
 		req.set(boost::beast::http::field::content_length, std::to_string(request.length()));
 		req.set("Content-Size", std::to_string(dataLen));
 		req.set("isClientHello", std::to_string(isClientHello));
+		req.set("isChangeCipherSpec", std::to_string(isChangeCipherSpec));
+		req.set("serverName", serverName);
 		boost::beast::http::write(stream, req);
 		boost::beast::flat_buffer buffer;
 		boost::beast::http::read(stream, buffer, res);

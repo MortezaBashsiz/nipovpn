@@ -29,6 +29,7 @@ void response::parse(std::string response)
 						+ " " + boost::lexical_cast<std::string>(res.result_int()) 
 						+ " " + boost::lexical_cast<std::string>(res.reason()) + "\r\n";
 	parsedResponse = res;
+	serverName = res["serverName"];
 	content = res.body().data();
 	int i = 0;
 	for (auto& h : res.base()) {

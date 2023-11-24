@@ -7,11 +7,30 @@ Tls::Tls(Config config): nipoLog(config), nipoEncrypt(config){
 Tls::~Tls(){
 }
 
+void Tls::detectRequestType(){
+	std::string tmpStr;
+	unsigned short pos=0;
+	tmpStr = requestStr.substr(pos, 2);
+	if (tmpStr == "16"){
+		recordHeader.type="TLSHandshake";
+	}
+	if (tmpStr == "14"){
+		recordHeader.type="ChangeCipherSpec";
+	}
+}
+
 void Tls::handle(response& resp){
-	parseHandshakeHeader();
-	if (handshakeHeader.messageType == "ClientHello"){
-		parseClientHello();
-		sendClientHello(resp);
+	std::cout << "DEBUGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG : " << std::endl << requestStr << std::endl;
+	if (recordHeader.type == "TLSHandshake"){
+		parseRecordHeader();
+		parseHandshakeHeader();
+		if (handshakeHeader.messageType == "ClientHello"){
+			parseClientHello();
+			send(resp);
+		}
+	}
+	if (recordHeader.type == "ChangeCipherSpec"){
+		send(resp);
 	}
 }
 
@@ -19,8 +38,7 @@ void Tls::parseRecordHeader(){
 	std::string tmpStr;
 	unsigned short pos=0;
 	tmpStr = requestStr.substr(pos, 2);
-	if (tmpStr == "16"){
-		recordHeader.type="TLS Handshake";
+	if (recordHeader.type == "TLSHandshake"){
 		pos += 2; // 2
 	
 		tmpStr = requestStr.substr(pos, 2);
@@ -97,36 +115,47 @@ void Tls::parseClientHello(){
 	}
 }
 
-void Tls::sendClientHello(response& res){
+void Tls::send(response& res){
 	Proxy proxy(nipoConfig);
 	response newResponse;
-	proxy.isClientHello = true;
 	unsigned char *encryptedData;
 	std::string encodedData, decodedData;
 	int dataLen = requestStr.length();
+	std::string messageTypeStr="";
+
+	if (handshakeHeader.messageType == "ClientHello"){
+		proxy.isClientHello = true;
+		proxy.isChangeCipherSpec = false;
+		messageTypeStr = handshakeHeader.messageType;
+	}
+	if (recordHeader.type == "ChangeCipherSpec"){
+		proxy.isChangeCipherSpec = true;
+		proxy.isClientHello = false;
+		messageTypeStr = recordHeader.type;
+	}
 	if (nipoConfig.config.encryption == "yes")
 	{
 		encryptedData = nipoEncrypt.encryptAes((unsigned char *)requestStr.c_str(), &dataLen);
-		nipoLog.write("Encrypted ClientHello", nipoLog.levelDebug);
+		nipoLog.write("Encrypted " + messageTypeStr, nipoLog.levelDebug);
 		nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
-		nipoLog.write("Encoding encrypted ClientHello", nipoLog.levelDebug);
+		nipoLog.write("Encoding encrypted " + messageTypeStr, nipoLog.levelDebug);
 		encodedData = nipoEncrypt.encode64((char *)encryptedData);
 	} else if(nipoConfig.config.encryption == "no") {
 		encodedData = nipoEncrypt.encode64(requestStr);
 	}
-	nipoLog.write("Encoded encrypted ClientHello", nipoLog.levelDebug);
+	nipoLog.write("Encoded encrypted " + messageTypeStr, nipoLog.levelDebug);
 	nipoLog.write(encodedData, nipoLog.levelDebug);
-	nipoLog.write("Sending ClientHello to nipoServer", nipoLog.levelDebug);
+	nipoLog.write("Sending " + messageTypeStr + " to nipoServer", nipoLog.levelDebug);
 	nipoLog.write(toString(), nipoLog.levelDebug);
 
 	proxy.request = encodedData;
 	proxy.dataLen = dataLen;
 	proxy.send();
 
-	nipoLog.write("ClientHello Response recieved from niposerver", nipoLog.levelDebug);
+	nipoLog.write( messageTypeStr + "Response recieved from niposerver", nipoLog.levelDebug);
 	nipoLog.write("\n"+proxy.response+"\n", nipoLog.levelDebug);
 	newResponse.parse(proxy.response);
-	nipoLog.write("Parsed ClientHello response from niposerver", nipoLog.levelDebug);
+	nipoLog.write("Parsed " + messageTypeStr + " response from niposerver", nipoLog.levelDebug);
 	nipoLog.write(newResponse.toString(), nipoLog.levelDebug);
 	int responseContentLength;
 	if ( newResponse.contentLength != "" ){
@@ -136,17 +165,17 @@ void Tls::sendClientHello(response& res){
 		responseContentLength = 0;
 		decodedData = "Empty";
 	}
-	nipoLog.write("Decoded recieved ClientHello response", nipoLog.levelDebug);
+	nipoLog.write("Decoded recieved " + messageTypeStr + " response", nipoLog.levelDebug);
 	nipoLog.write(decodedData, nipoLog.levelDebug);
 	if (nipoConfig.config.encryption == "yes")
 	{
 		char *plainData = (char *)nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &responseContentLength);
-		nipoLog.write("Decrypt recieved ClientHello response from niposerver", nipoLog.levelDebug);
+		nipoLog.write("Decrypt recieved " + messageTypeStr + " response from niposerver", nipoLog.levelDebug);
 		nipoLog.write(plainData, nipoLog.levelDebug);
 		res.content = plainData;
 	} else if(nipoConfig.config.encryption == "no") {
 		res.content = decodedData;
 	}
-	nipoLog.write("Sending ClientHello response to client", nipoLog.levelDebug);
+	nipoLog.write("Sending " + messageTypeStr + " response to client", nipoLog.levelDebug);
 	nipoLog.write(res.toString(), nipoLog.levelDebug);
 }

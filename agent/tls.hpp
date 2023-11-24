@@ -47,12 +47,13 @@ public:
 	unsigned short port;
 	std::string requestStr, responseStr;
 
+	void detectRequestType();
 	void handle(response& resp);
 	void parseRecordHeader();
 	void parseHandshakeHeader();
 	void parseClientHello();
 
-	void sendClientHello(response& res);
+	void send(response& res);
 
 	std::string toString()
 	{
@@ -70,7 +71,7 @@ public:
 						+ "compressionMethodLength : " + std::to_string(clientHello.compressionMethodLength) + " \n"
 						+ "extentionsLength : " + std::to_string(clientHello.extentionsLength) + " \n"
 						+ "serverNameLength : " + std::to_string(clientHello.serverNameLength) + " \n"
-						+ "serverName; : " + clientHello.serverName + " \n"
+						+ "serverName : " + clientHello.serverName + " \n"
 						+"#######################################################################\n";
 	}
 };

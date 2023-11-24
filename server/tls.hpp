@@ -45,7 +45,7 @@ public:
 	std::string port;
 	std::string data, result;
 
-	void handle();
+	void handle(short unsigned type);
 	void parseRecordHeader();
 	void parseHandshakeHeader();
 	void parseClientHello();
