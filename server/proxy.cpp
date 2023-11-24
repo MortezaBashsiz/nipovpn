@@ -82,18 +82,6 @@ std::string Client::send(std::vector<unsigned char> message) {
 	}
 	unsigned char tempData[bytesTransferred];
 	std::memcpy(tempData, boost::asio::buffer_cast<const void*>(responseBuffer.data()), bytesTransferred);
-	// std::cout << "Payload: " << std::endl;
-	// for (int i = 0; i < bytesTransferred; ++i) {
-	// 	printf("%02x ", tempData[i]);
-	// 	if ((i + 1) % 8 == 0) {
-	// 		std::cout << "   ";
-	// 	}
-	// 	if ((i + 1) % 16 == 0) {
-	// 		std::cout << std::endl;
-	// 	}
-	// }
-	// std::cout << std::endl;
-	// std::cout << "DEBUG : " << bytesTransferred << std::endl;
 	std::stringstream tempStr;
 	tempStr << std::hex << std::setfill('0');
 	for (int i = 0; i < bytesTransferred; ++i)

@@ -39,14 +39,14 @@ void Session::doRead() {
 			nipoTls.detectRequestType();
 			if (nipoTls.recordHeader.type == "TLSHandshake" || nipoTls.recordHeader.type == "ChangeCipherSpec"){
 				nipoTls.handle(response_);
-				serverName = response_.serverName;
+				serverName = nipoTls.serverName;
 				doWrite(0);
 			} else {
 				request_.parse(reinterpret_cast<char*>(data));
 				request_.clientIP = socket_.remote_endpoint().address().to_string();
 				request_.clientPort = std::to_string(socket_.remote_endpoint().port());
 				RequestHandler_.handleRequest(request_, response_);
-				serverName = request_.serverName;
+				request_.serverName = serverName ;
 				doWrite(1);
 			}
 		} else if (ec != boost::asio::error::operation_aborted) {

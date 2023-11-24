@@ -13,11 +13,12 @@ void Tls::handle(short unsigned type){
 		parseHandshakeHeader();
 		if (handshakeHeader.messageType == "ClientHello"){
 			parseClientHello();
+			serverName = clientHello.serverName;
 			result = send();
 		}
 	}
 	if ( type == 2 ){
-		// result = send();
+		result = send();
 	}
 }
 
@@ -114,6 +115,6 @@ std::string Tls::send(){
 	}
 	nipoLog.write("Sending " + messageTypeStr + " request to originserver", nipoLog.levelDebug);
 	nipoLog.write(toString(), nipoLog.levelDebug);
-	std::string result = proxy.sendClientHello(data, clientHello.serverName, port);
+	std::string result = proxy.sendClientHello(data, serverName, port);
 	return result;
 }

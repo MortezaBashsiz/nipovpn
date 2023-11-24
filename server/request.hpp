@@ -23,6 +23,7 @@ struct request{
 							clientIP ,
 							clientPort ,
 							httpVersion ,
+							serverName ,
 							isClientHello ,
 							isChangeCipherSpec ,
 							userAgent ,
@@ -39,6 +40,7 @@ struct request{
 						+	"clientIP: " + clientIP + "\n"
 						+	"clientPort: " + clientPort + "\n"
 						+	"httpVersion: " + httpVersion + "\n"
+						+	"serverName: " + serverName + "\n"
 						+	"isClientHello: " +	isClientHello + "\n"
 						+	"isChangeCipherSpec: " + isChangeCipherSpec + "\n"
 						+	"contentLength: " +	contentLength + "\n"

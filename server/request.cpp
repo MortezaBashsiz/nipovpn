@@ -29,6 +29,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 				if ( req.isClientHello == "1" || req.isChangeCipherSpec == "1" ){
 					nipoLog.write("Send client TLS request to the originserver ", nipoLog.levelDebug);
 					nipoTls.data = plainData;
+					nipoTls.serverName = req.serverName;
 					nipoTls.port = "443";
 					if (req.isClientHello == "1")
 						nipoTls.handle(1);
@@ -43,6 +44,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 				if ( req.isClientHello == "1" || req.isChangeCipherSpec == "1" ){
 					nipoLog.write("Send client TLS request to the originserver ", nipoLog.levelDebug);
 					nipoTls.data = decodedData;
+					nipoTls.serverName = req.serverName;
 					nipoTls.port = "443";
 					if (req.isClientHello == "1")
 						nipoTls.handle(1);
@@ -229,6 +231,7 @@ void request::parse(std::string request)
 	contentLength = req["Content-Length"];
 	isClientHello = req["isClientHello"];
 	isChangeCipherSpec = req["isChangeCipherSpec"];
+	serverName = req["serverName"];
 	std::vector<std::string> list = splitString(req["Host"], ':');
 	host = list[0];
 	if (list.size() == 2) 

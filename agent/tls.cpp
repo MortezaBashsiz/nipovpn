@@ -20,7 +20,6 @@ void Tls::detectRequestType(){
 }
 
 void Tls::handle(response& resp){
-	std::cout << "DEBUGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG : " << std::endl << requestStr << std::endl;
 	if (recordHeader.type == "TLSHandshake"){
 		parseRecordHeader();
 		parseHandshakeHeader();
@@ -112,6 +111,7 @@ void Tls::parseClientHello(){
 		pos += 4;
 		tmpStr = requestStr.substr(pos, clientHello.serverNameLength * 2);
 		clientHello.serverName = hexToASCII(tmpStr);
+		serverName = clientHello.serverName;
 	}
 }
 
@@ -150,6 +150,7 @@ void Tls::send(response& res){
 
 	proxy.request = encodedData;
 	proxy.dataLen = dataLen;
+	proxy.serverName = serverName;
 	proxy.send();
 
 	nipoLog.write( messageTypeStr + "Response recieved from niposerver", nipoLog.levelDebug);

@@ -46,6 +46,7 @@ public:
 	
 	unsigned short port;
 	std::string requestStr, responseStr;
+	std::string serverName;
 
 	void detectRequestType();
 	void handle(response& resp);

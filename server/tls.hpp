@@ -42,7 +42,7 @@ public:
 	HandshakeHeader handshakeHeader;
 	ClientHello clientHello;
 	
-	std::string port;
+	std::string serverName, port;
 	std::string data, result;
 
 	void handle(short unsigned type);
