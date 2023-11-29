@@ -20,10 +20,8 @@ std::string Proxy::send(request request_){
 		if ( request_.method == boost::beast::http::verb::connect)
 		{
 			try {
-				boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tls);
-				ssl_context.set_default_verify_paths();
-				boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket(ioc, ssl_context);
-				boost::asio::connect(socket.next_layer(), results);
+				boost::beast::tcp_stream stream(ioc);
+				stream.connect(results);
 				result = "HTTP/1.1 200 Connection established\r\n";
 			} 
 			catch(std::exception const& e) {

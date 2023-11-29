@@ -5,7 +5,8 @@ Session::Session(boost::asio::ip::tcp::socket socket,
 	: socket_(std::move(socket)),
 		SessionManager_(manager),
 		RequestHandler_(handler),
-		nipoLog(config) {
+		nipoLog(config) 
+{
 	nipoConfig = config;
 	boost::asio::socket_base::keep_alive option(true);
 	socket_.set_option(option);
