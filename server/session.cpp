@@ -30,12 +30,7 @@ void Session::doRead() {
 			request_.clientIP = socket_.remote_endpoint().address().to_string();
 			request_.clientPort = std::to_string(socket_.remote_endpoint().port());
 			RequestHandler_.handleRequest(request_, response_);
-			if (response_.status)
-			{
-				doWrite();
-			} else {
-				doRead();
-			}
+			doWrite();
 		}
 		else if (ec != boost::asio::error::operation_aborted) {
 			SessionManager_.stop(shared_from_this());
@@ -55,6 +50,7 @@ void Session::doWrite() {
 			SessionManager_.stop(shared_from_this());
 		}
 	});
+	doRead();
 }
 
 SessionManager::SessionManager(Config config) : nipoLog(config){

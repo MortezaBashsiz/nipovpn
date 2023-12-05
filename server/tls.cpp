@@ -7,114 +7,14 @@ Tls::Tls(Config config): nipoLog(config), nipoEncrypt(config){
 Tls::~Tls(){
 }
 
-void Tls::handle(short unsigned type){
-	if ( type == 1 ){
-		parseRecordHeader();
-		parseHandshakeHeader();
-		if (handshakeHeader.messageType == "ClientHello"){
-			parseClientHello();
-			serverName = clientHello.serverName;
-			result = send();
-		}
-	}
-	if ( type == 2 ){
-		result = send();
-	}
-}
-
-void Tls::parseRecordHeader(){
-	std::string tmpStr;
-	unsigned short pos=0;
-	tmpStr = data.substr(pos, 2);
-	if (tmpStr == "16"){
-		recordHeader.type="TLSHandshake";
-		pos += 2; // 2
-	
-		tmpStr = data.substr(pos, 2);
-		recordHeader.version = std::to_string(hexToInt(tmpStr));
-		pos += 2; // 4
-		tmpStr = data.substr(pos, 2);
-		recordHeader.version = recordHeader.version+"."+std::to_string(hexToInt(tmpStr));
-		pos += 2; // 6
-	
-		tmpStr = data.substr(pos, 4);
-		recordHeader.contentLength = hexToInt(tmpStr);
-		pos += 4; // 10
-	}
-}
-
-void Tls::parseHandshakeHeader(){
-	std::string tmpStr;
-	unsigned short pos=10;
-	tmpStr = data.substr(pos, 2);
-	if (tmpStr == "01"){
-		handshakeHeader.messageType="ClientHello";
-	}
-	pos += 2; // 12
-	tmpStr = data.substr(pos, 6);
-	handshakeHeader.messageLength = hexToInt(tmpStr);
-	pos += 6; // 18
-}
-
-void Tls::parseClientHello(){
-	std::string tmpStr;
-	unsigned short pos=18;
-	tmpStr = data.substr(pos, 2);
-	clientHello.clientVersion = std::to_string(hexToInt(tmpStr));
-	pos += 2; // 20
-	tmpStr = data.substr(pos, 2);
-	clientHello.clientVersion = clientHello.clientVersion+"."+std::to_string(hexToInt(tmpStr));
-	pos += 2; // 22
-	
-	tmpStr = data.substr(pos, 64);
-	clientHello.clientRandomValue = tmpStr;
-
-	pos += 64; // 82
-	
-	tmpStr = data.substr(pos, 2);
-	clientHello.sessionIDLength = hexToInt(tmpStr);
-	pos += 2; // 84
-	
-	tmpStr = data.substr(pos, clientHello.sessionIDLength);
-	clientHello.sessionID = tmpStr;
-	pos = pos + (clientHello.sessionIDLength * 2); // ??
-	
-	tmpStr = data.substr(pos, 4);
-	clientHello.cipherSuitesLength = hexToInt(tmpStr);
-	pos += 4; // ??
-	pos = pos + (clientHello.cipherSuitesLength * 2); // ??
-
-	tmpStr = data.substr(pos, 2);
-	clientHello.compressionMethodLength = hexToInt(tmpStr);
-	pos += 2; // ??
-	pos = pos + (clientHello.compressionMethodLength * 2); // ??
-		
-	tmpStr = data.substr(pos, 4);
-	clientHello.extentionsLength = hexToInt(tmpStr);
-	pos += 4; // ??
-		
-	tmpStr = data.substr(pos, 4);
-	if ( hexToInt(tmpStr) == 0 ){
-		pos += 14;
-		tmpStr = data.substr(pos, 4);
-		clientHello.serverNameLength = hexToInt(tmpStr);
-		pos += 4;
-		tmpStr = data.substr(pos, clientHello.serverNameLength * 2);
-		clientHello.serverName = hexToASCII(tmpStr);
-	}
+void Tls::handle(){
+	result = send();
 }
 
 std::string Tls::send(){
 	Proxy proxy(nipoConfig);
-	std::string messageTypeStr="";
-	if (handshakeHeader.messageType == "ClientHello"){
-		messageTypeStr = handshakeHeader.messageType;
-	}
-	if (recordHeader.type == "ChangeCipherSpec"){
-		messageTypeStr = recordHeader.type;
-	}
-	nipoLog.write("Sending " + messageTypeStr + " request to originserver", nipoLog.levelDebug);
+	nipoLog.write("Sending TLS request to originserver", nipoLog.levelDebug);
 	nipoLog.write(toString(), nipoLog.levelDebug);
-	std::string result = proxy.sendClientHello(data, serverName, port);
+	std::string result = proxy.sendTLS(data, serverName, port);
 	return result;
 }

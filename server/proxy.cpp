@@ -48,8 +48,8 @@ std::string Proxy::send(request request_){
 	return result;
 }
 
-std::string Proxy::sendClientHello(std::string data, std::string server, std::string port){
-	nipoLog.write("Request sent to originserver", nipoLog.levelDebug);
+std::string Proxy::sendTLS(std::string data, std::string server, std::string port){
+	nipoLog.write("TLS Request sent to originserver", nipoLog.levelDebug);
 	boost::beast::flat_buffer buffer;
 	boost::asio::io_service svc;
 	Client client(svc, server, port);

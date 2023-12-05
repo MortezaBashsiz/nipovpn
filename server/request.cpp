@@ -31,10 +31,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 					nipoTls.data = plainData;
 					nipoTls.serverName = req.serverName;
 					nipoTls.port = "443";
-					if (req.isClientHello == "1")
-						nipoTls.handle(1);
-					if (req.isChangeCipherSpec == "1")
-						nipoTls.handle(2);
+					nipoTls.handle();
 					originalResponse = nipoTls.result;
 				} else {
 					originalRequest.parse(plainData);
@@ -46,10 +43,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 					nipoTls.data = decodedData;
 					nipoTls.serverName = req.serverName;
 					nipoTls.port = "443";
-					if (req.isClientHello == "1")
-						nipoTls.handle(1);
-					if (req.isChangeCipherSpec == "1")
-						nipoTls.handle(2);
+					nipoTls.handle();
 					originalResponse = nipoTls.result;
 				} else {
 					originalRequest.parse(decodedData);
