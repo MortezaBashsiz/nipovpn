@@ -74,17 +74,18 @@ std::string Client::send(std::vector<unsigned char> message) {
 		std::cerr << ec.what();
 	}
 	boost::asio::streambuf responseBuffer;
+	std::stringstream resultStr;
 	int bytesTransferred = boost::asio::read(socket, responseBuffer, boost::asio::transfer_all(), ec);
-	if (ec && ec != boost::asio::error::eof) {
+	if (!ec || ec == boost::asio::error::eof) {
+		unsigned char tempData[bytesTransferred];
+		std::memcpy(tempData, boost::asio::buffer_cast<const void*>(responseBuffer.data()), bytesTransferred);
+		resultStr << std::hex << std::setfill('0');
+		for (int i = 0; i < bytesTransferred; ++i)
+		{
+			resultStr << std::setw(2) << static_cast<unsigned>(tempData[i]);
+		}
+	} else {
 		std::cerr << ec.what();
 	}
-	unsigned char tempData[bytesTransferred];
-	std::memcpy(tempData, boost::asio::buffer_cast<const void*>(responseBuffer.data()), bytesTransferred);
-	std::stringstream tempStr;
-	tempStr << std::hex << std::setfill('0');
-	for (int i = 0; i < bytesTransferred; ++i)
-	{
-		tempStr << std::setw(2) << static_cast<unsigned>(tempData[i]);
-	}
-	return tempStr.str();
+	return resultStr.str();
 }
