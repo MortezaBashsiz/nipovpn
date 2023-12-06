@@ -37,39 +37,20 @@ public:
 	Config nipoConfig;
 	Log nipoLog;
 	Encrypt nipoEncrypt;
-
-	RecordHeader recordHeader;
-	HandshakeHeader handshakeHeader;
-	ClientHello clientHello;
 	
-	std::string port;
+	std::string serverName, port;
 	std::string data, result;
 
 	void handle();
-	void parseRecordHeader();
-	void parseHandshakeHeader();
-	void parseClientHello();
 	std::string send();
 
 	std::string toString()
 	{
-		return 	std::string("\n#######################################################################\n")
-						+ "type : " + recordHeader.type + " \n"
-						+ "version : " + recordHeader.version + " \n"
-						+ "contentLength : " + std::to_string(recordHeader.contentLength) + " \n"
-						+ "messageType : " + handshakeHeader.messageType + " \n"
-						+ "messageLength : " + std::to_string(handshakeHeader.messageLength) + " \n"
-						+ "clientVersion : " + clientHello.clientVersion + " \n"
-						+ "clientRandomValue : " + clientHello.clientRandomValue + " \n"
-						+ "sessionIDLength : " + std::to_string(clientHello.sessionIDLength) + " \n"
-						+ "sessionID : " + clientHello.sessionID + " \n"
-						+ "cipherSuitesLength : " + std::to_string(clientHello.cipherSuitesLength) + " \n"
-						+ "compressionMethodLength : " + std::to_string(clientHello.compressionMethodLength) + " \n"
-						+ "extentionsLength : " + std::to_string(clientHello.extentionsLength) + " \n"
-						+ "serverNameLength : " + std::to_string(clientHello.serverNameLength) + " \n"
-						+ "serverName : " + clientHello.serverName + " \n"
+		return 	std::string("\n")
+						+ "data : " + data + " \n"
+						+ "serverName : " + serverName + " \n"
 						+ "port : " + port + " \n"
-						+ "#######################################################################\n";
+						+ "\n";
 	}
 };
 

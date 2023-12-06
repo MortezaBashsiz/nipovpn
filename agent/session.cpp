@@ -36,25 +36,39 @@ void Session::doRead() {
         tempStr << std::setw(2) << static_cast<unsigned>(data[i]);
       }
       nipoTls.requestStr = tempStr.str();
-			nipoTls.parseRecordHeader();
-			if (nipoTls.recordHeader.type == "TLS Handshake"){
+			nipoTls.detectRequestType();
+			if (nipoTls.recordHeader.type == "TLSHandshake" || 
+					nipoTls.recordHeader.type == "ChangeCipherSpec" || 
+					nipoTls.recordHeader.type == "ApplicationData")
+			{
+				nipoLog.write("Detected TLS Request (" + nipoTls.recordHeader.type + ") from client", nipoLog.levelInfo);
 				nipoTls.handle(response_);
+				serverName = nipoTls.serverName;
+				doWrite(0);
 			} else {
 				request_.parse(reinterpret_cast<char*>(data));
 				request_.clientIP = socket_.remote_endpoint().address().to_string();
 				request_.clientPort = std::to_string(socket_.remote_endpoint().port());
 				RequestHandler_.handleRequest(request_, response_);
+				request_.serverName = serverName ;
+				doWrite(1);
 			}
-			doWrite();
 		} else if (ec != boost::asio::error::operation_aborted) {
 			SessionManager_.stop(shared_from_this());
 		}
 	});
 }
 
-void Session::doWrite() {
+void Session::doWrite(unsigned short mode) {
 	auto self(shared_from_this());
-	boost::asio::async_write(socket_, response_.toBuffers(), [this, self](boost::system::error_code ec, std::size_t) {});
+	if ( mode == 1 )
+		boost::asio::async_write(socket_, response_.toBuffers(), [this, self](boost::system::error_code ec, std::size_t) {});
+	else if ( mode == 0 ){
+		std::vector<unsigned char> result(response_.content.size() / 2);
+		for (std::size_t i = 0; i != response_.content.size() / 2; ++i)
+			result[i] = 16 * charToHex(response_.content[2 * i]) + charToHex(response_.content[2 * i + 1]);
+		boost::asio::async_write(socket_, boost::asio::buffer(result), [this, self](boost::system::error_code ec, std::size_t) {});
+	}
 	doRead();
 }
 

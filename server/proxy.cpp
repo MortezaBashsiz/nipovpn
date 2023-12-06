@@ -20,10 +20,8 @@ std::string Proxy::send(request request_){
 		if ( request_.method == boost::beast::http::verb::connect)
 		{
 			try {
-				boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tls);
-				ssl_context.set_default_verify_paths();
-				boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket(ioc, ssl_context);
-				boost::asio::connect(socket.next_layer(), results);
+				boost::beast::tcp_stream stream(ioc);
+				stream.connect(results);
 				result = "HTTP/1.1 200 Connection established\r\n";
 			} 
 			catch(std::exception const& e) {
@@ -50,8 +48,8 @@ std::string Proxy::send(request request_){
 	return result;
 }
 
-std::string Proxy::sendClientHello(std::string data, std::string server, std::string port){
-	nipoLog.write("Request sent to originserver", nipoLog.levelDebug);
+std::string Proxy::sendTLS(std::string data, std::string server, std::string port){
+	nipoLog.write("TLS Request sent to originserver", nipoLog.levelDebug);
 	boost::beast::flat_buffer buffer;
 	boost::asio::io_service svc;
 	Client client(svc, server, port);
@@ -76,29 +74,18 @@ std::string Client::send(std::vector<unsigned char> message) {
 		std::cerr << ec.what();
 	}
 	boost::asio::streambuf responseBuffer;
+	std::stringstream resultStr;
 	int bytesTransferred = boost::asio::read(socket, responseBuffer, boost::asio::transfer_all(), ec);
-	if (ec && ec != boost::asio::error::eof) {
+	if (!ec || ec == boost::asio::error::eof) {
+		unsigned char tempData[bytesTransferred];
+		std::memcpy(tempData, boost::asio::buffer_cast<const void*>(responseBuffer.data()), bytesTransferred);
+		resultStr << std::hex << std::setfill('0');
+		for (int i = 0; i < bytesTransferred; ++i)
+		{
+			resultStr << std::setw(2) << static_cast<unsigned>(tempData[i]);
+		}
+	} else {
 		std::cerr << ec.what();
 	}
-	unsigned char tempData[bytesTransferred];
-	std::memcpy(tempData, boost::asio::buffer_cast<const void*>(responseBuffer.data()), bytesTransferred);
-	// std::cout << "Payload: " << std::endl;
-	// for (int i = 0; i < bytesTransferred; ++i) {
-	// 	printf("%02x ", tempData[i]);
-	// 	if ((i + 1) % 8 == 0) {
-	// 		std::cout << "   ";
-	// 	}
-	// 	if ((i + 1) % 16 == 0) {
-	// 		std::cout << std::endl;
-	// 	}
-	// }
-	// std::cout << std::endl;
-	// std::cout << "DEBUG : " << bytesTransferred << std::endl;
-	std::stringstream tempStr;
-	tempStr << std::hex << std::setfill('0');
-	for (int i = 0; i < bytesTransferred; ++i)
-	{
-		tempStr << std::setw(2) << static_cast<unsigned>(tempData[i]);
-	}
-	return tempStr.str();
+	return resultStr.str();
 }

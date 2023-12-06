@@ -4,6 +4,7 @@
 #include <ctime>
 #include <iomanip>
 #include <algorithm>
+#include <boost/algorithm/string.hpp>
 
 #include "config.hpp"
 

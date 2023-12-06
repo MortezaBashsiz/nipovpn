@@ -47,11 +47,11 @@ struct response{
 		{
 			allHeaders += headers[i].name + " : " + headers[i].value + " \n";
 		}
-		return	std::string("\n#######################################################################\n")
+		return	std::string("\n")
 						+ statusToString(status)
 						+ allHeaders + " \n"
 						+	"content : \n " + content + " \n"
-						+"#######################################################################\n";
+						+"\n";
 	}
 	static response stockResponse(statusType status);
 	std::string statusToString(statusType status);
