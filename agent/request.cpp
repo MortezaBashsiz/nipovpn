@@ -22,32 +22,25 @@ void RequestHandler::handleRequest(request& req, response& res)
 												+ req.userAgent + " "
 												+ req.contentLength;
 	nipoLog.write(logMsg, nipoLog.levelInfo);
-	nipoLog.write("Recieved request from client", nipoLog.levelDebug);
-	nipoLog.write(req.toString(), nipoLog.levelDebug);
+	nipoLog.write("Recieved request from client : " + req.toString(), nipoLog.levelDebug);
 	if (nipoConfig.config.encryption == "yes")
 	{
 		encryptedData = nipoEncrypt.encryptAes((unsigned char *)data.c_str(), &dataLen);
-		nipoLog.write("Encrypted request", nipoLog.levelDebug);
-		nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
-		nipoLog.write("Encoding encrypted request", nipoLog.levelDebug);
+		nipoLog.write(std::string("Encrypted request : ") + (char *)encryptedData, nipoLog.levelDebug);
 		encodedData = nipoEncrypt.encode64((char *)encryptedData);
 	} else if(nipoConfig.config.encryption == "no") {
 			encodedData = nipoEncrypt.encode64(data);
 	}
-	nipoLog.write("Encoded encrypted request", nipoLog.levelDebug);
-	nipoLog.write(encodedData, nipoLog.levelDebug);
-	nipoLog.write("Sending request to nipoServer", nipoLog.levelDebug);
+	nipoLog.write("Encoded encrypted request : " + encodedData, nipoLog.levelDebug);
 	
 	proxy.request = encodedData;
 	proxy.dataLen = dataLen;
 	proxy.serverName = req.serverName;
 	proxy.send();
 	
-	nipoLog.write("Response recieved from niposerver", nipoLog.levelDebug);
-	nipoLog.write("\n"+proxy.response+"\n", nipoLog.levelDebug);
+	nipoLog.write("Response recieved from niposerver : " + proxy.response, nipoLog.levelDebug);
 	newResponse.parse(proxy.response);
-	nipoLog.write("Parsed response from niposerver", nipoLog.levelDebug);
-	nipoLog.write(newResponse.toString(), nipoLog.levelDebug);
+	nipoLog.write("Parsed response from niposerver : " + newResponse.toString(), nipoLog.levelDebug);
 	int responseContentLength;
 	if ( newResponse.contentLength != "" ){
 		responseContentLength = std::stoi(newResponse.contentLength);
@@ -56,19 +49,16 @@ void RequestHandler::handleRequest(request& req, response& res)
 		responseContentLength = 0;
 		decodedData = "Empty";
 	}
-	nipoLog.write("Decoded recieved response", nipoLog.levelDebug);
-	nipoLog.write(decodedData, nipoLog.levelDebug);
+	nipoLog.write("Decoded recieved response : " + decodedData, nipoLog.levelDebug);
 	if (nipoConfig.config.encryption == "yes")
 	{
 		char *plainData = (char *)nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &responseContentLength);
-		nipoLog.write("Decrypt recieved response from niposerver", nipoLog.levelDebug);
-		nipoLog.write(plainData, nipoLog.levelDebug);
+		nipoLog.write(std::string("Decrypt recieved response from niposerver : ") + plainData, nipoLog.levelDebug);
 		res.parse(plainData);
 	} else if(nipoConfig.config.encryption == "no") {
 		res.parse(decodedData);
 	}
-	nipoLog.write("Sending response to client", nipoLog.levelDebug);
-	nipoLog.write(res.toString(), nipoLog.levelDebug);
+	nipoLog.write("Sending response to client : " + res.toString(), nipoLog.levelDebug);
 	return;
 };
 

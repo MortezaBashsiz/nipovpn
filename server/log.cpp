@@ -25,6 +25,7 @@ string Log::logLevelToString(int level) {
 };
 
 void Log::write(string message, int level){
+	boost::replace_all(message, "\n", "|");
 	if (level <= log.level){
 		time_t now = time(0);
 		auto time = std::time(nullptr);

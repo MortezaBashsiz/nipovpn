@@ -46,11 +46,11 @@ public:
 
 	std::string toString()
 	{
-		return 	std::string("\n#######################################################################\n")
+		return 	std::string("\n")
 						+ "data : " + data + " \n"
 						+ "serverName : " + serverName + " \n"
 						+ "port : " + port + " \n"
-						+ "#######################################################################\n";
+						+ "\n";
 	}
 };
 

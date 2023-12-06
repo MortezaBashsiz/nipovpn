@@ -34,7 +34,7 @@ struct request{
 	void parse(std::string request);
 	std::string toString()
   {
-    return 	std::string("\n#######################################################################\n")
+    return 	std::string("\n")
     				+ "method: " + boost::lexical_cast<std::string>(method) + "\n"
     				+ "uri: " + uri + "\n"
 						+	"clientIP: " + clientIP + "\n"
@@ -45,7 +45,7 @@ struct request{
 						+	"isChangeCipherSpec: " + isChangeCipherSpec + "\n"
 						+	"contentLength: " +	contentLength + "\n"
 						+	"content :\n " + content + "\n"
-						+ "#######################################################################\n";
+						+ "\n";
   }
 };
 

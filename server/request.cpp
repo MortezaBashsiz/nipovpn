@@ -14,18 +14,14 @@ void RequestHandler::handleRequest(request& req, response& res) {
 		std::string reqPath = nipoConfig.config.users[counter].endpoint;
 		if (req.uri == reqPath) {
 			int contentLengthInt = std::stoi(req.contentLength);
-			nipoLog.write("Recieve request from nipoagent", nipoLog.levelDebug);
-			nipoLog.write(req.toString(), nipoLog.levelDebug);
+			nipoLog.write("Recieve request from nipoagent : " + req.toString(), nipoLog.levelDebug);
 			decodedData = nipoEncrypt.decode64(req.content);
-			nipoLog.write("Decoded recieved request", nipoLog.levelDebug);
-			nipoLog.write("\n"+decodedData+"\n", nipoLog.levelDebug);
+			nipoLog.write("Decoded recieved request : " + decodedData, nipoLog.levelDebug);
 			request originalRequest;
 			if (nipoConfig.config.users[counter].encryption == "yes")
 			{
 				plainData = (char *)(nipoEncrypt.decryptAes((unsigned char *)decodedData.c_str(), &contentLengthInt));
-				nipoLog.write("Decrypt request from nipoagent", nipoLog.levelDebug);
-				nipoLog.write(plainData, nipoLog.levelDebug);
-				nipoLog.write("Parsing request from nipoagent", nipoLog.levelDebug);
+				nipoLog.write("Decrypt request from nipoagent : " + plainData, nipoLog.levelDebug);
 				if ( req.isClientHello == "1" || req.isChangeCipherSpec == "1" ){
 					nipoLog.write("Send client TLS request to the originserver ", nipoLog.levelDebug);
 					nipoTls.data = plainData;
@@ -68,23 +64,18 @@ void RequestHandler::handleRequest(request& req, response& res) {
 				nipoLog.write("Send request to the originserver ", nipoLog.levelDebug);
 				originalResponse = proxy.send(originalRequest);
 			}
-			nipoLog.write("Response recieved from original server ", nipoLog.levelDebug);
-			nipoLog.write("\n"+originalResponse+"\n", nipoLog.levelDebug);
+			nipoLog.write("Response recieved from original server : " + originalResponse, nipoLog.levelDebug);
 			int originalResponseLength = originalResponse.length()+1;
 			if (nipoConfig.config.users[counter].encryption == "yes")
 			{
 				unsigned char *encryptedData;
-				nipoLog.write("Encrypting response from originserver", nipoLog.levelDebug);
 				encryptedData = nipoEncrypt.encryptAes((unsigned char *)originalResponse.c_str(), &originalResponseLength);
-				nipoLog.write("Encrypted response from originserver", nipoLog.levelDebug);
-				nipoLog.write((char *)encryptedData, nipoLog.levelDebug);
+				nipoLog.write(std::string("Encrypted response from originserver : ") + (char *)encryptedData, nipoLog.levelDebug);
 				encodedData = nipoEncrypt.encode64((char *)encryptedData);
 			} else if(nipoConfig.config.users[counter].encryption == "no") {
 				encodedData = nipoEncrypt.encode64(originalResponse);
 			}
-			nipoLog.write("Encoded encrypted data", nipoLog.levelDebug);
-			nipoLog.write(encodedData, nipoLog.levelDebug);
-			nipoLog.write("Generating response for nipoAgent ", nipoLog.levelDebug);
+			nipoLog.write("Encoded encrypted data : " + encodedData, nipoLog.levelDebug);
 			res.content = encodedData;
 			res.status = response::ok;
 			res.headers.resize(4);
@@ -96,8 +87,7 @@ void RequestHandler::handleRequest(request& req, response& res) {
 			res.headers[2].value = std::to_string(originalResponseLength);
 			res.headers[3].name = "Content-Type";
 			res.headers[3].value = "application/javascript";
-			nipoLog.write("Generated response for nipoAgent ", nipoLog.levelDebug);
-			nipoLog.write(res.toString(), nipoLog.levelDebug);
+			nipoLog.write("Generated response for nipoAgent : " + res.toString(), nipoLog.levelDebug);
 			std::string logMsg = 	"vpn request, " 
 														+ req.clientIP + ":" 
 														+ req.clientPort + " " 

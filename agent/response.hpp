@@ -24,13 +24,13 @@ struct response{
 
 	std::string toString()
 	{
-		return 	std::string("\n#######################################################################\n")
+		return 	std::string("\n")
 						+ "status : " + status + " \n"
 						+ "serverName : " + serverName + " \n"
 						+ "content : " + content + " \n"
 						+ "contentLength : " + contentLength + " \n"
 						+ "parsed headers : " + boost::lexical_cast<std::string>(parsedResponse.base()) + " \n"
-						+"#######################################################################\n";
+						+"\n";
 	}
 
 };

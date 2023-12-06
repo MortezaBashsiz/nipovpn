@@ -58,7 +58,7 @@ public:
 
 	std::string toString()
 	{
-		return 	std::string("\n#######################################################################\n")
+		return 	std::string("\n")
 						+ "type : " + recordHeader.type + " \n"
 						+ "version : " + recordHeader.version + " \n"
 						+ "contentLength : " + std::to_string(recordHeader.contentLength) + " \n"
@@ -73,7 +73,7 @@ public:
 						+ "extentionsLength : " + std::to_string(clientHello.extentionsLength) + " \n"
 						+ "serverNameLength : " + std::to_string(clientHello.serverNameLength) + " \n"
 						+ "serverName : " + clientHello.serverName + " \n"
-						+"#######################################################################\n";
+						+"\n";
 	}
 };
 

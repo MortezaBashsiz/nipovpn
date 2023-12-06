@@ -32,7 +32,7 @@ struct request{
 	void parse(std::string request);
 	std::string toString()
   {
-    return 	std::string("\n#######################################################################")
+    return 	std::string("\n")
     				+"\nmethod: " + boost::lexical_cast<std::string>(method) + "\n"
     				+ "serverName: " + serverName + "\n"
 						+	"clientIP: " + clientIP + "\n"
@@ -40,7 +40,7 @@ struct request{
 						+	"httpVersion: " + httpVersion + "\n"
 						+	"contentLength: " +	contentLength + "\n"
 						+	"content : ,\n " + content + "\n"
-						+ "#######################################################################\n";
+						+ "\n";
   }
 };
 

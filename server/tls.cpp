@@ -13,8 +13,7 @@ void Tls::handle(){
 
 std::string Tls::send(){
 	Proxy proxy(nipoConfig);
-	nipoLog.write("Sending TLS request to originserver", nipoLog.levelDebug);
-	nipoLog.write(toString(), nipoLog.levelDebug);
+	nipoLog.write("Sending TLS request to originserver : " + toString(), nipoLog.levelDebug);
 	std::string result = proxy.sendTLS(data, serverName, port);
 	return result;
 }

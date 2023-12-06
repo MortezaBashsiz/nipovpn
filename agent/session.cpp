@@ -37,7 +37,11 @@ void Session::doRead() {
       }
       nipoTls.requestStr = tempStr.str();
 			nipoTls.detectRequestType();
-			if (nipoTls.recordHeader.type == "TLSHandshake" || nipoTls.recordHeader.type == "ChangeCipherSpec"){
+			if (nipoTls.recordHeader.type == "TLSHandshake" || 
+					nipoTls.recordHeader.type == "ChangeCipherSpec" || 
+					nipoTls.recordHeader.type == "ApplicationData")
+			{
+				nipoLog.write("Detected TLS Request (" + nipoTls.recordHeader.type + ") from client", nipoLog.levelInfo);
 				nipoTls.handle(response_);
 				serverName = nipoTls.serverName;
 				doWrite(0);
