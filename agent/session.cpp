@@ -36,15 +36,21 @@ void Session::doRead() {
         tempStr << std::setw(2) << static_cast<unsigned>(data[i]);
       }
       nipoTls.requestStr = tempStr.str();
-			nipoTls.parseRecordHeader();
-			if (nipoTls.recordHeader.type == "TLS Handshake"){
+			nipoTls.detectRequestType();
+			if (nipoTls.recordHeader.type == "TLSHandshake" || 
+					nipoTls.recordHeader.type == "ChangeCipherSpec" || 
+					nipoTls.recordHeader.type == "ApplicationData")
+			{
+				nipoLog.write("Detected TLS Request (" + nipoTls.recordHeader.type + ") from client", nipoLog.levelInfo);
 				nipoTls.handle(response_);
+				serverName = nipoTls.serverName;
 				doWrite(0);
 			} else {
 				request_.parse(reinterpret_cast<char*>(data));
 				request_.clientIP = socket_.remote_endpoint().address().to_string();
 				request_.clientPort = std::to_string(socket_.remote_endpoint().port());
 				RequestHandler_.handleRequest(request_, response_);
+				request_.serverName = serverName ;
 				doWrite(1);
 			}
 		} else if (ec != boost::asio::error::operation_aborted) {

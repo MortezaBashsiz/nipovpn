@@ -16,9 +16,7 @@ const char miscNameValueSeparator[] = { ':', ' ' };
 const char miscCrlf[] = { '\r', '\n' };
 
 struct response{
-	std::string status;
-	std::string content;
-	std::string contentLength;
+	std::string status, content, contentLength, serverName;
 	std::vector<header> headers;
 	std::vector<boost::asio::const_buffer> toBuffers();
 	boost::beast::http::response<boost::beast::http::string_body> parsedResponse;
@@ -26,12 +24,13 @@ struct response{
 
 	std::string toString()
 	{
-		return 	std::string("\n#######################################################################\n")
-						+ "status : " + status
+		return 	std::string("\n")
+						+ "status : " + status + " \n"
+						+ "serverName : " + serverName + " \n"
 						+ "content : " + content + " \n"
 						+ "contentLength : " + contentLength + " \n"
 						+ "parsed headers : " + boost::lexical_cast<std::string>(parsedResponse.base()) + " \n"
-						+"#######################################################################\n";
+						+"\n";
 	}
 
 };

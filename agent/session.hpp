@@ -18,6 +18,8 @@ class Session : public std::enable_shared_from_this<Session> {
 		explicit Session(boost::asio::ip::tcp::socket socket, SessionManager& manager, RequestHandler& handler, Config config);
 		void start();
 		void stop();
+		std::string serverName;
+
 		Config nipoConfig;
 		Log nipoLog;
 		Encrypt nipoEncrypt;
