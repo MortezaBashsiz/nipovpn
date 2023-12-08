@@ -31,8 +31,4 @@
 *.out
 *.app
 
-server/*.o
-
-niposerver
-nipoagent
-test
+build
