@@ -44,9 +44,9 @@ public:
 		logYaml_(configYaml_["log"]),
 		agentYaml_(configYaml_["agent"]),
 		serverYaml_(configYaml_["server"]),
-		log_(),
-		agent_(),
-		server_()
+		log_{0, ""},
+		agent_{"", 0, "", 0, "", "", "", 0, ""},
+		server_{"", 0, "", "", ""}
 	{
 		log_.level = logYaml_["logLevel"].as<unsigned short>();
 		log_.file = logYaml_["logFile"].as<std::string>();
