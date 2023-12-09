@@ -4,6 +4,7 @@
 
 int main(int argc, char const *argv[])
 {
+	
 	BoolStr configValidation{false, std::string("FAILED")};
 	configValidation = validateConfig(argc, argv);
 	if (! configValidation.ok)

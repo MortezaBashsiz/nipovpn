@@ -32,7 +32,8 @@ const BoolStr validateConfig(int argc, char const *argv[])
 		return boolStr_;	
 	}
 
-	YAML::Node configYaml_, logYaml_, agentYaml_, serverYaml_;
+	YAML::Node configYaml_;
+	std::string tmpStr("");
 
 	try
 	{
@@ -45,16 +46,24 @@ const BoolStr validateConfig(int argc, char const *argv[])
 
 	try
 	{
-		logYaml_ = configYaml_["log"];
+		tmpStr = configYaml_["log"]["logFile"].as<std::string>();
+		tmpStr = configYaml_["log"]["logLevel"].as<std::string>();
 	} catch (std::exception& e)
 	{
 		boolStr_.message = std::string("Erro on parsing config file. something is wrong in block 'log' ") + e.what() + "\n";
 		return boolStr_;
 	}
-	
 	try
 	{
-		agentYaml_ = configYaml_["agent"];
+		tmpStr = configYaml_["agent"]["listenIp"].as<std::string>();
+		tmpStr = configYaml_["agent"]["listenPort"].as<unsigned short>();
+		tmpStr = configYaml_["agent"]["serverIp"].as<std::string>();
+		tmpStr = configYaml_["agent"]["serverPort"].as<unsigned short>();
+		tmpStr = configYaml_["agent"]["encryption"].as<std::string>();
+		tmpStr = configYaml_["agent"]["token"].as<std::string>();
+		tmpStr = configYaml_["agent"]["endPoint"].as<std::string>();
+		tmpStr = configYaml_["agent"]["httpVersion"].as<unsigned short>();
+		tmpStr = configYaml_["agent"]["userAgent"].as<std::string>();
 	} catch (std::exception& e)
 	{
 		boolStr_.message = std::string("Erro on parsing config file. something is wrong in block 'agent' ") + e.what() + "\n";
@@ -63,7 +72,11 @@ const BoolStr validateConfig(int argc, char const *argv[])
 
 	try
 	{
-		serverYaml_ = configYaml_["server"];
+		tmpStr = configYaml_["server"]["listenIp"].as<std::string>();
+		tmpStr = configYaml_["server"]["listenPort"].as<unsigned short>();
+		tmpStr = configYaml_["server"]["webDir"].as<std::string>();
+		tmpStr = configYaml_["server"]["sslKey"].as<std::string>();
+		tmpStr = configYaml_["server"]["sslCert"].as<std::string>();
 	} catch (std::exception& e)
 	{
 		boolStr_.message = std::string("Erro on parsing config file. something is wrong in block 'server' ") + e.what() + "\n";

@@ -41,29 +41,26 @@ public:
 		mode_(mode),
 		filePath_(filePath),
 		configYaml_(YAML::LoadFile(filePath)),
-		logYaml_(configYaml_["log"]),
-		agentYaml_(configYaml_["agent"]),
-		serverYaml_(configYaml_["server"]),
-		log_{0, ""},
-		agent_{"", 0, "", 0, "", "", "", 0, ""},
-		server_{"", 0, "", "", ""}
+		log_(),
+		agent_(),
+		server_()
 	{
-		log_.level = logYaml_["logLevel"].as<unsigned short>();
-		log_.file = logYaml_["logFile"].as<std::string>();
-		agent_.listenIp = agentYaml_["listenIp"].as<std::string>();
-		agent_.listenPort = agentYaml_["listenPort"].as<unsigned short>();
-		agent_.serverIp = agentYaml_["serverIp"].as<std::string>();
-		agent_.serverPort = agentYaml_["serverPort"].as<unsigned short>();
-		agent_.encryption = agentYaml_["encryption"].as<std::string>();
-		agent_.token = agentYaml_["token"].as<std::string>();
-		agent_.endPoint = agentYaml_["endPoint"].as<std::string>();
-		agent_.httpVersion = agentYaml_["httpVersion"].as<unsigned short>();
-		agent_.userAgent = agentYaml_["userAgent"].as<std::string>();
-		server_.listenIp = serverYaml_["listenIp"].as<std::string>();
-		server_.listenPort = serverYaml_["listenPort"].as<unsigned short>();
-		server_.webDir = serverYaml_["webDir"].as<std::string>();
-		server_.sslKey = serverYaml_["sslKey"].as<std::string>();
-		server_.sslCert = serverYaml_["sslCert"].as<std::string>();
+		log_.level = configYaml_["log"]["logLevel"].as<unsigned short>();
+		log_.file = configYaml_["log"]["logFile"].as<std::string>();
+		agent_.listenIp = configYaml_["agent"]["listenIp"].as<std::string>();
+		agent_.listenPort = configYaml_["agent"]["listenPort"].as<unsigned short>();
+		agent_.serverIp = configYaml_["agent"]["serverIp"].as<std::string>();
+		agent_.serverPort = configYaml_["agent"]["serverPort"].as<unsigned short>();
+		agent_.encryption = configYaml_["agent"]["encryption"].as<std::string>();
+		agent_.token = configYaml_["agent"]["token"].as<std::string>();
+		agent_.endPoint = configYaml_["agent"]["endPoint"].as<std::string>();
+		agent_.httpVersion = configYaml_["agent"]["httpVersion"].as<unsigned short>();
+		agent_.userAgent = configYaml_["agent"]["userAgent"].as<std::string>();
+		server_.listenIp = configYaml_["server"]["listenIp"].as<std::string>();
+		server_.listenPort = configYaml_["server"]["listenPort"].as<unsigned short>();
+		server_.webDir = configYaml_["server"]["webDir"].as<std::string>();
+		server_.sslKey = configYaml_["server"]["sslKey"].as<std::string>();
+		server_.sslCert = configYaml_["server"]["sslCert"].as<std::string>();
 	}
 
 	Config(const Config& config_){}
@@ -75,9 +72,9 @@ public:
 
 	RunMode mode_;
 	std::string filePath_;
-	YAML::Node configYaml_, logYaml_, agentYaml_, serverYaml_;
+	YAML::Node configYaml_;
 	Log log_;
 	Agent agent_;
 	Server server_;
-
+	
 };
