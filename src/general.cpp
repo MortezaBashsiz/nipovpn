@@ -40,7 +40,7 @@ const BoolStr validateConfig(int argc, char const *argv[])
 		configYaml_ = YAML::LoadFile(argv[2]);
 	} catch (std::exception& e)
 	{
-		boolStr_.message = std::string("Erro on parsing config file. ") + e.what() + "\n";
+		boolStr_.message = std::string("Erro on parsing config file. : ") + e.what() + "\n";
 		return boolStr_;
 	}
 
@@ -50,7 +50,7 @@ const BoolStr validateConfig(int argc, char const *argv[])
 		tmpStr = configYaml_["log"]["logLevel"].as<std::string>();
 	} catch (std::exception& e)
 	{
-		boolStr_.message = std::string("Erro on parsing config file. something is wrong in block 'log' ") + e.what() + "\n";
+		boolStr_.message = std::string("Erro on parsing config file. something is wrong in block 'log' : ") + e.what() + "\n";
 		return boolStr_;
 	}
 	try
@@ -66,7 +66,7 @@ const BoolStr validateConfig(int argc, char const *argv[])
 		tmpStr = configYaml_["agent"]["userAgent"].as<std::string>();
 	} catch (std::exception& e)
 	{
-		boolStr_.message = std::string("Erro on parsing config file. something is wrong in block 'agent' ") + e.what() + "\n";
+		boolStr_.message = std::string("Erro on parsing config file. something is wrong in block 'agent' : ") + e.what() + "\n";
 		return boolStr_;
 	}
 
@@ -79,7 +79,7 @@ const BoolStr validateConfig(int argc, char const *argv[])
 		tmpStr = configYaml_["server"]["sslCert"].as<std::string>();
 	} catch (std::exception& e)
 	{
-		boolStr_.message = std::string("Erro on parsing config file. something is wrong in block 'server' ") + e.what() + "\n";
+		boolStr_.message = std::string("Erro on parsing config file. something is wrong in block 'server' : ") + e.what() + "\n";
 		return boolStr_;
 	}
 

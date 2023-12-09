@@ -2,6 +2,10 @@
 
 #include "general.hpp"
 
+/*
+* Class Config will contain all the configuration directives
+* This class is declared and initialized in main.cpp
+*/
 class Config
 {
 
@@ -37,6 +41,9 @@ private:
 
 public:
 	
+	/*
+	* Default constructor for Config. The main Config object is initialized here
+	*/
 	Config(const RunMode mode, const std::string filePath):
 		mode_(mode),
 		filePath_(filePath),
@@ -63,16 +70,44 @@ public:
 		server_.sslCert = configYaml_["server"]["sslCert"].as<std::string>();
 	}
 
+	/*
+	* Copy constructor if you want to copy and initialize it
+	*/
 	Config(const Config& config_){}
+
+	/*
+	* Default distructor
+	*/
 	~Config(){}
+	
+	/*
+	* Assignment operator=
+	*/
 	Config& operator=(const Config& config_)
 	{
 		return *this;
 	}
 
+	/*
+	* RunMode is declared in general.hpp
+	*/
 	RunMode mode_;
+
+	/*
+	* Configuration file path string
+	*/
 	std::string filePath_;
+
+	/*
+	* It contains the main yaml node of the config file
+	* For more information see Config default constructor and also in general.cpp function validateConfig
+	*/
 	YAML::Node configYaml_;
+
+	/*
+	* Objects for separation of configuration sections (log, agent, server)
+	* For more information see the private items
+	*/
 	Log log_;
 	Agent agent_;
 	Server server_;
