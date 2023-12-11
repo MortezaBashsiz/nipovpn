@@ -1,3 +1,6 @@
+#ifndef CONFIG_HPP
+#define CONFIG_HPP
+
 #include <yaml-cpp/yaml.h>
 
 #include "general.hpp"
@@ -13,7 +16,7 @@ private:
 
 	struct Log
 	{
-		unsigned short level;
+		std::string level;
 		std::string file;
 	};
 
@@ -52,7 +55,7 @@ public:
 		agent_(),
 		server_()
 	{
-		log_.level = configYaml_["log"]["logLevel"].as<unsigned short>();
+		log_.level = configYaml_["log"]["logLevel"].as<std::string>();
 		log_.file = configYaml_["log"]["logFile"].as<std::string>();
 		agent_.listenIp = configYaml_["agent"]["listenIp"].as<std::string>();
 		agent_.listenPort = configYaml_["agent"]["listenPort"].as<unsigned short>();
@@ -73,7 +76,11 @@ public:
 	/*
 	* Copy constructor if you want to copy and initialize it
 	*/
-	Config(const Config& config_){}
+	Config(const Config& config_):
+		log_(config_.log_),
+		agent_(config_.agent_),
+		server_(config_.server_)
+	{}
 
 	/*
 	* Default distructor
@@ -113,3 +120,5 @@ public:
 	Server server_;
 	
 };
+
+#endif /* CONFIG_HPP */

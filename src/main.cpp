@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "config.hpp"
+#include "log.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -25,6 +26,11 @@ int main(int argc, char const *argv[])
 	* See config.hpp
 	*/
 	Config nipoConfig(runMode_, std::string(argv[2]));
+
+	/*
+	* Declare and initialize main Log object
+	*/
+	Log nipoLog(nipoConfig);
 
 	return 0;
 }

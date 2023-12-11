@@ -1,8 +1,8 @@
 ---
 
 log:
-  logLevel: 4
-  logFile: "/var/log/niposerver/nipo.log"
+  logLevel: "DEBUG"
+  logFile: "/var/log/nipo/nipo.log"
 
 server:
   listenIp: "127.0.0.10"

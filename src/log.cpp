@@ -1,0 +1,35 @@
+#include "log.hpp"
+
+const std::string Log::levelToString(const Level level) 
+{
+	std::string result("");
+	switch (level){
+		case Level::INFO:
+			result = "INFO";
+		case Level::DEBUG:
+			result = "DEBUG";
+	};
+	return result;
+}
+
+void Log::write(const std::string message, const Level level)
+{
+	if (level <= level_){
+		if (logFile_.is_open())
+		{
+			time_t now = time(0);
+			auto time = std::time(nullptr);
+			auto localtime = *std::localtime(&time);
+			std::ostringstream oss;
+			oss << std::put_time(&localtime, "%Y-%m-%d_%H:%M:%S");
+			auto timeStr = oss.str();
+			std::string line = timeStr + " [" + levelToString(level) + "] " + message + "\n";
+			logFile_ << line;
+			std::cout << line;
+			logFile_.close();
+		} else 
+		{
+			std::cerr << "Error openning log file : " << config_.log_.file  << " make sure the directory and file exists " << "\n";
+		}
+	}
+}

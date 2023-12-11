@@ -1,9 +1,11 @@
+#ifndef GENERAL_HPP
+#define GENERAL_HPP
+
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 
-
 /*
-* This enum defined the modes which program are able to start
+* This enum defines the modes which program are able to start
 * Mode server and agent
 */
 enum RunMode
@@ -11,7 +13,6 @@ enum RunMode
 	server,
 	agent
 };
-
 
 /*
 * Main static variable to keep the mode
@@ -41,3 +42,5 @@ inline bool fileExists (const std::string& name);
 * Returns the BoolStr structure, See general.cpp
 */
 const BoolStr validateConfig(int argc, char const *argv[]);
+
+#endif /* GENERAL_HPP */
