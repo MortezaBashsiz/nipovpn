@@ -15,6 +15,18 @@ private:
 	
 	const Config config_;
 	std::ofstream logFile_;
+	bool logFileClosed;
+
+	/*
+	* This function tries to prepare Class for destruction
+	* Since there should not be any exception inside distructor, This fucntion is responsible
+	* 	to handle close the file. This function will be called inside distructor
+	*/
+	const void preDistructor()
+	{
+		logFile_.close();
+		logFileClosed = true;
+	}
 
 public:
 
@@ -61,7 +73,16 @@ public:
 	*/
 	~Log()
 	{
-		logFile_.close();
+		if (!logFileClosed)
+		{
+			try 
+			{
+				preDistructor();
+			} catch (std::exception &e)
+			{
+				std::cerr << "Can not destruct Log in log.cpp : " << e.what() << "\n";
+			}
+		}
 	}
 	
 	/*
