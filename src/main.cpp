@@ -2,7 +2,6 @@
 
 #include "config.hpp"
 #include "log.hpp"
-#include "nipo.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -33,5 +32,8 @@ int main(int argc, char const *argv[])
 	*/
 	Log log_(config_);
 
+	log_.write("Config initialized", Log::Level::INFO);
+	log_.write(config_.toString(), Log::Level::DEBUG);
+	
 	return 0;
 }

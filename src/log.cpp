@@ -14,6 +14,7 @@ const std::string Log::levelToString(const Level level)
 
 void Log::write(const std::string message, const Level level)
 {
+	std::ofstream logFile_(config_.log_.file, logFile_.out | logFile_.app);
 	if (level <= level_){
 		if (logFile_.is_open())
 		{

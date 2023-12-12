@@ -12,22 +12,20 @@ class Log
 {
 
 private:
-	
+		
 	const Config config_;
-	std::ofstream logFile_;
 	bool logFileClosed;
 
 	/*
-	* This function tries to prepare Class for destruction
-	* Since there should not be any exception inside distructor, This fucntion is responsible
-	* 	to handle close the file. This function will be called inside distructor
+	* Copy constructor private to prevent copy
 	*/
-	const void preDistructor()
-	{
-		logFile_.close();
-		logFileClosed = true;
-	}
+	Log(const Log&);
 
+	/*
+	* Assignment operator= private to prevent assign
+	*/
+	Log& operator=(const Log&);
+	
 public:
 
 	enum Level
@@ -40,9 +38,9 @@ public:
 	* Default constructor for Config. The main Config object is initialized here
 	*/
 	Log(const Config& config):
-	config_(config),
-	logFile_(config_.log_.file, logFile_.out | logFile_.app)
+	config_(config)
 	{
+		std::ofstream logFile_(config_.log_.file, logFile_.out | logFile_.app);
 		/*
 		* Checks if the log file is there or not
 		*/
@@ -59,40 +57,14 @@ public:
 			level_ = Level::DEBUG;
 		else
 			std::cerr << "Invalid log level : " << config_.log_.level  << ", It should be one of [INFO|DEBUG] " << "\n";
+		logFile_.close();
 	}
-
-	/*
-	* Copy constructor if you want to copy and initialize it
-	*/
-	Log(const Log& log_):
-		config_(log_.config_)
-	{}
 
 	/*
 	* Default distructor
 	*/
-	~Log()
-	{
-		if (!logFileClosed)
-		{
-			try 
-			{
-				preDistructor();
-			} catch (std::exception &e)
-			{
-				std::cerr << "Can not destruct Log in log.cpp : " << e.what() << "\n";
-			}
-		}
-	}
+	~Log(){}
 	
-	/*
-	* Assignment operator=
-	*/
-	Log& operator=(const Log& log_)
-	{
-		return *this;
-	}
-
 	Level level_ = Level::INFO;
 
 	/*

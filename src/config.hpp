@@ -19,6 +19,15 @@ private:
 		std::string level;
 		std::string file;
 	};
+	
+	struct Server
+	{
+		std::string listenIp;
+		unsigned short listenPort;
+		std::string webDir;
+		std::string sslKey;
+		std::string sslCert;
+	};
 
 	struct Agent
 	{
@@ -29,17 +38,8 @@ private:
 		std::string encryption;
 		std::string token;
 		std::string endPoint;
-		unsigned short httpVersion;
+		std::string httpVersion;
 		std::string userAgent;
-	};
-
-	struct Server
-	{
-		std::string listenIp;
-		unsigned short listenPort;
-		std::string webDir;
-		std::string sslKey;
-		std::string sslCert;
 	};
 
 public:
@@ -51,35 +51,40 @@ public:
 		mode_(mode),
 		filePath_(filePath),
 		configYaml_(YAML::LoadFile(filePath)),
-		log_(),
-		agent_(),
-		server_()
-	{
-		log_.level = configYaml_["log"]["logLevel"].as<std::string>();
-		log_.file = configYaml_["log"]["logFile"].as<std::string>();
-		agent_.listenIp = configYaml_["agent"]["listenIp"].as<std::string>();
-		agent_.listenPort = configYaml_["agent"]["listenPort"].as<unsigned short>();
-		agent_.serverIp = configYaml_["agent"]["serverIp"].as<std::string>();
-		agent_.serverPort = configYaml_["agent"]["serverPort"].as<unsigned short>();
-		agent_.encryption = configYaml_["agent"]["encryption"].as<std::string>();
-		agent_.token = configYaml_["agent"]["token"].as<std::string>();
-		agent_.endPoint = configYaml_["agent"]["endPoint"].as<std::string>();
-		agent_.httpVersion = configYaml_["agent"]["httpVersion"].as<unsigned short>();
-		agent_.userAgent = configYaml_["agent"]["userAgent"].as<std::string>();
-		server_.listenIp = configYaml_["server"]["listenIp"].as<std::string>();
-		server_.listenPort = configYaml_["server"]["listenPort"].as<unsigned short>();
-		server_.webDir = configYaml_["server"]["webDir"].as<std::string>();
-		server_.sslKey = configYaml_["server"]["sslKey"].as<std::string>();
-		server_.sslCert = configYaml_["server"]["sslCert"].as<std::string>();
-	}
+		log_
+		{
+			configYaml_["log"]["logLevel"].as<std::string>(), 
+			configYaml_["log"]["logFile"].as<std::string>()
+		},
+		server_
+		{
+			configYaml_["server"]["listenIp"].as<std::string>(),
+			configYaml_["server"]["listenPort"].as<unsigned short>(),
+			configYaml_["server"]["webDir"].as<std::string>(),
+			configYaml_["server"]["sslKey"].as<std::string>(),
+			configYaml_["server"]["sslCert"].as<std::string>()
+		},
+		agent_
+		{
+			configYaml_["agent"]["listenIp"].as<std::string>(),
+			configYaml_["agent"]["listenPort"].as<unsigned short>(),
+			configYaml_["agent"]["serverIp"].as<std::string>(),
+			configYaml_["agent"]["serverPort"].as<unsigned short>(),
+			configYaml_["agent"]["encryption"].as<std::string>(),
+			configYaml_["agent"]["token"].as<std::string>(),
+			configYaml_["agent"]["endPoint"].as<std::string>(),
+			configYaml_["agent"]["httpVersion"].as<std::string>(),
+			configYaml_["agent"]["userAgent"].as<std::string>()
+		}
+	{ }
 
 	/*
 	* Copy constructor if you want to copy and initialize it
 	*/
-	Config(const Config& config_):
-		log_(config_.log_),
-		agent_(config_.agent_),
-		server_(config_.server_)
+	Config(const Config& config):
+		log_(config.log_),
+		server_(config.server_),
+		agent_(config.agent_)
 	{}
 
 	/*
@@ -90,8 +95,11 @@ public:
 	/*
 	* Assignment operator=
 	*/
-	Config& operator=(const Config& config_)
+	Config& operator=(const Config& config)
 	{
+		log_ = config.log_;
+		server_ = config.server_;
+		agent_ = config.agent_;
 		return *this;
 	}
 
@@ -116,8 +124,31 @@ public:
 	* For more information see the private items
 	*/
 	Log log_;
-	Agent agent_;
 	Server server_;
+	Agent agent_;
+
+	const std::string toString(){
+		return std::string("\nConfig :\n")
+		+ "	Log :\n"
+		+ "		logLevel: " + log_.level + "\n"
+		+ "		logFile: " + log_.file + "\n"
+		+ "	server :\n"
+		+ "		listenIp: " + server_.listenIp + "\n"
+		+ "		listenPort: " + std::to_string(server_.listenPort) + "\n"
+		+ "		webDir: " + server_.webDir + "\n"
+		+ "		sslKey: " + server_.sslKey + "\n"
+		+ "		sslCert: " + server_.sslCert + "\n"
+		+ "	agent :\n"
+		+ "		listenIp: " + agent_.listenIp + "\n"
+		+ "		listenPort: " + std::to_string(agent_.listenPort) + "\n"
+		+ "		serverIp: " + agent_.serverIp + "\n"
+		+ "		serverPort: " + std::to_string(agent_.serverPort) + "\n"
+		+ "		encryption: " + agent_.encryption + "\n"
+		+ "		token: " + agent_.token + "\n"
+		+ "		endPoint: " + agent_.endPoint + "\n"
+		+ "		httpVersion: " + agent_.httpVersion + "\n"
+		+ "		userAgent: " + agent_.userAgent + "\n";
+	}
 	
 };
 
