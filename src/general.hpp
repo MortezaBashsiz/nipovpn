@@ -5,6 +5,15 @@
 #include <yaml-cpp/yaml.h>
 
 /*
+* FUCK function prints it on screen
+*/
+static void FUCK(auto message)
+{
+	std::cout << "FUCK FUCK FUCK FUCK FUCK FUCK FUCK FUCK : " << message << std::endl;
+}
+
+
+/*
 * This enum defines the modes which program are able to start
 * Mode server and agent
 */

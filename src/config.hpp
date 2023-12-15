@@ -76,7 +76,7 @@ public:
 			configYaml_["agent"]["httpVersion"].as<std::string>(),
 			configYaml_["agent"]["userAgent"].as<std::string>()
 		}
-	{ }
+	{}
 
 	/*
 	* Copy constructor if you want to copy and initialize it

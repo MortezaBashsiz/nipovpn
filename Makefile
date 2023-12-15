@@ -3,7 +3,7 @@
 # "standard" command name CC
 #
 CC=g++
-CFLAGS=-g -lyaml-cpp
+CFLAGS=-g -lyaml-cpp -std=c++20
 SRC=./src
 
 all: nipovpn

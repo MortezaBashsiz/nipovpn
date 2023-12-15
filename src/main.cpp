@@ -1,7 +1,9 @@
 #include <iostream>
+#include <boost/asio.hpp>
 
 #include "config.hpp"
 #include "log.hpp"
+#include "socket.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -35,5 +37,16 @@ int main(int argc, char const *argv[])
 	log_.write("Config initialized", Log::Level::INFO);
 	log_.write(config_.toString(), Log::Level::DEBUG);
 	
+	try
+  {
+    boost::asio::io_context io_context;
+    TCPServer tcpServer_(io_context, config_);
+    io_context.run();
+  }
+  catch (std::exception& e)
+  {
+    std::cerr << e.what() << std::endl;
+  }
+
 	return 0;
 }
