@@ -31,6 +31,7 @@ public:
 	enum Level
 	{
 		INFO,
+		ERROR,
 		DEBUG
 	};
 

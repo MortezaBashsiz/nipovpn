@@ -16,9 +16,9 @@ class TCPConnection
 public:
 	typedef boost::shared_ptr<TCPConnection> pointer;
 
-	static pointer create(boost::asio::io_context& io_context)
+	static pointer create(boost::asio::io_context& io_context, const Config& config)
 	{
-		return pointer(new TCPConnection(io_context));
+		return pointer(new TCPConnection(io_context, config));
 	}
 
 	boost::asio::ip::tcp::socket& socket()
@@ -41,6 +41,20 @@ public:
 					boost::asio::placeholders::bytes_transferred));
 	}
 
+	void handleRead(const boost::system::error_code& error,
+			size_t bytes_transferred)
+	{
+		if (!error || error == boost::asio::error::eof)
+		{
+			std::string result(boost::asio::buffers_begin(buffer_.data()), boost::asio::buffers_begin(buffer_.data()) + buffer_.size());
+			log_.write(result, Log::Level::DEBUG);
+			doWrite();
+		} else
+		{
+			log_.write(error.what(), Log::Level::ERROR);
+		}
+	}
+
 	void doWrite()
 	{
 		boost::asio::async_write(
@@ -51,22 +65,6 @@ public:
 					boost::asio::placeholders::bytes_transferred));
 	}
 
-	void handleRead(const boost::system::error_code& error,
-			size_t bytes_transferred)
-	{
-		if (!error || error == boost::asio::error::eof)
-		{
-			std::string result(boost::asio::buffers_begin(buffer_.data()), boost::asio::buffers_begin(buffer_.data()) + buffer_.size());
-			bufferStr_ = result;
-			FUCK(bytes_transferred);
-			FUCK(bufferStr_);
-			doWrite();
-		} else
-		{
-			FUCK(error.what());
-		}
-	}
-
 	void handleWrite(const boost::system::error_code& error,
 			size_t bytes_transferred)
 	{
@@ -75,26 +73,30 @@ public:
 			FUCK(bytes_transferred);
 		} else
 		{
-			FUCK(error.what());
+			log_.write(error.what(), Log::Level::ERROR);
 		}
 	}
 
 private:
-	TCPConnection(boost::asio::io_context& io_context)
-		: socket_(io_context)
+	TCPConnection(boost::asio::io_context& io_context, const Config& config)
+		: socket_(io_context),
+			config_(config),
+			log_(config)
 	{
 	}
 
 	boost::asio::ip::tcp::socket socket_;
 	boost::asio::streambuf buffer_;
-	std::string bufferStr_;
+	const Config config_;
+	Log log_;
 };
 
 class TCPServer
 {
 public:
-	TCPServer(boost::asio::io_context& io_context, Config config)
+	TCPServer(boost::asio::io_context& io_context, const Config& config)
 		: config_(config),
+			log_(config),
 			io_context_(io_context),
 			acceptor_(
 									io_context, 
@@ -109,7 +111,7 @@ private:
 	void startAccept()
 	{
 		TCPConnection::pointer newConnection =
-			TCPConnection::create(io_context_);
+			TCPConnection::create(io_context_, config_);
 
 		acceptor_.async_accept(newConnection->socket(),
 				boost::bind(&TCPServer::handleAccept, this, newConnection,
@@ -130,6 +132,7 @@ private:
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::acceptor acceptor_;
 	const Config config_;
+	Log log_;
 };
 
 #endif /* SOCKET_HPP */

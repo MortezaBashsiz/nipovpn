@@ -6,16 +6,21 @@ const std::string Log::levelToString(const Level level)
 	switch (level){
 		case Level::INFO:
 			result = "INFO";
+			break;
+		case Level::ERROR:
+			result = "ERROR";
+			break;
 		case Level::DEBUG:
 			result = "DEBUG";
-	};
+			break;
+	}
 	return result;
 }
 
 void Log::write(const std::string message, const Level level)
 {
 	std::ofstream logFile_(config_.log_.file, logFile_.out | logFile_.app);
-	if (level <= level_){
+	if (level <= level_ || level == Level::ERROR){
 		if (logFile_.is_open())
 		{
 			time_t now = time(0);

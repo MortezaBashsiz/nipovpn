@@ -38,15 +38,16 @@ int main(int argc, char const *argv[])
 	log_.write(config_.toString(), Log::Level::DEBUG);
 	
 	try
-  {
-    boost::asio::io_context io_context;
-    TCPServer tcpServer_(io_context, config_);
-    io_context.run();
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << e.what() << std::endl;
-  }
+	{
+		boost::asio::io_context io_context;
+		TCPServer tcpServer_(io_context, config_);
+		io_context.run();
+	}
+	catch (std::exception& error)
+	{
+		log_.write(error.what(), Log::Level::ERROR);
+		std::cerr << error.what() << std::endl;
+	}
 
 	return 0;
 }
