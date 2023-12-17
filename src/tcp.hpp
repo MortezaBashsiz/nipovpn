@@ -1,5 +1,5 @@
-#ifndef SOCKET_HPP
-#define SOCKET_HPP
+#ifndef TCPSERVER_HPP
+#define TCPSERVER_HPP
 
 #include <iostream>
 #include <string>
@@ -7,8 +7,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/asio.hpp>
-
-using boost::asio::ip::tcp;
 
 class TCPConnection
 	: public boost::enable_shared_from_this<TCPConnection>
@@ -100,8 +98,10 @@ public:
 			io_context_(io_context),
 			acceptor_(
 									io_context, 
-									boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(config.server_.listenIp), 
-									config.server_.listenPort)
+									boost::asio::ip::tcp::endpoint(
+										boost::asio::ip::address::from_string(config.listenIp_), 
+										config.listenPort_
+									)
 								)
 	{
 		startAccept();
@@ -125,7 +125,6 @@ private:
 		{
 			newConnection->start();
 		}
-
 		startAccept();
 	}
 
@@ -135,4 +134,4 @@ private:
 	Log log_;
 };
 
-#endif /* SOCKET_HPP */
+#endif /* TCPSERVER_HPP */

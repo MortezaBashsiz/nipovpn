@@ -1,9 +1,12 @@
 #include <iostream>
 #include <boost/asio.hpp>
 
+#include "general.hpp"
 #include "config.hpp"
 #include "log.hpp"
-#include "socket.hpp"
+#include "tcp.hpp"
+#include "session.hpp"
+#include "server.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -24,6 +27,13 @@ int main(int argc, char const *argv[])
 	}
 
 	/*
+	* Check and set the runMode_
+	*/
+	RunMode runMode_ = RunMode::server;
+	if (argv[1] == std::string("agent"))
+		runMode_ = RunMode::agent;
+
+	/*
 	* Declare and initialize main Config object
 	* See config.hpp
 	*/
@@ -34,20 +44,9 @@ int main(int argc, char const *argv[])
 	*/
 	Log log_(config_);
 
-	log_.write("Config initialized", Log::Level::INFO);
-	log_.write(config_.toString(), Log::Level::DEBUG);
-	
-	try
-	{
-		boost::asio::io_context io_context;
-		TCPServer tcpServer_(io_context, config_);
-		io_context.run();
-	}
-	catch (std::exception& error)
-	{
-		log_.write(error.what(), Log::Level::ERROR);
-		std::cerr << error.what() << std::endl;
-	}
+	boost::asio::io_context io_context_;
+	Server server_(io_context_, config_);
+	server_.run();
 
 	return 0;
 }

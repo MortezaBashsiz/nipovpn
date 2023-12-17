@@ -3,7 +3,15 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "general.hpp"
+/*
+* This enum defines the modes which program are able to start
+* Mode server and agent
+*/
+enum RunMode
+{
+	server,
+	agent
+}; 
 
 /*
 * Class Config will contain all the configuration directives
@@ -75,8 +83,21 @@ public:
 			configYaml_["agent"]["endPoint"].as<std::string>(),
 			configYaml_["agent"]["httpVersion"].as<std::string>(),
 			configYaml_["agent"]["userAgent"].as<std::string>()
+		},
+		listenIp_("127.0.0.1"),
+		listenPort_(0)
+	{
+		switch (mode_){
+		case RunMode::server:
+			listenIp_ = server_.listenIp;
+			listenPort_ = server_.listenPort;
+			break;
+		case RunMode::agent:
+			listenIp_ = agent_.listenIp;
+			listenPort_ = agent_.listenPort;
+			break;
 		}
-	{}
+	}
 
 	/*
 	* Copy constructor if you want to copy and initialize it
@@ -126,6 +147,22 @@ public:
 	Log log_;
 	Server server_;
 	Agent agent_;
+	std::string listenIp_;
+	unsigned short listenPort_;
+
+	const std::string modeToString()
+	{
+		std::string tmpStr("");
+		switch (mode_){
+			case RunMode::server:
+				tmpStr = "server";
+				break;
+			case RunMode::agent:
+				tmpStr = "agent";
+				break;
+			}
+		return tmpStr;
+	}
 
 	const std::string toString(){
 		return std::string("\nConfig :\n")
