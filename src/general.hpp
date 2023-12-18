@@ -11,7 +11,7 @@
 */
 class Uncopyable {
 public:
-  Uncopyable() {}
+  Uncopyable(){}
 
 private:
   Uncopyable(const Uncopyable&);
@@ -148,6 +148,12 @@ const BoolStr validateConfig(int argc, char const *argv[])
 	boolStr_.ok =  true;
 	boolStr_.message = "OK";
 	return boolStr_;
+}
+
+std::string streambufToString(boost::asio::streambuf& buff)
+{
+	std::string result(boost::asio::buffers_begin(buff.data()), boost::asio::buffers_begin(buff.data()) + buff.size());
+	return result;
 }
 
 #endif /* GENERAL_HPP */

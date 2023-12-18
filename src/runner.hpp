@@ -1,7 +1,7 @@
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#ifndef RUNNER_HPP
+#define RUNNER_HPP
 
-class Server : private Uncopyable
+class Runner : private Uncopyable
 {
 private:
 	Config& config_;
@@ -10,7 +10,7 @@ private:
 	Log log_;
 
 public:
-	Server(boost::asio::io_context& io_context, Config& config):
+	Runner(boost::asio::io_context& io_context, Config& config):
 		config_(config),
 		io_context_(io_context),
 		tcpServer_(io_context, config),
@@ -18,7 +18,7 @@ public:
 	{
 	}
 
-	~Server()
+	~Runner()
 	{}
 
 	void run()
@@ -38,4 +38,4 @@ public:
 	
 };
 
-#endif /* SERVER_HPP */
+#endif /* RUNNER_HPP */

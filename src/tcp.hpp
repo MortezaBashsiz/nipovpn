@@ -8,6 +8,9 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/asio.hpp>
 
+#include "agenthandler.hpp"
+#include "serverhandler.hpp"
+
 class TCPConnection
 	: public boost::enable_shared_from_this<TCPConnection>
 {
@@ -33,7 +36,7 @@ public:
 	{
 		boost::asio::async_read(
 				socket_,
-				buffer_,
+				readBuffer_,
 				boost::bind(&TCPConnection::handleRead, shared_from_this(),
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred));
@@ -44,20 +47,27 @@ public:
 	{
 		if (!error || error == boost::asio::error::eof)
 		{
-			std::string result(boost::asio::buffers_begin(buffer_.data()), boost::asio::buffers_begin(buffer_.data()) + buffer_.size());
-			log_.write(result, Log::Level::DEBUG);
-			doWrite();
+			if (config_.mode_ == RunMode::agent)
+			{
+				AgentHandler agentHandler_(readBuffer_, writeBuffer_, config_);
+				agentHandler_.handle();
+			} else if (config_.mode_ == RunMode::server)
+			{
+				ServerHandler serverHandler_(readBuffer_, writeBuffer_, config_);
+				serverHandler_.handle();
+			}
 		} else
 		{
-			log_.write(error.what(), Log::Level::ERROR);
+			log_.write(" [handleRead] " + error.what(), Log::Level::ERROR);
 		}
+		doWrite();
 	}
 
 	void doWrite()
 	{
 		boost::asio::async_write(
 				socket_,
-				buffer_,
+				writeBuffer_,
 				boost::bind(&TCPConnection::handleWrite, shared_from_this(),
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred));
@@ -66,13 +76,13 @@ public:
 	void handleWrite(const boost::system::error_code& error,
 			size_t bytes_transferred)
 	{
-		if (!error)
+		if (!error || error == boost::asio::error::broken_pipe)
 		{
-			FUCK(bytes_transferred);
 		} else
 		{
-			log_.write(error.what(), Log::Level::ERROR);
+			log_.write(" [handleWrite] " + error.what(), Log::Level::ERROR);
 		}
+		doRead();
 	}
 
 private:
@@ -84,7 +94,7 @@ private:
 	}
 
 	boost::asio::ip::tcp::socket socket_;
-	boost::asio::streambuf buffer_;
+	boost::asio::streambuf readBuffer_, writeBuffer_;
 	const Config& config_;
 	Log log_;
 };

@@ -5,7 +5,7 @@
 #include "config.hpp"
 #include "log.hpp"
 #include "tcp.hpp"
-#include "server.hpp"
+#include "runner.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -44,8 +44,8 @@ int main(int argc, char const *argv[])
 	Log log_(config_);
 
 	boost::asio::io_context io_context_;
-	Server server_(io_context_, config_);
-	server_.run();
+	Runner runner_(io_context_, config_);
+	runner_.run();
 
 	return 0;
 }
