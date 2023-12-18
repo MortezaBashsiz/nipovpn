@@ -6,23 +6,13 @@
 #include <ctime>
 #include <iomanip>
 
-class Log
+class Log : private Uncopyable
 {
 
 private:
 		
 	const Config& config_;
 	bool logFileClosed;
-
-	/*
-	* Copy constructor private to prevent copy
-	*/
-	Log(const Log&);
-
-	/*
-	* Assignment operator= private to prevent assign
-	*/
-	Log& operator=(const Log&);
 	
 public:
 

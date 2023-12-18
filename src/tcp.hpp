@@ -85,11 +85,11 @@ private:
 
 	boost::asio::ip::tcp::socket socket_;
 	boost::asio::streambuf buffer_;
-	const Config config_;
+	const Config& config_;
 	Log log_;
 };
 
-class TCPServer
+class TCPServer : private Uncopyable
 {
 public:
 	TCPServer(boost::asio::io_context& io_context, const Config& config)
@@ -130,7 +130,7 @@ private:
 
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::acceptor acceptor_;
-	const Config config_;
+	const Config& config_;
 	Log log_;
 };
 

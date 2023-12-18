@@ -5,6 +5,20 @@
 #include <fstream>
 #include <yaml-cpp/yaml.h>
 
+
+/*
+* General class to make the class uncopyable
+*/
+class Uncopyable {
+public:
+  Uncopyable() {}
+
+private:
+  Uncopyable(const Uncopyable&);
+  Uncopyable& operator=(const Uncopyable&);
+};
+
+
 /*
 * FUCK function prints it on screen
 */

@@ -1,7 +1,7 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-class Server
+class Server : private Uncopyable
 {
 private:
 	Config& config_;

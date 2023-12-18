@@ -5,7 +5,6 @@
 #include "config.hpp"
 #include "log.hpp"
 #include "tcp.hpp"
-#include "session.hpp"
 #include "server.hpp"
 
 int main(int argc, char const *argv[])
