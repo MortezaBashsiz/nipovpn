@@ -3,6 +3,11 @@
 
 #include <boost/beast/http.hpp>
 
+/*
+* This class is for handling request. When a request comes to TCPConnection(see tcp.hpp), It calls the 
+* 	AgentHanler::handle function(see agenthandler.hpp) and object from this class will be created in AgentHanler::handle function
+* 	to do all operations related to the request
+*/
 class Request : private Uncopyable
 {
 private:
@@ -10,17 +15,27 @@ private:
 	Log log_;
 
 public:
+
+	/*
+	* To define the type of HTTP/HTTPS request
+	*/
 	enum HttpType {
 		HTTPS,
 		HTTP
 	};
 
+	/*
+	* To define the type of the TLS request
+	*/
 	enum TlsTypes {
 		TLSHandshake,
 		ChangeCipherSpec,
 		ApplicationData
 	};
 
+	/*
+	* To define the step of request in TLS handshake
+	*/
 	enum TlsSteps {
 		ClientHello,
 		ServerHello,
@@ -37,6 +52,9 @@ public:
 		ClientCloseNotify
 	};
 
+	/*
+	* To define the TLS request, This struct is used while parsing a request after we detect that it is a TLS Request
+	*/
 	struct TlsRequest {
 		std::string sni;
 		std::string body;
@@ -44,6 +62,9 @@ public:
 		TlsSteps step;
 	};
 
+	/*
+	* default constructor
+	*/
 	Request(const Config& config, boost::asio::streambuf& buffer):
 		config_(config),
 		log_(config),
@@ -74,6 +95,10 @@ public:
 	~Request()
 	{}
 
+	/*
+	* This function will detect the type of request (HTTP|HTTPS)
+	* It checks the first byte of the body, in case of 16, 14, 17 it is HTTPS and else it may be HTTP
+	*/
 	void detectType()
 	{
 		std::string requestStr(streambufToString(buffer_));
@@ -92,6 +117,9 @@ public:
 		}
 	}
 
+	/*
+	* If the request is HTTP it will parse it and store in parsedHttpRequest_
+	*/
 	void parseHttp()
 	{
 		std::string requestStr(streambufToString(buffer_));
@@ -108,6 +136,9 @@ public:
 		}
 	}
 
+	/*
+	* If the request is HTTPS it will parse it and store in parsedTlsRequest_
+	*/
 	void parseTls()
 	{
 		parsedTlsRequest_.body = streambufToString(buffer_);

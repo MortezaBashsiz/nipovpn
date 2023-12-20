@@ -1,6 +1,10 @@
 #ifndef RUNNER_HPP
 #define RUNNER_HPP
 
+/*
+* This class is responsible to run the program and handle the exceptions
+* It is called in main function(see main.cpp)
+*/
 class Runner : private Uncopyable
 {
 private:
@@ -21,6 +25,9 @@ public:
 	~Runner()
 	{}
 
+	/*
+	* It is called in main function(see main.cpp) and will run the io_context
+	*/
 	void run()
 	{
 		try

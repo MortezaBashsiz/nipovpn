@@ -11,6 +11,10 @@
 #include "agenthandler.hpp"
 #include "serverhandler.hpp"
 
+/*
+*	Thic class is to create and handle TCP connection
+* First we will create a TCPServer and then in each accept action one connection will be created
+*/
 class TCPConnection
 	: public boost::enable_shared_from_this<TCPConnection>
 {
@@ -99,6 +103,12 @@ private:
 	Log log_;
 };
 
+
+
+/*
+*	Thic class is to create and handle TCP server
+* Listening to the IP:Port and handling the socket is here
+*/
 class TCPServer : private Uncopyable
 {
 public:
