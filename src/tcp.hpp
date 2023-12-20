@@ -51,14 +51,14 @@ public:
 	{
 		if (!error || error == boost::asio::error::eof)
 		{
-			if (config_.mode_ == RunMode::agent)
+			if (config_.runMode() == RunMode::agent)
 			{
 				log_.write("[Agent], SRC " + 
 					socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
 					, Log::Level::INFO);
 				AgentHandler agentHandler_(readBuffer_, writeBuffer_, config_);
 				agentHandler_.handle();
-			} else if (config_.mode_ == RunMode::server)
+			} else if (config_.runMode() == RunMode::server)
 			{
 				log_.write("[Server], SRC " + 
 					socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
@@ -125,8 +125,8 @@ public:
 			acceptor_(
 									io_context, 
 									boost::asio::ip::tcp::endpoint(
-										boost::asio::ip::address::from_string(config.listenIp_), 
-										config.listenPort_
+										boost::asio::ip::address::from_string(config.listenIp()), 
+										config.listenPort()
 									)
 								)
 	{

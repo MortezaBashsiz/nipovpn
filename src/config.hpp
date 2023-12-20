@@ -17,7 +17,7 @@ enum RunMode
 * Class Config will contain all the configuration directives
 * This class is declared and initialized in main.cpp
 */
-class Config
+class Config : private Uncopyable
 {
 
 private:
@@ -50,13 +50,40 @@ private:
 		std::string userAgent;
 	};
 
+
+	/*
+	* RunMode is declared in general.hpp
+	*/
+	RunMode runMode_;
+
+	/*
+	* Configuration file path string
+	*/
+	std::string filePath_;
+
+	/*
+	* It contains the main yaml node of the config file
+	* For more information see Config default constructor and also in general.cpp function validateConfig
+	*/
+	const YAML::Node& configYaml_;
+
+	/*
+	* Objects for separation of configuration sections (log, agent, server)
+	* For more information see the private items
+	*/
+	const Log log_;
+	const Server server_;
+	const Agent agent_;
+	std::string listenIp_;
+	unsigned short listenPort_;
+
 public:
 	
 	/*
 	* Default constructor for Config. The main Config object is initialized here
 	*/
 	Config(const RunMode& mode, const std::string& filePath):
-		mode_(mode),
+		runMode_(mode),
 		filePath_(filePath),
 		configYaml_(YAML::LoadFile(filePath)),
 		log_
@@ -87,7 +114,7 @@ public:
 		listenIp_("127.0.0.1"),
 		listenPort_(0)
 	{
-		switch (mode_){
+		switch (runMode_){
 		case RunMode::server:
 			listenIp_ = server_.listenIp;
 			listenPort_ = server_.listenPort;
@@ -103,57 +130,71 @@ public:
 	* Copy constructor if you want to copy and initialize it
 	*/
 	Config(const Config& config):
-		log_(config.log_),
-		server_(config.server_),
-		agent_(config.agent_)
-	{}
+		log_(config.log()),
+		server_(config.server()),
+		agent_(config.agent()),
+		configYaml_(YAML::LoadFile(config.filePath()))
+	{
+		// FUCK(configYaml_["agent"]["token"].as<std::string>());
+	}
 
 	/*
 	* Default distructor
 	*/
 	~Config(){}
-	
+
 	/*
-	* Assignment operator=
+	* Functions to handle private members
 	*/
-	Config& operator=(const Config& config)
+	const Log& log() const
 	{
-		log_ = config.log_;
-		server_ = config.server_;
-		agent_ = config.agent_;
-		return *this;
+		return log_;
 	}
 
-	/*
-	* RunMode is declared in general.hpp
-	*/
-	RunMode mode_;
+	const Server& server() const
+	{
+		return server_;
+	}
 
-	/*
-	* Configuration file path string
-	*/
-	std::string filePath_;
+	const Agent& agent() const
+	{
+		return agent_;
+	}
 
-	/*
-	* It contains the main yaml node of the config file
-	* For more information see Config default constructor and also in general.cpp function validateConfig
-	*/
-	YAML::Node configYaml_;
+	const std::string& listenIp() const
+	{
+		return listenIp_;
+	}
 
-	/*
-	* Objects for separation of configuration sections (log, agent, server)
-	* For more information see the private items
-	*/
-	Log log_;
-	Server server_;
-	Agent agent_;
-	std::string listenIp_;
-	unsigned short listenPort_;
+	void listenIp(std::string ip)
+	{
+		listenIp_ = ip;
+	}
+
+	const unsigned short& listenPort() const
+	{
+		return listenPort_;
+	}
+
+	void listenPort(unsigned short port)
+	{
+		listenPort_ = port;
+	}
+
+	const RunMode& runMode() const
+	{
+		return runMode_;
+	}
+
+	const std::string& filePath() const
+	{
+		return filePath_;
+	}
 
 	const std::string modeToString()
 	{
 		std::string tmpStr("");
-		switch (mode_){
+		switch (runMode_){
 			case RunMode::server:
 				tmpStr = "server";
 				break;
