@@ -2,6 +2,7 @@
 #define REQUEST_HPP
 
 #include <boost/beast/http.hpp>
+#include <boost/lexical_cast.hpp>
 
 /*
 * This class is for handling request. When a request comes to TCPConnection(see tcp.hpp), It calls the 
@@ -193,6 +194,95 @@ public:
 			parsedTlsRequest_.type = TlsTypes::ApplicationData;
 		}
 	}
+
+
+	const std::string tlsTypeToString()
+	{
+		std::string result("");
+		switch (parsedTlsRequest_.type){
+			case TlsTypes::TLSHandshake:
+				result = "TLSHandshake";
+				break;
+			case TlsTypes::ChangeCipherSpec:
+				result = "ChangeCipherSpec";
+				break;
+			case TlsTypes::ApplicationData:
+				result = "ApplicationData";
+				break;
+		}
+		return result;
+	}
+
+	const std::string tlsStepToString()
+	{
+		std::string result("");
+		switch (parsedTlsRequest_.type){
+			case TlsSteps::ClientHello:
+				result = "ClientHello";
+				break;
+			case TlsSteps::ServerHello:
+				result = "ServerHello";
+				break;
+			case TlsSteps::ServerCertificate:
+				result = "ServerCertificate";
+				break;
+			case TlsSteps::ServerKeyExchange:
+				result = "ServerKeyExchange";
+				break;
+			case TlsSteps::ServerHelloDone:
+				result = "ServerHelloDone";
+				break;
+			case TlsSteps::ClientKeyExchange:
+				result = "ClientKeyExchange";
+				break;
+			case TlsSteps::ClientChangeCipherSpec:
+				result = "ClientChangeCipherSpec";
+				break;
+			case TlsSteps::ClientHandshakeFinished:
+				result = "ClientHandshakeFinished";
+				break;
+			case TlsSteps::ServerChangeCipherSpec:
+				result = "ServerChangeCipherSpec";
+				break;
+			case TlsSteps::ServerHandshakeFinished:
+				result = "ServerHandshakeFinished";
+				break;
+			case TlsSteps::ClientApplicationData:
+				result = "ClientApplicationData";
+				break;
+			case TlsSteps::ServerApplicationData:
+				result = "ServerApplicationData";
+				break;
+			case TlsSteps::ClientCloseNotify:
+				result = "ClientCloseNotify";
+				break;
+			
+		}
+		return result;
+	}
+
+	const std::string toString()
+	{
+		std::string tmpStr("");
+		if (httpType_ == Request::HttpType::HTTPS)
+		{
+			tmpStr = 	std::string("\n")
+								+ "TLS Type : " + tlsTypeToString() + "\n"
+								+ "TLS Step : " + tlsStepToString() + "\n"
+								+ "SNI : " + parsedTlsRequest_.sni + "\n"
+								+ "Body : " + parsedTlsRequest_.body + "\n";
+		} else 
+		{
+			tmpStr = 	std::string("\n")
+								+ "Method : " + boost::lexical_cast<std::string>(parsedHttpRequest_.method()) + "\n"
+								+ "Version : " + boost::lexical_cast<std::string>(parsedHttpRequest_.version()) + "\n"
+								+ "Target : " + boost::lexical_cast<std::string>(parsedHttpRequest_.target()) + "\n"
+								+ "User Agent : " + boost::lexical_cast<std::string>(parsedHttpRequest_["User-Agent"]) + "\n"
+								+ "Body Size : " + boost::lexical_cast<std::string>(parsedHttpRequest_.body().size()) + "\n";
+		}
+		return tmpStr;
+	}
+
 
 	HttpType httpType_ = HttpType::HTTPS;
 	boost::asio::streambuf &buffer_;

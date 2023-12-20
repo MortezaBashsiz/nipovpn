@@ -53,10 +53,16 @@ public:
 		{
 			if (config_.mode_ == RunMode::agent)
 			{
+				log_.write("[Agent], SRC " + 
+					socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
+					, Log::Level::INFO);
 				AgentHandler agentHandler_(readBuffer_, writeBuffer_, config_);
 				agentHandler_.handle();
 			} else if (config_.mode_ == RunMode::server)
 			{
+				log_.write("[Server], SRC " + 
+					socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
+					, Log::Level::INFO);
 				ServerHandler serverHandler_(readBuffer_, writeBuffer_, config_);
 				serverHandler_.handle();
 			}

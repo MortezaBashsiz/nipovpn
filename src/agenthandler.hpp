@@ -33,14 +33,14 @@ public:
 	{
 		Request request_(config_, readBuffer_);
 		request_.detectType();
+		log_.write("Request detail : "+request_.toString(), Log::Level::DEBUG);
 		if (request_.httpType_ == Request::HttpType::HTTPS)
 		{
-			FUCK("HTTPS");
-			FUCK(request_.parsedTlsRequest_.sni);
+			
 		}
 		else
 		{
-			FUCK("HTTP");
+			
 		}
 	}
 	
