@@ -150,10 +150,38 @@ const BoolStr validateConfig(int argc, char const *argv[])
 	return boolStr_;
 }
 
-std::string streambufToString(boost::asio::streambuf& buff)
+const std::string streambufToString(boost::asio::streambuf& buff)
 {
 	std::string result(boost::asio::buffers_begin(buff.data()), boost::asio::buffers_begin(buff.data()) + buff.size());
 	return result;
+}
+
+const unsigned short hexToInt(const std::string& hexString)
+{
+	std::stringstream hexStr;
+	unsigned short result;
+	hexStr << std::hex << hexString;
+	hexStr >> result;
+	return result;
+}
+
+const std::string hexToASCII(const std::string& hex)
+{
+	std::string ascii = "";
+	for (size_t i = 0; i < hex.length(); i += 2){
+		std::string part = hex.substr(i, 2);
+		char ch = stoul(part, nullptr, 16);
+		ascii += ch;
+	}
+	return ascii;
+}
+
+const unsigned char charToHex(char& c)
+{
+    if ('0' <= c && c <= '9') return c - '0';
+    if ('A' <= c && c <= 'F') return c - 'A' + 10;
+    if ('a' <= c && c <= 'f') return c - 'a' + 10;
+    std::abort();
 }
 
 #endif /* GENERAL_HPP */

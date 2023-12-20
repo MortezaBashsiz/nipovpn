@@ -7,13 +7,7 @@
 #include <iomanip>
 
 class Log : private Uncopyable
-{
-
-private:
-		
-	const Config& config_;
-	bool logFileClosed;
-	
+{	
 public:
 
 	enum Level
@@ -50,16 +44,27 @@ public:
 	}
 
 	/*
+	* Copy constructor if you want to copy and initialize it
+	*/
+	Log(const Log& log):
+		config_(log.config_),
+		logFileClosed(log.logFileClosed),
+		level_(log.level_)
+	{}
+
+	/*
 	* Default distructor
 	*/
 	~Log(){}
 	
+	const Config& config_;
+	bool logFileClosed;
 	Level level_ = Level::INFO;
 
 	/*
 	*	This fucntion returns string of Log::Level
 	*/
-	const std::string levelToString(const Level level)
+	const std::string levelToString(const Level& level)
 	{
 		std::string result("");
 		switch (level){
@@ -79,7 +84,7 @@ public:
 	/*
 	*	This function writes message in to the log file
 	*/
-	void write(const std::string message, const Level level)
+	void write(const std::string& message, const Level& level)
 	{
 		std::ofstream logFile_(config_.log_.file, logFile_.out | logFile_.app);
 		if (level <= level_ || level == Level::ERROR){

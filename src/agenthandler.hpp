@@ -1,6 +1,9 @@
 #ifndef AGENTHADLER_HPP
 #define AGENTHADLER_HPP
 
+#include "request.hpp"
+#include "response.hpp"
+
 class AgentHandler : private Uncopyable
 {
 private:
@@ -21,9 +24,17 @@ public:
 
 	void handle()
 	{
-		std::iostream os(&writeBuffer_);
-		std::string message("222222");
-		os << message;
+		Request request_(config_, readBuffer_);
+		request_.detectType();
+		if (request_.httpType_ == Request::HttpType::HTTPS)
+		{
+			FUCK("HTTPS");
+			FUCK(request_.parsedTlsRequest_.sni);
+		}
+		else
+		{
+			FUCK("HTTP");
+		}
 	}
 	
 };

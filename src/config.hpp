@@ -55,7 +55,7 @@ public:
 	/*
 	* Default constructor for Config. The main Config object is initialized here
 	*/
-	Config(const RunMode mode, const std::string filePath):
+	Config(const RunMode& mode, const std::string& filePath):
 		mode_(mode),
 		filePath_(filePath),
 		configYaml_(YAML::LoadFile(filePath)),
