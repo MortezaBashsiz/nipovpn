@@ -9,7 +9,7 @@ private:
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 
 public:
-	ServerHandler(boost::asio::streambuf& readBuffer, boost::asio::streambuf& writeBuffer, const Config& config):
+	explicit ServerHandler(boost::asio::streambuf& readBuffer, boost::asio::streambuf& writeBuffer, const Config& config):
 	config_(config),
 	log_(config),
 	readBuffer_(readBuffer),

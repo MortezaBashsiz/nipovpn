@@ -96,7 +96,7 @@ public:
 	}
 
 private:
-	TCPConnection(boost::asio::io_context& io_context, const Config& config)
+	explicit TCPConnection(boost::asio::io_context& io_context, const Config& config)
 		: socket_(io_context),
 			config_(config),
 			log_(config)
@@ -118,7 +118,7 @@ private:
 class TCPServer : private Uncopyable
 {
 public:
-	TCPServer(boost::asio::io_context& io_context, const Config& config)
+	explicit TCPServer(boost::asio::io_context& io_context, const Config& config)
 		: config_(config),
 			log_(config),
 			io_context_(io_context),

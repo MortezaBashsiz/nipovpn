@@ -82,7 +82,7 @@ public:
 	/*
 	* Default constructor for Config. The main Config object is initialized here
 	*/
-	Config(const RunMode& mode, const std::string& filePath):
+	explicit Config(const RunMode& mode, const std::string& filePath):
 		runMode_(mode),
 		filePath_(filePath),
 		configYaml_(YAML::LoadFile(filePath)),
@@ -129,7 +129,7 @@ public:
 	/*
 	* Copy constructor if you want to copy and initialize it
 	*/
-	Config(const Config& config):
+	explicit Config(const Config& config):
 		log_(config.log()),
 		server_(config.server()),
 		agent_(config.agent()),

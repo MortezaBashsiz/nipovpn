@@ -14,7 +14,7 @@ private:
 	Log log_;
 
 public:
-	Runner(boost::asio::io_context& io_context, Config& config):
+	explicit Runner(boost::asio::io_context& io_context, Config& config):
 		config_(config),
 		io_context_(io_context),
 		tcpServer_(io_context, config),

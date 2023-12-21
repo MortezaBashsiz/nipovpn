@@ -62,7 +62,7 @@ public:
 	/*
 	* default constructor
 	*/
-	Request(const Config& config, boost::asio::streambuf& buffer):
+	explicit Request(const Config& config, boost::asio::streambuf& buffer):
 		config_(config),
 		log_(config),
 		buffer_(buffer),
@@ -82,7 +82,7 @@ public:
 	/*
 	* Copy constructor if you want to copy and initialize it
 	*/
-	Request(const Request& request):
+	explicit Request(const Request& request):
 		config_(request.config_),
 		log_(request.config_),
 		buffer_(request.buffer_),
