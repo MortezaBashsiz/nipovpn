@@ -1,11 +1,4 @@
-#include <iostream>
-#include <boost/asio.hpp>
-
-#include "general.hpp"
-#include "config.hpp"
-#include "log.hpp"
-#include "tcp.hpp"
-#include "runner.hpp"
+#include "main.hpp"
 
 int main(int argc, char const *argv[])
 {

@@ -1,11 +1,6 @@
 #ifndef LOG_HPP
 #define LOG_HPP
 
-#include <fstream>
-#include <iostream>
-#include <ctime>
-#include <iomanip>
-
 class Log : private Uncopyable
 {	
 public:

@@ -1,9 +1,6 @@
 #ifndef REQUEST_HPP
 #define REQUEST_HPP
 
-#include <boost/beast/http.hpp>
-#include <boost/lexical_cast.hpp>
-
 /*
 * This class is for handling request. When a request comes to TCPConnection(see tcp.hpp), It calls the 
 * 	AgentHanler::handle function(see agenthandler.hpp) and object from this class will be created in AgentHanler::handle function

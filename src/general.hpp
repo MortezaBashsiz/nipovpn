@@ -1,11 +1,6 @@
 #ifndef GENERAL_HPP
 #define GENERAL_HPP
 
-#include <iostream>
-#include <fstream>
-#include <yaml-cpp/yaml.h>
-
-
 /*
 * General class to make the class uncopyable
 */
