@@ -11,10 +11,6 @@
 */
 class Request : private Uncopyable
 {
-private:
-	const Config& config_;
-	Log log_;
-
 public:
 
 	/*
@@ -77,7 +73,8 @@ public:
 			"",
 			TlsTypes::TLSHandshake,
 			TlsSteps::ClientHello
-		}
+		},
+		httpType_(HttpType::HTTPS)
 	{
 
 	}
@@ -97,6 +94,19 @@ public:
 	{}
 
 	/*
+	* Functions to handle private members
+	*/
+	const HttpType& httpType() const
+	{
+		return httpType_;
+	}
+
+	void httpType(const HttpType& httpType)
+	{
+		httpType_ = httpType;
+	}
+
+	/*
 	* This function will detect the type of request (HTTP|HTTPS)
 	* It checks the first byte of the body, in case of 16, 14, 17 it is HTTPS and else it may be HTTP
 	*/
@@ -108,12 +118,12 @@ public:
 		tmpStr = requestStr.substr(pos, 2);
 		if (tmpStr == "16" || tmpStr == "14" || tmpStr == "17")
 		{
-			httpType_ = HttpType::HTTPS;
+			httpType(HttpType::HTTPS);
 			parseTls();
 		}
 		else
 		{
-			httpType_ = HttpType::HTTP;
+			httpType(HttpType::HTTP);
 			parseHttp();
 		}
 	}
@@ -195,8 +205,10 @@ public:
 		}
 	}
 
-
-	const std::string tlsTypeToString()
+	/*
+	* This function returns the string of parsedTlsRequest_.type
+	*/
+	const std::string tlsTypeToString() const
 	{
 		std::string result("");
 		switch (parsedTlsRequest_.type){
@@ -213,10 +225,13 @@ public:
 		return result;
 	}
 
-	const std::string tlsStepToString()
+	/*
+	* This function returns the string of parsedTlsRequest_.step
+	*/
+	const std::string tlsStepToString() const
 	{
 		std::string result("");
-		switch (parsedTlsRequest_.type){
+		switch (parsedTlsRequest_.step){
 			case TlsSteps::ClientHello:
 				result = "ClientHello";
 				break;
@@ -256,15 +271,17 @@ public:
 			case TlsSteps::ClientCloseNotify:
 				result = "ClientCloseNotify";
 				break;
-			
 		}
 		return result;
 	}
 
-	const std::string toString()
+	/*
+	* This function returns string of request based on the HttpType (HTTP|HTTPS)
+	*/
+	const std::string toString() const
 	{
 		std::string tmpStr("");
-		if (httpType_ == Request::HttpType::HTTPS)
+		if (httpType() == Request::HttpType::HTTPS)
 		{
 			tmpStr = 	std::string("\n")
 								+ "TLS Type : " + tlsTypeToString() + "\n"
@@ -283,11 +300,14 @@ public:
 		return tmpStr;
 	}
 
-
-	HttpType httpType_ = HttpType::HTTPS;
+private:
+	const Config& config_;
+	Log log_;
+	HttpType httpType_;
 	boost::asio::streambuf &buffer_;
 	boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest_;
 	TlsRequest parsedTlsRequest_;
+
 };
 
 #endif /* REQUEST_HPP */
