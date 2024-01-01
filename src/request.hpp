@@ -151,7 +151,6 @@ public:
 	{
 		parsedTlsRequest_.body = streambufToString(buffer_);
 		std::string tmpStr;
-		unsigned short tmpPos;
 		unsigned short pos=0;
 		tmpStr = parsedTlsRequest_.body.substr(pos, 2);
 		if (tmpStr == "16"){
@@ -159,6 +158,7 @@ public:
 			pos=10;
 			tmpStr = parsedTlsRequest_.body.substr(pos, 2);
 			if (tmpStr == "01"){
+				unsigned short tmpPos(0);
 				parsedTlsRequest_.step = TlsSteps::ClientHello;		
 				pos = 86;
 				
