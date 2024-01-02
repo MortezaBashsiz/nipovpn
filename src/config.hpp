@@ -52,7 +52,7 @@ private:
 	/*
 	* RunMode is declared in general.hpp
 	*/
-	RunMode runMode_;
+	const RunMode& runMode_;
 
 	/*
 	* Configuration file path string
@@ -128,13 +128,12 @@ public:
 	* Copy constructor if you want to copy and initialize it
 	*/
 	explicit Config(const Config& config):
+		runMode_(config.runMode()),
 		log_(config.log()),
 		server_(config.server()),
 		agent_(config.agent()),
 		configYaml_(YAML::LoadFile(config.filePath()))
-	{
-		// FUCK(configYaml_["agent"]["token"].as<std::string>());
-	}
+	{	}
 
 	/*
 	* Default distructor
@@ -191,16 +190,16 @@ public:
 
 	const std::string modeToString()
 	{
-		std::string tmpStr("");
 		switch (runMode_){
 			case RunMode::server:
-				tmpStr = "server";
+				return "server";
 				break;
 			case RunMode::agent:
-				tmpStr = "agent";
+				return "agent";
 				break;
+			default:
+				return "UNKNOWN MODE";
 			}
-		return tmpStr;
 	}
 
 	const std::string toString(){
