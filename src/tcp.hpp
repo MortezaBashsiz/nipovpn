@@ -44,18 +44,15 @@ public:
 	{
 		if (!error || error == boost::asio::error::eof)
 		{
-			if (config_.runMode() == RunMode::agent)
-			{
-				log_.write("[Agent], SRC " + 
+			log_.write("["+config_.modeToString()+"], SRC " + 
 					socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
 					, Log::Level::INFO);
+			if (config_.runMode() == RunMode::agent)
+			{
 				AgentHandler agentHandler_(readBuffer_, writeBuffer_, config_);
 				agentHandler_.handle();
 			} else if (config_.runMode() == RunMode::server)
 			{
-				log_.write("[Server], SRC " + 
-					socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
-					, Log::Level::INFO);
 				ServerHandler serverHandler_(readBuffer_, writeBuffer_, config_);
 				serverHandler_.handle();
 			}
@@ -98,7 +95,7 @@ private:
 
 	boost::asio::ip::tcp::socket socket_;
 	boost::asio::streambuf readBuffer_, writeBuffer_;
-	const Config& config_;
+	Config config_;
 	Log log_;
 };
 
