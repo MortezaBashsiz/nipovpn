@@ -14,8 +14,9 @@ public:
 	/*
 	* Default constructor for Config. The main Config object is initialized here
 	*/
-	explicit Log(const Config& config):
-	config_(config)
+	explicit Log(const Config& config)
+		:
+			config_(config)
 	{
 		std::ofstream logFile_(config_.log().file, logFile_.out | logFile_.app);
 		/*
@@ -40,10 +41,11 @@ public:
 	/*
 	* Copy constructor if you want to copy and initialize it
 	*/
-	explicit Log(const Log& log):
-		config_(log.config_),
-		logFileClosed(log.logFileClosed),
-		level_(log.level_)
+	explicit Log(const Log& log)
+		:
+			config_(log.config_),
+			logFileClosed(log.logFileClosed),
+			level_(log.level_)
 	{}
 
 	/*

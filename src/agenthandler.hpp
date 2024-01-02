@@ -15,11 +15,14 @@ private:
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 
 public:
-	AgentHandler(boost::asio::streambuf& readBuffer, boost::asio::streambuf& writeBuffer, const Config& config):
-		config_(config),
-		log_(config),
-		readBuffer_(readBuffer),
-		writeBuffer_(writeBuffer)
+	AgentHandler(boost::asio::streambuf& readBuffer, 
+		boost::asio::streambuf& writeBuffer, 
+		const Config& config)
+		:
+			config_(config),
+			log_(config),
+			readBuffer_(readBuffer),
+			writeBuffer_(writeBuffer)
 	{	}
 
 	~AgentHandler()

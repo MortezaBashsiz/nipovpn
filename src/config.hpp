@@ -80,37 +80,39 @@ public:
 	/*
 	* Default constructor for Config. The main Config object is initialized here
 	*/
-	explicit Config(const RunMode& mode, const std::string& filePath):
-		runMode_(mode),
-		filePath_(filePath),
-		configYaml_(YAML::LoadFile(filePath)),
-		log_
-		{
-			configYaml_["log"]["logLevel"].as<std::string>(), 
-			configYaml_["log"]["logFile"].as<std::string>()
-		},
-		server_
-		{
-			configYaml_["server"]["listenIp"].as<std::string>(),
-			configYaml_["server"]["listenPort"].as<unsigned short>(),
-			configYaml_["server"]["webDir"].as<std::string>(),
-			configYaml_["server"]["sslKey"].as<std::string>(),
-			configYaml_["server"]["sslCert"].as<std::string>()
-		},
-		agent_
-		{
-			configYaml_["agent"]["listenIp"].as<std::string>(),
-			configYaml_["agent"]["listenPort"].as<unsigned short>(),
-			configYaml_["agent"]["serverIp"].as<std::string>(),
-			configYaml_["agent"]["serverPort"].as<unsigned short>(),
-			configYaml_["agent"]["encryption"].as<std::string>(),
-			configYaml_["agent"]["token"].as<std::string>(),
-			configYaml_["agent"]["endPoint"].as<std::string>(),
-			configYaml_["agent"]["httpVersion"].as<std::string>(),
-			configYaml_["agent"]["userAgent"].as<std::string>()
-		},
-		listenIp_("127.0.0.1"),
-		listenPort_(0)
+	explicit Config(const RunMode& mode, 
+		const std::string& filePath)
+		:
+			runMode_(mode),
+			filePath_(filePath),
+			configYaml_(YAML::LoadFile(filePath)),
+			log_
+			{
+				configYaml_["log"]["logLevel"].as<std::string>(), 
+				configYaml_["log"]["logFile"].as<std::string>()
+			},
+			server_
+			{
+				configYaml_["server"]["listenIp"].as<std::string>(),
+				configYaml_["server"]["listenPort"].as<unsigned short>(),
+				configYaml_["server"]["webDir"].as<std::string>(),
+				configYaml_["server"]["sslKey"].as<std::string>(),
+				configYaml_["server"]["sslCert"].as<std::string>()
+			},
+			agent_
+			{
+				configYaml_["agent"]["listenIp"].as<std::string>(),
+				configYaml_["agent"]["listenPort"].as<unsigned short>(),
+				configYaml_["agent"]["serverIp"].as<std::string>(),
+				configYaml_["agent"]["serverPort"].as<unsigned short>(),
+				configYaml_["agent"]["encryption"].as<std::string>(),
+				configYaml_["agent"]["token"].as<std::string>(),
+				configYaml_["agent"]["endPoint"].as<std::string>(),
+				configYaml_["agent"]["httpVersion"].as<std::string>(),
+				configYaml_["agent"]["userAgent"].as<std::string>()
+			},
+			listenIp_("127.0.0.1"),
+			listenPort_(0)
 	{
 		switch (runMode_){
 		case RunMode::server:
@@ -127,12 +129,13 @@ public:
 	/*
 	* Copy constructor if you want to copy and initialize it
 	*/
-	explicit Config(const Config& config):
-		runMode_(config.runMode()),
-		log_(config.log()),
-		server_(config.server()),
-		agent_(config.agent()),
-		configYaml_(YAML::LoadFile(config.filePath()))
+	explicit Config(const Config& config)
+		:
+			runMode_(config.runMode()),
+			log_(config.log()),
+			server_(config.server()),
+			agent_(config.agent()),
+			configYaml_(YAML::LoadFile(config.filePath()))
 	{	}
 
 	/*

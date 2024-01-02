@@ -59,36 +59,36 @@ public:
 	/*
 	* default constructor
 	*/
-	explicit Request(const Config& config, boost::asio::streambuf& buffer):
-		config_(config),
-		log_(config),
-		buffer_(buffer),
-		parsedHttpRequest_(),
-		parsedTlsRequest_ 
-		{
-			"",
-			"",
-			TlsTypes::TLSHandshake,
-			TlsSteps::ClientHello
-		},
-		httpType_(HttpType::HTTPS)
-	{
-
-	}
+	explicit Request(const Config& config, boost::asio::streambuf& buffer)
+		:
+			config_(config),
+			log_(config),
+			buffer_(buffer),
+			parsedHttpRequest_(),
+			parsedTlsRequest_ 
+			{
+				"",
+				"",
+				TlsTypes::TLSHandshake,
+				TlsSteps::ClientHello
+			},
+			httpType_(HttpType::HTTPS)
+	{	}
 
 	/*
 	* Copy constructor if you want to copy and initialize it
 	*/
-	explicit Request(const Request& request):
-		config_(request.config_),
-		log_(request.config_),
-		buffer_(request.buffer_),
-		parsedHttpRequest_(request.parsedHttpRequest_),
-		parsedTlsRequest_(request.parsedTlsRequest_)
-	{}
+	explicit Request(const Request& request)
+		:
+			config_(request.config_),
+			log_(request.config_),
+			buffer_(request.buffer_),
+			parsedHttpRequest_(request.parsedHttpRequest_),
+			parsedTlsRequest_(request.parsedTlsRequest_)
+	{ }
 
 	~Request()
-	{}
+	{ }
 
 	/*
 	* Functions to handle private members

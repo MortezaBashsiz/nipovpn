@@ -14,13 +14,14 @@ private:
 	Log log_;
 
 public:
-	explicit Runner(boost::asio::io_context& io_context, Config& config):
-		config_(config),
-		io_context_(io_context),
-		tcpServer_(io_context, config),
-		log_(config)
-	{
-	}
+	explicit Runner(boost::asio::io_context& io_context, 
+		Config& config)
+		:
+			config_(config),
+			io_context_(io_context),
+			tcpServer_(io_context, config),
+			log_(config)
+	{	}
 
 	~Runner()
 	{}
