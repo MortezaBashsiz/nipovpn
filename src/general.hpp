@@ -151,6 +151,15 @@ const std::string streambufToString(boost::asio::streambuf& buff)
 	return result;
 }
 
+
+void copyStreamBuff(boost::asio::streambuf& source, boost::asio::streambuf& target)
+{
+	std::size_t bytes_copied = buffer_copy(
+  target.prepare(source.size()), 
+  source.data());
+	target.commit(bytes_copied);
+}
+
 const unsigned short hexToInt(const std::string& hexString)
 {
 	std::stringstream hexStr;

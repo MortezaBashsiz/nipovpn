@@ -24,9 +24,14 @@ public:
 		return socket_;
 	}
 
-	void start()
+	void writeBuffer(boost::asio::streambuf& buffer)
 	{
-		FUCK("TCPConnection start");
+		copyStreamBuff(buffer, writeBuffer_);
+	}
+
+	const boost::asio::streambuf& readBuffer() const
+	{
+		return readBuffer_;
 	}
 
 	void listen()
@@ -97,8 +102,7 @@ private:
 		: socket_(io_context),
 			config_(config),
 			log_(config)
-	{
-	}
+	{ }
 
 	boost::asio::ip::tcp::socket socket_;
 	boost::asio::streambuf readBuffer_, writeBuffer_;
@@ -143,7 +147,12 @@ private:
 	{
 		if (!error)
 		{
-			newConnection->start();
+			boost::asio::streambuf writeBuffer_;
+			std::iostream os(&writeBuffer_);
+			std::string message("AAAAAAAAAAAAAAAAAAAAAAAAA");
+			os << message;
+			newConnection->writeBuffer(writeBuffer_);
+			newConnection->doWrite();
 		} else
 		{
 			log_.write(" [TCPClient handleConnect] " + error.what(), Log::Level::ERROR);
@@ -168,7 +177,6 @@ public:
 		: config_(config),
 			log_(config),
 			io_context_(io_context),
-			// resolver_(io_context),
 			acceptor_(
 				io_context,
 				boost::asio::ip::tcp::endpoint(

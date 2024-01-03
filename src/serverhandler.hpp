@@ -25,7 +25,7 @@ public:
 	void handle()
 	{
 		std::iostream os(&writeBuffer_);
-		std::string message("222222");
+		std::string message("OK");
 		os << message;
 	}
 
