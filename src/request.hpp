@@ -2,7 +2,7 @@
 #define REQUEST_HPP
 
 /*
-* This class is for handling request. When a request comes to TCPConnection(see tcp.hpp), It calls the 
+* This class is for handling request. When a request comes to TCPConnection(see tcp.hpp), It calls the
 * 	AgentHanler::handle function(see agenthandler.hpp) and object from this class will be created in AgentHanler::handle function
 * 	to do all operations related to the request
 */
@@ -65,7 +65,7 @@ public:
 			log_(config),
 			buffer_(buffer),
 			parsedHttpRequest_(),
-			parsedTlsRequest_ 
+			parsedTlsRequest_
 			{
 				"",
 				"",
@@ -159,26 +159,26 @@ public:
 			tmpStr = parsedTlsRequest_.body.substr(pos, 2);
 			if (tmpStr == "01"){
 				unsigned short tmpPos(0);
-				parsedTlsRequest_.step = TlsSteps::ClientHello;		
+				parsedTlsRequest_.step = TlsSteps::ClientHello;
 				pos = 86;
-				
+
 				tmpStr = parsedTlsRequest_.body.substr(pos, 2);
 				tmpPos = hexToInt(tmpStr);
 				pos += 2;
 
 				tmpStr = parsedTlsRequest_.body.substr(pos, tmpPos);
 				pos = pos + (tmpPos * 2);
-				
+
 				tmpStr = parsedTlsRequest_.body.substr(pos, 4);
 				tmpPos = hexToInt(tmpStr);
 				pos += 4;
 				pos = pos + (tmpPos * 2);
-			
+
 				tmpStr = parsedTlsRequest_.body.substr(pos, 2);
 				tmpPos = hexToInt(tmpStr);
 				pos += 2;
 				pos = pos + (tmpPos * 2);
-					
+
 				tmpStr = parsedTlsRequest_.body.substr(pos, 4);
 				tmpPos = hexToInt(tmpStr);
 				pos += 4;
@@ -285,7 +285,7 @@ public:
 								+ "TLS Step : " + tlsStepToString() + "\n"
 								+ "SNI : " + parsedTlsRequest_.sni + "\n"
 								+ "Body : " + parsedTlsRequest_.body + "\n";
-		} else 
+		} else
 		{
 			tmpStr = 	std::string("\n")
 								+ "Method : " + boost::lexical_cast<std::string>(parsedHttpRequest_.method()) + "\n"

@@ -2,7 +2,7 @@
 #define LOG_HPP
 
 class Log : private Uncopyable
-{	
+{
 public:
 	enum Level
 	{
@@ -105,7 +105,7 @@ public:
 				logFile_ << line;
 				std::cout << line;
 				logFile_.close();
-			} else 
+			} else
 			{
 				std::cerr << "Error openning log file : " << config_.log().file  << " make sure the directory and file exists " << "\n";
 			}
@@ -116,7 +116,7 @@ private:
 	const Config& config_;
 	bool logFileClosed;
 	Level level_ = Level::INFO;
-	
+
 };
 
 #endif /* LOG_HPP */

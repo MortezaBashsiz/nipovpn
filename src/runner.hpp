@@ -14,7 +14,7 @@ private:
 	Log log_;
 
 public:
-	explicit Runner(boost::asio::io_context& io_context, 
+	explicit Runner(boost::asio::io_context& io_context,
 		Config& config)
 		:
 			config_(config),
@@ -43,7 +43,7 @@ public:
 			std::cerr << error.what() << std::endl;
 		}
 	}
-	
+
 };
 
 #endif /* RUNNER_HPP */

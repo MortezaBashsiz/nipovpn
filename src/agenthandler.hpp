@@ -15,8 +15,8 @@ private:
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 
 public:
-	AgentHandler(boost::asio::streambuf& readBuffer, 
-		boost::asio::streambuf& writeBuffer, 
+	AgentHandler(boost::asio::streambuf& readBuffer,
+		boost::asio::streambuf& writeBuffer,
 		const Config& config)
 		:
 			config_(config),
@@ -39,14 +39,14 @@ public:
 		log_.write("Request detail : "+request_.toString(), Log::Level::DEBUG);
 		if (request_.httpType() == Request::HttpType::HTTPS)
 		{
-			
+
 		}
 		else
 		{
-			
+
 		}
 	}
-	
+
 };
 
 #endif /* AGENTHADLER_HPP */

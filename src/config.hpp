@@ -9,7 +9,7 @@ enum RunMode
 {
 	server,
 	agent
-}; 
+};
 
 /*
 * Class Config will contain all the configuration directives
@@ -25,7 +25,7 @@ private:
 		std::string level;
 		std::string file;
 	};
-	
+
 	struct Server
 	{
 		std::string listenIp;
@@ -76,11 +76,11 @@ private:
 	unsigned short listenPort_;
 
 public:
-	
+
 	/*
 	* Default constructor for Config. The main Config object is initialized here
 	*/
-	explicit Config(const RunMode& mode, 
+	explicit Config(const RunMode& mode,
 		const std::string& filePath)
 		:
 			runMode_(mode),
@@ -88,7 +88,7 @@ public:
 			configYaml_(YAML::LoadFile(filePath)),
 			log_
 			{
-				configYaml_["log"]["logLevel"].as<std::string>(), 
+				configYaml_["log"]["logLevel"].as<std::string>(),
 				configYaml_["log"]["logFile"].as<std::string>()
 			},
 			server_
@@ -227,7 +227,7 @@ public:
 		+ "		httpVersion: " + agent_.httpVersion + "\n"
 		+ "		userAgent: " + agent_.userAgent + "\n";
 	}
-	
+
 };
 
 #endif /* CONFIG_HPP */

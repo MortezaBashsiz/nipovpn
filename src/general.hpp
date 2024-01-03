@@ -77,7 +77,7 @@ const BoolStr validateConfig(int argc, char const *argv[])
 	if (! fileExists(argv[2]))
 	{
 		boolStr_.message = std::string("Specified config file ") + std::string(argv[2]) + " does not exists\n";
-		return boolStr_;	
+		return boolStr_;
 	}
 
 	/*
@@ -122,7 +122,7 @@ const BoolStr validateConfig(int argc, char const *argv[])
 		boolStr_.message = std::string("Erro on parsing config file. something is wrong in block 'server' : ") + e.what() + "\n";
 		return boolStr_;
 	}
-	
+
 	try
 	{
 		tmpStr = configYaml_["agent"]["listenIp"].as<std::string>();

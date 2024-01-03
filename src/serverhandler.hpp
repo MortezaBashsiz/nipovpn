@@ -9,8 +9,8 @@ private:
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 
 public:
-	explicit ServerHandler(boost::asio::streambuf& readBuffer, 
-		boost::asio::streambuf& writeBuffer, 
+	explicit ServerHandler(boost::asio::streambuf& readBuffer,
+		boost::asio::streambuf& writeBuffer,
 		const Config& config)
 		:
 			config_(config),
@@ -28,7 +28,7 @@ public:
 		std::string message("222222");
 		os << message;
 	}
-	
+
 };
 
 #endif /* SERVERHADLER_HPP */
