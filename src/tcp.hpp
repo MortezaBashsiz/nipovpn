@@ -58,6 +58,7 @@ public:
 			log_.write("["+config_.modeToString()+"], SRC " +
 					socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
 					, Log::Level::INFO);
+			log_.write(" [TCPConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
 			if (config_.runMode() == RunMode::agent)
 			{
 				AgentHandler agentHandler_(readBuffer_, writeBuffer_, config_);
@@ -71,7 +72,6 @@ public:
 		{
 			log_.write(" [handleRead] " + error.what(), Log::Level::ERROR);
 		}
-		doWrite();
 	}
 
 	void doWrite()
@@ -90,11 +90,11 @@ public:
 	{
 		if (!error || error == boost::asio::error::broken_pipe)
 		{
+			log_.write(" [TCPConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) , Log::Level::DEBUG);
 		} else
 		{
-			log_.write(" [handleWrite] " + error.what(), Log::Level::ERROR);
+			log_.write(" [TCPConnection handleWrite] " + error.what(), Log::Level::ERROR);
 		}
-		doRead();
 	}
 
 private:
@@ -106,7 +106,7 @@ private:
 
 	boost::asio::ip::tcp::socket socket_;
 	boost::asio::streambuf readBuffer_, writeBuffer_;
-	Config config_;
+	const Config& config_;
 	Log log_;
 };
 
@@ -122,17 +122,15 @@ public:
 			log_(config),
 			io_context_(io_context),
 			resolver_(io_context)
-	{
-		connect();
-	}
+	{	}
 
-private:
 	void connect()
 	{
 		boost::asio::ip::tcp::resolver::results_type endpoint(resolver_.resolve(
 					config_.agent().serverIp.c_str(),
 					std::to_string(config_.agent().serverPort)
-				));
+			));
+
 		TCPConnection::pointer newConnection =
 			TCPConnection::create(io_context_, config_);
 
@@ -142,18 +140,17 @@ private:
 					boost::asio::placeholders::error));
 	}
 
+private:
+
 	void handleConnect(TCPConnection::pointer newConnection,
 		const boost::system::error_code& error)
 	{
 		if (!error)
 		{
-			boost::asio::streambuf writeBuffer_;
-			std::iostream os(&writeBuffer_);
-			std::string message("AAAAAAAAAAAAAAAAAAAAAAAAA");
-			os << message;
-			newConnection->writeBuffer(writeBuffer_);
-			newConnection->doWrite();
-			newConnection->doRead();
+			log_.write(" [TCPClient handleConnect] [DST]" + 
+				newConnection->socket().remote_endpoint().address().to_string() +":"+ 
+				std::to_string(newConnection->socket().remote_endpoint().port())+" "
+					, Log::Level::DEBUG);
 		} else
 		{
 			log_.write(" [TCPClient handleConnect] " + error.what(), Log::Level::ERROR);
@@ -208,6 +205,7 @@ private:
 			if (config_.runMode() == RunMode::agent)
 			{
 				TCPClient client_(io_context_, config_);
+				client_.connect();
 			}
 		}
 		startAccept();

@@ -17,7 +17,6 @@ enum RunMode
 */
 class Config : private Uncopyable
 {
-
 private:
 
 	struct Log
@@ -205,7 +204,7 @@ public:
 		}
 	}
 
-	const std::string toString(){
+	const std::string toString() const{
 		return std::string("\nConfig :\n")
 		+ "	Log :\n"
 		+ "		logLevel: " + log_.level + "\n"

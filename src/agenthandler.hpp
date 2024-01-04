@@ -9,11 +9,6 @@
 */
 class AgentHandler : private Uncopyable
 {
-private:
-	const Config& config_;
-	Log log_;
-	boost::asio::streambuf &readBuffer_, &writeBuffer_;
-
 public:
 	AgentHandler(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
@@ -47,6 +42,10 @@ public:
 		}
 	}
 
+private:
+	const Config& config_;
+	Log log_;
+	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 };
 
 #endif /* AGENTHADLER_HPP */
