@@ -207,19 +207,19 @@ public:
 	*/
 	const std::string tlsTypeToString() const
 	{
-		std::string result("");
 		switch (parsedTlsRequest_.type){
 			case TlsTypes::TLSHandshake:
-				result = "TLSHandshake";
+				return "TLSHandshake";
 				break;
 			case TlsTypes::ChangeCipherSpec:
-				result = "ChangeCipherSpec";
+				return "ChangeCipherSpec";
 				break;
 			case TlsTypes::ApplicationData:
-				result = "ApplicationData";
+				return "ApplicationData";
 				break;
+			default:
+				return "UNKNOWN TLSTYPE";
 		}
-		return result;
 	}
 
 	/*
@@ -227,49 +227,49 @@ public:
 	*/
 	const std::string tlsStepToString() const
 	{
-		std::string result("");
 		switch (parsedTlsRequest_.step){
 			case TlsSteps::ClientHello:
-				result = "ClientHello";
+				return "ClientHello";
 				break;
 			case TlsSteps::ServerHello:
-				result = "ServerHello";
+				return "ServerHello";
 				break;
 			case TlsSteps::ServerCertificate:
-				result = "ServerCertificate";
+				return "ServerCertificate";
 				break;
 			case TlsSteps::ServerKeyExchange:
-				result = "ServerKeyExchange";
+				return "ServerKeyExchange";
 				break;
 			case TlsSteps::ServerHelloDone:
-				result = "ServerHelloDone";
+				return "ServerHelloDone";
 				break;
 			case TlsSteps::ClientKeyExchange:
-				result = "ClientKeyExchange";
+				return "ClientKeyExchange";
 				break;
 			case TlsSteps::ClientChangeCipherSpec:
-				result = "ClientChangeCipherSpec";
+				return "ClientChangeCipherSpec";
 				break;
 			case TlsSteps::ClientHandshakeFinished:
-				result = "ClientHandshakeFinished";
+				return "ClientHandshakeFinished";
 				break;
 			case TlsSteps::ServerChangeCipherSpec:
-				result = "ServerChangeCipherSpec";
+				return "ServerChangeCipherSpec";
 				break;
 			case TlsSteps::ServerHandshakeFinished:
-				result = "ServerHandshakeFinished";
+				return "ServerHandshakeFinished";
 				break;
 			case TlsSteps::ClientApplicationData:
-				result = "ClientApplicationData";
+				return "ClientApplicationData";
 				break;
 			case TlsSteps::ServerApplicationData:
-				result = "ServerApplicationData";
+				return "ServerApplicationData";
 				break;
 			case TlsSteps::ClientCloseNotify:
-				result = "ClientCloseNotify";
+				return "ClientCloseNotify";
 				break;
+			default:
+				return "UNKNOWN STEP";
 		}
-		return result;
 	}
 
 	/*
@@ -277,24 +277,25 @@ public:
 	*/
 	const std::string toString() const
 	{
-		std::string tmpStr("");
-		if (httpType() == Request::HttpType::HTTPS)
-		{
-			tmpStr = 	std::string("\n")
+		switch (httpType()){
+			case Request::HttpType::HTTPS:
+				return std::string("\n")
 								+ "TLS Type : " + tlsTypeToString() + "\n"
 								+ "TLS Step : " + tlsStepToString() + "\n"
 								+ "SNI : " + parsedTlsRequest_.sni + "\n"
 								+ "Body : " + parsedTlsRequest_.body + "\n";
-		} else
-		{
-			tmpStr = 	std::string("\n")
+				break;
+			case Request::HttpType::HTTP:
+				return std::string("\n")
 								+ "Method : " + boost::lexical_cast<std::string>(parsedHttpRequest_.method()) + "\n"
 								+ "Version : " + boost::lexical_cast<std::string>(parsedHttpRequest_.version()) + "\n"
 								+ "Target : " + boost::lexical_cast<std::string>(parsedHttpRequest_.target()) + "\n"
 								+ "User Agent : " + boost::lexical_cast<std::string>(parsedHttpRequest_["User-Agent"]) + "\n"
 								+ "Body Size : " + boost::lexical_cast<std::string>(parsedHttpRequest_.body().size()) + "\n";
+				break;
+			default:
+				return "UNKNOWN HTTPTYPE";
 		}
-		return tmpStr;
 	}
 
 private:

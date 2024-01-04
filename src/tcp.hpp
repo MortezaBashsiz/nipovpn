@@ -51,7 +51,7 @@ public:
 	}
 
 	void handleRead(const boost::system::error_code& error,
-			size_t bytes_transferred)
+		size_t bytes_transferred)
 	{
 		if (!error || error == boost::asio::error::eof)
 		{
@@ -86,7 +86,7 @@ public:
 	}
 
 	void handleWrite(const boost::system::error_code& error,
-			size_t bytes_transferred)
+		size_t bytes_transferred)
 	{
 		if (!error || error == boost::asio::error::broken_pipe)
 		{
@@ -143,7 +143,7 @@ private:
 	}
 
 	void handleConnect(TCPConnection::pointer newConnection,
-			const boost::system::error_code& error)
+		const boost::system::error_code& error)
 	{
 		if (!error)
 		{
@@ -153,11 +153,11 @@ private:
 			os << message;
 			newConnection->writeBuffer(writeBuffer_);
 			newConnection->doWrite();
+			newConnection->doRead();
 		} else
 		{
 			log_.write(" [TCPClient handleConnect] " + error.what(), Log::Level::ERROR);
 		}
-		connect();
 	}
 
 	boost::asio::io_context& io_context_;
@@ -200,7 +200,7 @@ private:
 	}
 
 	void handleAccept(TCPConnection::pointer newConnection,
-			const boost::system::error_code& error)
+		const boost::system::error_code& error)
 	{
 		if (!error)
 		{

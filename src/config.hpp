@@ -191,7 +191,7 @@ public:
 		return filePath_;
 	}
 
-	const std::string modeToString()
+	const std::string modeToString() const
 	{
 		switch (runMode_){
 			case RunMode::server:
@@ -202,7 +202,7 @@ public:
 				break;
 			default:
 				return "UNKNOWN MODE";
-			}
+		}
 	}
 
 	const std::string toString(){

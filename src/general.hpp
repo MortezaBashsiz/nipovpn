@@ -37,8 +37,8 @@ struct BoolStr
 * Called from function validateConfig in general.cpp
 */
 inline bool fileExists (const std::string& name) {
-		std::ifstream f(name.c_str());
-		return f.good();
+		std::ifstream file(name.c_str());
+		return file.good();
 }
 
 /*
