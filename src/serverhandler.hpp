@@ -5,16 +5,17 @@ class ServerHandler : private Uncopyable
 {
 private:
 	const Config& config_;
-	Log log_;
+	const Log& log_;
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 
 public:
 	explicit ServerHandler(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
-		const Config& config)
+		const Config& config,
+		const Log& log)
 		:
 			config_(config),
-			log_(config),
+			log_(log),
 			readBuffer_(readBuffer),
 			writeBuffer_(writeBuffer)
 	{	}

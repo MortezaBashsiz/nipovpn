@@ -65,7 +65,7 @@ public:
 				agentHandler_.handle();
 			} else if (config_.runMode() == RunMode::server)
 			{
-				ServerHandler serverHandler_(readBuffer_, writeBuffer_, config_);
+				ServerHandler serverHandler_(readBuffer_, writeBuffer_, config_, log_);
 				serverHandler_.handle();
 			}
 		} else
@@ -127,14 +127,33 @@ public:
 
 	void doConnect()
 	{
-		boost::asio::ip::tcp::endpoint endpoints(boost::asio::ip::address::from_string(config_.agent().serverIp),
+		log_.write("[TCPClient doConnect] [DST] " + 
+				config_.agent().serverIp +":"+ 
+				std::to_string(config_.agent().serverPort)+" "
+					, Log::Level::DEBUG);
+		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(config_.agent().serverIp),
 					config_.agent().serverPort
 			);
 
 		TCPConnection::pointer newConnection =
 			TCPConnection::create(io_context_, config_, log_);
 
-		newConnection->socket().async_connect(endpoints,
+		newConnection->socket().async_connect(endpoint,
+			boost::bind(&TCPClient::handleConnect, this, newConnection,
+					boost::asio::placeholders::error, &log_));
+	}
+
+	void doConnect(const std::string& ip, const unsigned short& port)
+	{
+		log_.write("[TCPClient doConnect] [DST] " + 
+				ip +":"+ std::to_string(port)+" "
+					, Log::Level::DEBUG);
+		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip),	port);
+
+		TCPConnection::pointer newConnection =
+			TCPConnection::create(io_context_, config_, log_);
+
+		newConnection->socket().async_connect(endpoint,
 			boost::bind(&TCPClient::handleConnect, this, newConnection,
 					boost::asio::placeholders::error, &log_));
 	}
@@ -203,8 +222,8 @@ private:
 			newConnection->listen();
 			if (config_.runMode() == RunMode::agent)
 			{
-				TCPClient client_(io_context_, config_, log_);
-				client_.doConnect();
+				TCPClient client(io_context_, config_, log_);
+				client.doConnect();
 			}
 		}
 		startAccept();
