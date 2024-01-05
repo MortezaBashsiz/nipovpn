@@ -35,11 +35,11 @@ public:
 		log_.write("Request detail : "+request_.toString(), Log::Level::DEBUG);
 		if (request_.httpType() == Request::HttpType::HTTPS)
 		{
-
+			copyStreamBuff(readBuffer_, writeBuffer_);
 		}
 		else
 		{
-
+			copyStreamBuff(readBuffer_, writeBuffer_);
 		}
 	}
 

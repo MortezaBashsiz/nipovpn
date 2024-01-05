@@ -9,7 +9,8 @@
 * First we will create a TCPServer and then in each accept action one connection will be created
 */
 class TCPConnection
-	: public boost::enable_shared_from_this<TCPConnection>
+	: private Uncopyable,
+		public boost::enable_shared_from_this<TCPConnection>
 {
 public:
 	typedef boost::shared_ptr<TCPConnection> pointer;
@@ -24,7 +25,7 @@ public:
 		return socket_;
 	}
 
-	void writeBuffer(boost::asio::streambuf& buffer)
+	void writeBuffer(const boost::asio::streambuf& buffer)
 	{
 		copyStreamBuff(buffer, writeBuffer_);
 	}
@@ -67,6 +68,7 @@ public:
 			{
 				ServerHandler serverHandler_(readBuffer_, writeBuffer_, config_, log_);
 				serverHandler_.handle();
+				doWrite();
 			}
 		} else
 		{
@@ -76,6 +78,7 @@ public:
 
 	void doWrite()
 	{
+		FUCK(streambufToString(writeBuffer_));
 		boost::asio::async_write(
 			socket_,
 			writeBuffer_,
@@ -83,6 +86,13 @@ public:
 				boost::asio::placeholders::error,
 				boost::asio::placeholders::bytes_transferred)
 		);
+		doRead();
+	}
+
+	void doWrite(boost::asio::streambuf buff)
+	{
+		writeBuffer(buff);
+		doWrite();
 	}
 
 	void handleWrite(const boost::system::error_code& error,
@@ -115,13 +125,14 @@ private:
 *	Thic class is to create and handle TCP client
 * Connects to the endpoint and handles the connection
 */
-class TCPClient : private Uncopyable
+class TCPClient : private Uncopyable, public boost::enable_shared_from_this<TCPClient>
 {
 public:
 	explicit TCPClient(boost::asio::io_context& io_context, const Config& config, const Log& log)
 		: config_(config),
 			log_(log),
 			io_context_(io_context),
+			connection_(TCPConnection::create(io_context, config, log)),
 			resolver_(io_context)
 	{	}
 
@@ -135,11 +146,8 @@ public:
 					config_.agent().serverPort
 			);
 
-		TCPConnection::pointer newConnection =
-			TCPConnection::create(io_context_, config_, log_);
-
-		newConnection->socket().async_connect(endpoint,
-			boost::bind(&TCPClient::handleConnect, this, newConnection,
+		connection_->socket().async_connect(endpoint,
+			boost::bind(&TCPClient::handleConnect, this, connection_,
 					boost::asio::placeholders::error, &log_));
 	}
 
@@ -150,12 +158,15 @@ public:
 					, Log::Level::DEBUG);
 		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip),	port);
 
-		TCPConnection::pointer newConnection =
-			TCPConnection::create(io_context_, config_, log_);
-
-		newConnection->socket().async_connect(endpoint,
-			boost::bind(&TCPClient::handleConnect, this, newConnection,
+		connection_->socket().async_connect(endpoint,
+			boost::bind(&TCPClient::handleConnect, this, connection_,
 					boost::asio::placeholders::error, &log_));
+	}
+
+	void doWrite(const boost::asio::streambuf& buff)
+	{
+		connection_->writeBuffer(buff);
+		connection_->doWrite();
 	}
 
 private:
@@ -176,6 +187,7 @@ private:
 
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::resolver resolver_;
+	TCPConnection::pointer connection_;
 	const Config& config_;
 	const Log& log_;
 };

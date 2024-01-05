@@ -145,14 +145,13 @@ const BoolStr validateConfig(int argc, char const *argv[])
 	return boolStr_;
 }
 
-const std::string streambufToString(boost::asio::streambuf& buff)
+const std::string streambufToString(const boost::asio::streambuf& buff)
 {
 	std::string result(boost::asio::buffers_begin(buff.data()), boost::asio::buffers_begin(buff.data()) + buff.size());
 	return result;
 }
 
-
-void copyStreamBuff(boost::asio::streambuf& source, boost::asio::streambuf& target)
+void copyStreamBuff(const boost::asio::streambuf& source, boost::asio::streambuf& target)
 {
 	std::size_t bytes_copied = buffer_copy(
   target.prepare(source.size()), 
