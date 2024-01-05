@@ -163,10 +163,11 @@ public:
 					boost::asio::placeholders::error, &log_));
 	}
 
-	void doWrite(const boost::asio::streambuf& buff)
+	const boost::asio::streambuf& doWrite(const boost::asio::streambuf& buff)
 	{
 		connection_->writeBuffer(buff);
 		connection_->doWrite();
+		return connection_->readBuffer();
 	}
 
 private:
