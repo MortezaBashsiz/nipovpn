@@ -89,7 +89,7 @@ public:
 	/*
 	*	This function writes message in to the log file
 	*/
-	void write(const std::string& message, const Level& level)
+	const void write(const std::string& message, const Level& level) const
 	{
 		std::ofstream logFile_(config_.log().file, logFile_.out | logFile_.app);
 		if (level <= level_ || level == Level::ERROR){

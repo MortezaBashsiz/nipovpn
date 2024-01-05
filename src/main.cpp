@@ -38,7 +38,7 @@ int main(int argc, char const *argv[])
 	Log log_(config_);
 
 	boost::asio::io_context io_context_;
-	Runner runner_(io_context_, config_);
+	Runner runner_(io_context_, config_, log_);
 	runner_.run();
 
 	return 0;

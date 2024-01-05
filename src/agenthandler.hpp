@@ -12,10 +12,11 @@ class AgentHandler : private Uncopyable
 public:
 	AgentHandler(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
-		const Config& config)
+		const Config& config,
+		const Log& log)
 		:
 			config_(config),
-			log_(config),
+			log_(log),
 			readBuffer_(readBuffer),
 			writeBuffer_(writeBuffer)
 	{	}
@@ -29,7 +30,7 @@ public:
 	*/
 	void handle()
 	{
-		Request request_(config_, readBuffer_);
+		Request request_(config_, log_, readBuffer_);
 		request_.detectType();
 		log_.write("Request detail : "+request_.toString(), Log::Level::DEBUG);
 		if (request_.httpType() == Request::HttpType::HTTPS)
@@ -44,7 +45,7 @@ public:
 
 private:
 	const Config& config_;
-	Log log_;
+	const Log& log_;
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 };
 

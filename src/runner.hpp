@@ -8,12 +8,12 @@
 class Runner : private Uncopyable
 {
 public:
-	explicit Runner(boost::asio::io_context& io_context, const Config& config)
+	explicit Runner(boost::asio::io_context& io_context, const Config& config, const Log& log)
 		:
 			config_(config),
 			io_context_(io_context),
-			tcpServer_(io_context, config),
-			log_(config)
+			tcpServer_(io_context, config, log),
+			log_(log)
 	{	}
 
 	~Runner()
@@ -39,9 +39,10 @@ public:
 
 private:
 	const Config& config_;
+	const Log& log_;
 	TCPServer tcpServer_;
 	boost::asio::io_context& io_context_;
-	Log log_;
+	
 };
 
 #endif /* RUNNER_HPP */

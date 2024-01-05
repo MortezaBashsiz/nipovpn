@@ -59,10 +59,10 @@ public:
 	/*
 	* default constructor
 	*/
-	explicit Request(const Config& config, boost::asio::streambuf& buffer)
+	explicit Request(const Config& config, const Log& log, boost::asio::streambuf& buffer)
 		:
 			config_(config),
-			log_(config),
+			log_(log),
 			buffer_(buffer),
 			parsedHttpRequest_(),
 			parsedTlsRequest_
@@ -81,7 +81,7 @@ public:
 	explicit Request(const Request& request)
 		:
 			config_(request.config_),
-			log_(request.config_),
+			log_(request.log_),
 			buffer_(request.buffer_),
 			parsedHttpRequest_(request.parsedHttpRequest_),
 			parsedTlsRequest_(request.parsedTlsRequest_)
@@ -300,7 +300,7 @@ public:
 
 private:
 	const Config& config_;
-	Log log_;
+	const Log& log_;
 	HttpType httpType_;
 	boost::asio::streambuf &buffer_;
 	boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest_;

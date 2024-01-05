@@ -14,9 +14,9 @@ class TCPConnection
 public:
 	typedef boost::shared_ptr<TCPConnection> pointer;
 
-	static pointer create(boost::asio::io_context& io_context, const Config& config)
+	static pointer create(boost::asio::io_context& io_context, const Config& config, const Log& log)
 	{
-		return pointer(new TCPConnection(io_context, config));
+		return pointer(new TCPConnection(io_context, config, log));
 	}
 
 	boost::asio::ip::tcp::socket& socket()
@@ -61,7 +61,7 @@ public:
 			log_.write(" [TCPConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
 			if (config_.runMode() == RunMode::agent)
 			{
-				AgentHandler agentHandler_(readBuffer_, writeBuffer_, config_);
+				AgentHandler agentHandler_(readBuffer_, writeBuffer_, config_, log_);
 				agentHandler_.handle();
 			} else if (config_.runMode() == RunMode::server)
 			{
@@ -96,19 +96,20 @@ public:
 			log_.write(" [TCPConnection handleWrite] " + error.what(), Log::Level::ERROR);
 		}
 	}
-
+	
 private:
-	explicit TCPConnection(boost::asio::io_context& io_context, const Config& config)
+	explicit TCPConnection(boost::asio::io_context& io_context, const Config& config, const Log& log)
 		: socket_(io_context),
 			config_(config),
-			log_(config)
+			log_(log)
 	{ }
 
 	boost::asio::ip::tcp::socket socket_;
 	boost::asio::streambuf readBuffer_, writeBuffer_;
 	const Config& config_;
-	Log log_;
+	const Log& log_;
 };
+
 
 /*
 *	Thic class is to create and handle TCP client
@@ -117,51 +118,49 @@ private:
 class TCPClient : private Uncopyable
 {
 public:
-	explicit TCPClient(boost::asio::io_context& io_context, const Config& config)
+	explicit TCPClient(boost::asio::io_context& io_context, const Config& config, const Log& log)
 		: config_(config),
-			log_(config),
+			log_(log),
 			io_context_(io_context),
 			resolver_(io_context)
 	{	}
 
-	void connect()
+	void doConnect()
 	{
-		boost::asio::ip::tcp::resolver::results_type endpoint(resolver_.resolve(
-					config_.agent().serverIp.c_str(),
-					std::to_string(config_.agent().serverPort)
-			));
+		boost::asio::ip::tcp::endpoint endpoints(boost::asio::ip::address::from_string(config_.agent().serverIp),
+					config_.agent().serverPort
+			);
 
 		TCPConnection::pointer newConnection =
-			TCPConnection::create(io_context_, config_);
+			TCPConnection::create(io_context_, config_, log_);
 
-		boost::asio::async_connect(newConnection->socket(),
-			endpoint,
+		newConnection->socket().async_connect(endpoints,
 			boost::bind(&TCPClient::handleConnect, this, newConnection,
-					boost::asio::placeholders::error));
+					boost::asio::placeholders::error, &log_));
 	}
 
 private:
-
 	void handleConnect(TCPConnection::pointer newConnection,
-		const boost::system::error_code& error)
+		const boost::system::error_code& error, const Log* log)
 	{
 		if (!error)
 		{
-			log_.write(" [TCPClient handleConnect] [DST]" + 
+			log->write("[TCPClient handleConnect] [DST] " + 
 				newConnection->socket().remote_endpoint().address().to_string() +":"+ 
 				std::to_string(newConnection->socket().remote_endpoint().port())+" "
 					, Log::Level::DEBUG);
 		} else
 		{
-			log_.write(" [TCPClient handleConnect] " + error.what(), Log::Level::ERROR);
+			log->write("[TCPClient handleConnect] " + error.what(), Log::Level::ERROR);
 		}
 	}
 
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::resolver resolver_;
 	const Config& config_;
-	Log log_;
+	const Log& log_;
 };
+
 
 /*
 *	Thic class is to create and handle TCP server
@@ -170,9 +169,9 @@ private:
 class TCPServer : private Uncopyable
 {
 public:
-	explicit TCPServer(boost::asio::io_context& io_context, const Config& config)
+	explicit TCPServer(boost::asio::io_context& io_context, const Config& config, const Log& log)
 		: config_(config),
-			log_(config),
+			log_(log),
 			io_context_(io_context),
 			acceptor_(
 				io_context,
@@ -189,7 +188,7 @@ private:
 	void startAccept()
 	{
 		TCPConnection::pointer newConnection =
-			TCPConnection::create(io_context_, config_);
+			TCPConnection::create(io_context_, config_, log_);
 
 		acceptor_.async_accept(newConnection->socket(),
 				boost::bind(&TCPServer::handleAccept, this, newConnection,
@@ -204,8 +203,8 @@ private:
 			newConnection->listen();
 			if (config_.runMode() == RunMode::agent)
 			{
-				TCPClient client_(io_context_, config_);
-				client_.connect();
+				TCPClient client_(io_context_, config_, log_);
+				client_.doConnect();
 			}
 		}
 		startAccept();
@@ -214,7 +213,7 @@ private:
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::acceptor acceptor_;
 	const Config& config_;
-	Log log_;
+	const Log& log_;
 };
 
 #endif /* TCPSERVER_HPP */
