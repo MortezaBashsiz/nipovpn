@@ -12,7 +12,6 @@ public:
 		:
 			config_(config),
 			io_context_(io_context),
-			tcpServer_(io_context, config, log),
 			log_(log)
 	{	}
 
@@ -28,7 +27,16 @@ public:
 		{
 			log_.write("Config initialized in " + config_.modeToString() + " mode ", Log::Level::INFO);
 			log_.write(config_.toString(), Log::Level::DEBUG);
-			io_context_.run();
+			if (config_.runMode() == RunMode::server)
+			{
+				ServerTCPServer tcpServer_(io_context_, config_, log_);
+				io_context_.run();
+			}
+			else if (config_.runMode() == RunMode::agent)
+			{
+				AgentTCPServer tcpAgent_(io_context_, config_, log_);
+				io_context_.run();
+			}
 		}
 		catch (std::exception& error)
 		{
@@ -40,7 +48,6 @@ public:
 private:
 	const Config& config_;
 	const Log& log_;
-	TCPServer tcpServer_;
 	boost::asio::io_context& io_context_;
 	
 };

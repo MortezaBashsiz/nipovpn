@@ -18,7 +18,8 @@
 #include "general.hpp"
 #include "config.hpp"
 #include "log.hpp"
-#include "tcp.hpp"
+#include "server.hpp"
+#include "agent.hpp"
 #include "runner.hpp"
 
 #endif /* MAIN_HPP */
