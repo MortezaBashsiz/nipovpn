@@ -8,7 +8,7 @@
 class Runner : private Uncopyable
 {
 public:
-	explicit Runner(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
+	explicit Runner(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 		:
 			config_(config),
 			io_context_(io_context),
@@ -25,8 +25,8 @@ public:
 	{
 		try
 		{
-			log_.write("Config initialized in " + config_->modeToString() + " mode ", Log::Level::INFO);
-			log_.write(config_->toString(), Log::Level::DEBUG);
+			log_->write("Config initialized in " + config_->modeToString() + " mode ", Log::Level::INFO);
+			log_->write(config_->toString(), Log::Level::DEBUG);
 			if (config_->runMode() == RunMode::server)
 			{
 				ServerTCPServer tcpServer_(io_context_, config_, log_);
@@ -40,14 +40,14 @@ public:
 		}
 		catch (std::exception& error)
 		{
-			log_.write(error.what(), Log::Level::ERROR);
+			log_->write(error.what(), Log::Level::ERROR);
 			std::cerr << error.what() << std::endl;
 		}
 	}
 
 private:
 	const std::shared_ptr<Config>& config_;
-	const Log& log_;
+	const std::shared_ptr<Log>& log_;
 	boost::asio::io_context& io_context_;
 	
 };

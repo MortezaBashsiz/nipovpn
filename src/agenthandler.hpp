@@ -10,7 +10,7 @@ public:
 	AgentHandler(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
 		const std::shared_ptr<Config>& config,
-		const Log& log)
+		const std::shared_ptr<Log>& log)
 		:
 			config_(config),
 			log_(log),
@@ -29,7 +29,7 @@ public:
 	{
 		Request request_(config_, log_, readBuffer_);
 		request_.detectType();
-		log_.write("Request detail : "+request_.toString(), Log::Level::DEBUG);
+		log_->write("Request detail : "+request_.toString(), Log::Level::DEBUG);
 		boost::asio::io_context io_context_;
 		if (request_.httpType() == Request::HttpType::HTTPS)
 		{
@@ -43,7 +43,7 @@ public:
 
 private:
 	const std::shared_ptr<Config>& config_;
-	const Log& log_;
+	const std::shared_ptr<Log>& log_;
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 };
 

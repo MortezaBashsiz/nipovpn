@@ -12,7 +12,7 @@ class TCPConnection
 public:
 	typedef std::shared_ptr<TCPConnection> pointer;
 
-	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
+	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 	{
 		return pointer(new TCPConnection(io_context, config, log));
 	}
@@ -53,10 +53,10 @@ public:
 	{
 		if (!error || error == boost::asio::error::eof)
 		{
-			log_.write("["+config_->modeToString()+"], SRC " +
+			log_->write("["+config_->modeToString()+"], SRC " +
 					socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
 					, Log::Level::INFO);
-			log_.write(" [TCPConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
+			log_->write(" [TCPConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
 			
 			if (config_->runMode() == RunMode::agent)
 			{
@@ -70,7 +70,7 @@ public:
 			doWrite();
 		} else
 		{
-			log_.write(" [handleRead] " + error.what(), Log::Level::ERROR);
+			log_->write(" [handleRead] " + error.what(), Log::Level::ERROR);
 		}
 	}
 
@@ -96,15 +96,15 @@ public:
 	{
 		if (!error || error == boost::asio::error::broken_pipe)
 		{
-			log_.write(" [TCPConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) , Log::Level::DEBUG);
+			log_->write(" [TCPConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) , Log::Level::DEBUG);
 		} else
 		{
-			log_.write(" [TCPConnection handleWrite] " + error.what(), Log::Level::ERROR);
+			log_->write(" [TCPConnection handleWrite] " + error.what(), Log::Level::ERROR);
 		}
 	}
 	
 private:
-	explicit TCPConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
+	explicit TCPConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 		: socket_(io_context),
 			config_(config),
 			log_(log)
@@ -113,7 +113,7 @@ private:
 	boost::asio::ip::tcp::socket socket_;
 	boost::asio::streambuf readBuffer_, writeBuffer_;
 	const std::shared_ptr<Config>& config_;
-	const Log& log_;
+	const std::shared_ptr<Log>& log_;
 };
 
 
@@ -124,7 +124,7 @@ private:
 class TCPServer : private Uncopyable
 {
 public:
-	explicit TCPServer(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
+	explicit TCPServer(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 		: config_(config),
 			log_(log),
 			io_context_(io_context),
@@ -163,7 +163,7 @@ private:
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::acceptor acceptor_;
 	const std::shared_ptr<Config>& config_;
-	const Log& log_;
+	const std::shared_ptr<Log>& log_;
 };
 
 #endif /* TCP_HPP */

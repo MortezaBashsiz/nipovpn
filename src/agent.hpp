@@ -12,7 +12,7 @@ class AgentTCPConnection
 public:
 	typedef boost::shared_ptr<AgentTCPConnection> pointer;
 
-	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
+	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 	{
 		return pointer(new AgentTCPConnection(io_context, config, log));
 	}
@@ -53,17 +53,17 @@ public:
 	{
 		if (!error || error == boost::asio::error::eof)
 		{
-			log_.write("["+config_->modeToString()+"], SRC " +
+			log_->write("["+config_->modeToString()+"], SRC " +
 					socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
 					, Log::Level::INFO);
-			log_.write(" [AgentTCPConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
+			log_->write(" [AgentTCPConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
 			
 			AgentHandler agentHandler_(readBuffer_, writeBuffer_, config_, log_);
 			agentHandler_.handle();
 			doWrite();
 		} else
 		{
-			log_.write(" [handleRead] " + error.what(), Log::Level::ERROR);
+			log_->write(" [handleRead] " + error.what(), Log::Level::ERROR);
 		}
 	}
 
@@ -89,15 +89,15 @@ public:
 	{
 		if (!error || error == boost::asio::error::broken_pipe)
 		{
-			log_.write(" [AgentTCPConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) , Log::Level::DEBUG);
+			log_->write(" [AgentTCPConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) , Log::Level::DEBUG);
 		} else
 		{
-			log_.write(" [AgentTCPConnection handleWrite] " + error.what(), Log::Level::ERROR);
+			log_->write(" [AgentTCPConnection handleWrite] " + error.what(), Log::Level::ERROR);
 		}
 	}
 	
 private:
-	explicit AgentTCPConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
+	explicit AgentTCPConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 		: socket_(io_context),
 			config_(config),
 			log_(log)
@@ -106,7 +106,7 @@ private:
 	boost::asio::ip::tcp::socket socket_;
 	boost::asio::streambuf readBuffer_, writeBuffer_;
 	const std::shared_ptr<Config>& config_;
-	const Log& log_;
+	const std::shared_ptr<Log>& log_;
 };
 
 
@@ -117,7 +117,7 @@ private:
 class AgnetTCPClient : private Uncopyable
 {
 public:
-	explicit AgnetTCPClient(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
+	explicit AgnetTCPClient(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 		: config_(config),
 			log_(log),
 			io_context_(io_context),
@@ -129,7 +129,7 @@ public:
 
 	void doConnect()
 	{
-		log_.write("[AgnetTCPClient doConnect] [DST] " + 
+		log_->write("[AgnetTCPClient doConnect] [DST] " + 
 				config_->agent().serverIp +":"+ 
 				std::to_string(config_->agent().serverPort)+" "
 					, Log::Level::DEBUG);
@@ -139,19 +139,19 @@ public:
 
 		connection_->socket().async_connect(endpoint,
 			boost::bind(&AgnetTCPClient::handleConnect, this, connection_,
-					boost::asio::placeholders::error, &log_));
+					boost::asio::placeholders::error, log_));
 	}
 
 	void doConnect(const std::string& ip, const unsigned short& port)
 	{
-		log_.write("[AgnetTCPClient doConnect] [DST] " + 
+		log_->write("[AgnetTCPClient doConnect] [DST] " + 
 				ip +":"+ std::to_string(port)+" "
 					, Log::Level::DEBUG);
 		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip),	port);
 
 		connection_->socket().async_connect(endpoint,
 			boost::bind(&AgnetTCPClient::handleConnect, this, connection_,
-					boost::asio::placeholders::error, &log_));
+					boost::asio::placeholders::error, log_));
 	}
 
 	void doWrite(const boost::asio::streambuf& wrtiteBuff, boost::asio::streambuf& readBuff)
@@ -163,7 +163,7 @@ public:
 
 private:
 	void handleConnect(AgentTCPConnection::pointer newConnection,
-		const boost::system::error_code& error, const Log* log)
+		const boost::system::error_code& error, const std::shared_ptr<Log>& log)
 	{
 		if (!error)
 		{
@@ -181,7 +181,7 @@ private:
 	boost::asio::ip::tcp::resolver resolver_;
 	AgentTCPConnection::pointer connection_;
 	const std::shared_ptr<Config>& config_;
-	const Log& log_;
+	const std::shared_ptr<Log>& log_;
 };
 
 
@@ -192,7 +192,7 @@ private:
 class AgentTCPServer : private Uncopyable
 {
 public:
-	explicit AgentTCPServer(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
+	explicit AgentTCPServer(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 		: config_(config),
 			log_(log),
 			io_context_(io_context),
@@ -233,7 +233,7 @@ private:
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::acceptor acceptor_;
 	const std::shared_ptr<Config>& config_;
-	const Log& log_;
+	const std::shared_ptr<Log>& log_;
 };
 
 #endif /* AGENT_HPP */

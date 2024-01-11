@@ -31,12 +31,11 @@ int main(int argc, char const *argv[])
 	* See config.hpp
 	*/
 	Config::pointer config_ =	Config::create(runMode_, std::string(argv[2]));
-	// Config config_(runMode_, std::string(argv[2]));
 
 	/*
 	* Declare and initialize main Log object
 	*/
-	Log log_(config_);
+	Log::pointer log_ = Log::create(config_);
 
 	boost::asio::io_context io_context_;
 	Runner runner_(io_context_, config_, log_);

@@ -59,7 +59,7 @@ public:
 	/*
 	* default constructor
 	*/
-	explicit Request(const std::shared_ptr<Config>& config, const Log& log, boost::asio::streambuf& buffer)
+	explicit Request(const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log, boost::asio::streambuf& buffer)
 		:
 			config_(config),
 			log_(log),
@@ -137,7 +137,7 @@ public:
 		parser.put(boost::asio::buffer(requestStr), error);
 		if (error)
 		{
-			log_.write(" [parseHttp] " + error.what(), Log::Level::ERROR);
+			log_->write(" [parseHttp] " + error.what(), Log::Level::ERROR);
 		} else
 		{
 			parsedHttpRequest_ = parser.get();
@@ -300,7 +300,7 @@ public:
 
 private:
 	const std::shared_ptr<Config>& config_;
-	const Log& log_;
+	const std::shared_ptr<Log>& log_;
 	HttpType httpType_;
 	boost::asio::streambuf &buffer_;
 	boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest_;
