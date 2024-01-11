@@ -25,7 +25,6 @@ int main(int argc, char const *argv[])
 	if (argv[1] == std::string("agent"))
 		runMode_ = RunMode::agent;
 
-
 	/*
 	* Declare and initialize main Config object
 	* See config.hpp

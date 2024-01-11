@@ -27,11 +27,11 @@ public:
 	*/
 	void handle()
 	{
-		Request request_(config_, log_, readBuffer_);
-		request_.detectType();
-		log_->write("Request detail : "+request_.toString(), Log::Level::DEBUG);
+		Request::pointer request_ = Request::create(config_, log_, readBuffer_);
+		request_->detectType();
+		log_->write("Request detail : "+request_->toString(), Log::Level::DEBUG);
 		boost::asio::io_context io_context_;
-		if (request_.httpType() == Request::HttpType::HTTPS)
+		if (request_->httpType() == Request::HttpType::HTTPS)
 		{
 			copyStreamBuff(readBuffer_, writeBuffer_);
 		}

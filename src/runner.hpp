@@ -29,12 +29,12 @@ public:
 			log_->write(config_->toString(), Log::Level::DEBUG);
 			if (config_->runMode() == RunMode::server)
 			{
-				ServerTCPServer tcpServer_(io_context_, config_, log_);
+				ServerTCPServer::pointer tcpServer_ = ServerTCPServer::create(io_context_, config_, log_);
 				io_context_.run();
 			}
 			else if (config_->runMode() == RunMode::agent)
 			{
-				AgentTCPServer tcpAgent_(io_context_, config_, log_);
+				AgentTCPServer::pointer tcpAgent_ = AgentTCPServer::create(io_context_, config_, log_);
 				io_context_.run();
 			}
 		}

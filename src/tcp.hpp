@@ -121,9 +121,19 @@ private:
 *	Thic class is to create and handle TCP server
 * Listening to the IP:Port and handling the socket is here
 */
-class TCPServer : private Uncopyable
+class TCPServer 
+	: private Uncopyable,
+		public boost::enable_shared_from_this<TCPServer>
 {
 public:
+	typedef std::shared_ptr<TCPServer> pointer;
+
+	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+	{
+		return pointer(new TCPServer(io_context, config, log));
+	}
+
+private:
 	explicit TCPServer(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 		: config_(config),
 			log_(log),
@@ -139,7 +149,6 @@ public:
 		startAccept();
 	}
 
-private:
 	void startAccept()
 	{
 		TCPConnection::pointer newConnection =

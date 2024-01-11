@@ -189,9 +189,19 @@ private:
 *	Thic class is to create and handle TCP server
 * Listening to the IP:Port and handling the socket is here
 */
-class AgentTCPServer : private Uncopyable
+class AgentTCPServer 
+	: private Uncopyable,
+		public boost::enable_shared_from_this<AgentTCPServer>
 {
 public:
+	typedef std::shared_ptr<AgentTCPServer> pointer;
+
+	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+	{
+		return pointer(new AgentTCPServer(io_context, config, log));
+	}
+
+private:
 	explicit AgentTCPServer(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 		: config_(config),
 			log_(log),
@@ -207,11 +217,8 @@ public:
 		startAccept();
 	}
 
-private:
 	void startAccept()
 	{
-		// AgnetTCPClient client(io_context_, config_, log_);
-
 		AgentTCPConnection::pointer newConnection =
 			AgentTCPConnection::create(io_context_, config_, log_);
 
