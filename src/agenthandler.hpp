@@ -4,19 +4,19 @@
 /*
 * This class is the handler if the process is running in mode agent
 */
-class AgentHandler : private Uncopyable
+class AgentHandler 
+	: private Uncopyable
 {
 public:
-	AgentHandler(boost::asio::streambuf& readBuffer,
+	typedef std::shared_ptr<AgentHandler> pointer;
+
+	static pointer create(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
 		const std::shared_ptr<Config>& config,
 		const std::shared_ptr<Log>& log)
-		:
-			config_(config),
-			log_(log),
-			readBuffer_(readBuffer),
-			writeBuffer_(writeBuffer)
-	{	}
+	{
+		return pointer(new AgentHandler(readBuffer, writeBuffer, config, log));
+	}
 
 	~AgentHandler()
 	{	}
@@ -42,6 +42,17 @@ public:
 	}
 
 private:
+	AgentHandler(boost::asio::streambuf& readBuffer,
+		boost::asio::streambuf& writeBuffer,
+		const std::shared_ptr<Config>& config,
+		const std::shared_ptr<Log>& log)
+		:
+			config_(config),
+			log_(log),
+			readBuffer_(readBuffer),
+			writeBuffer_(writeBuffer)
+	{	}
+
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;

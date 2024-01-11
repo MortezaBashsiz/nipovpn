@@ -7,8 +7,7 @@
 * 	to do all operations related to the request
 */
 class Request 
-	: private Uncopyable,
-		public boost::enable_shared_from_this<Request>
+	: private Uncopyable
 {
 public:
 

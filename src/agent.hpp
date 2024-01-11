@@ -58,8 +58,8 @@ public:
 					, Log::Level::INFO);
 			log_->write(" [AgentTCPConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
 			
-			AgentHandler agentHandler_(readBuffer_, writeBuffer_, config_, log_);
-			agentHandler_.handle();
+			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_);
+			agentHandler_->handle();
 			doWrite();
 		} else
 		{

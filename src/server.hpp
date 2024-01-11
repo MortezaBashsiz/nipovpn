@@ -58,8 +58,8 @@ public:
 					, Log::Level::INFO);
 			log_->write(" [ServerTCPConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
 			
-			ServerHandler serverHandler_(readBuffer_, writeBuffer_, config_, log_);
-			serverHandler_.handle();
+			ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_);
+			serverHandler_->handle();
 		} else
 		{
 			log_->write(" [handleRead] " + error.what(), Log::Level::ERROR);

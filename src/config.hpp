@@ -16,8 +16,7 @@ enum RunMode
 * This class is declared and initialized in main.cpp
 */
 class Config 
-	: private Uncopyable,
-		public boost::enable_shared_from_this<Config>
+	: private Uncopyable
 {
 private:
 

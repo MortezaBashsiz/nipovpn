@@ -2,8 +2,7 @@
 #define LOG_HPP
 
 class Log 
-	: private Uncopyable,
-		public boost::enable_shared_from_this<Log>
+	: private Uncopyable
 {
 public:
 	enum Level

@@ -1,24 +1,19 @@
 #ifndef SERVERHADLER_HPP
 #define SERVERHADLER_HPP
 
-class ServerHandler : private Uncopyable
+class ServerHandler 
+	: private Uncopyable
 {
-private:
-	const std::shared_ptr<Config>& config_;
-	const std::shared_ptr<Log>& log_;
-	boost::asio::streambuf &readBuffer_, &writeBuffer_;
-
 public:
-	explicit ServerHandler(boost::asio::streambuf& readBuffer,
+	typedef std::shared_ptr<ServerHandler> pointer;
+
+	static pointer create(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
 		const std::shared_ptr<Config>& config,
 		const std::shared_ptr<Log>& log)
-		:
-			config_(config),
-			log_(log),
-			readBuffer_(readBuffer),
-			writeBuffer_(writeBuffer)
-	{	}
+	{
+		return pointer(new ServerHandler(readBuffer, writeBuffer, config, log));
+	}
 
 	~ServerHandler()
 	{	}
@@ -29,6 +24,21 @@ public:
 		std::string message("OK");
 		os << message;
 	}
+
+private:
+	explicit ServerHandler(boost::asio::streambuf& readBuffer,
+		boost::asio::streambuf& writeBuffer,
+		const std::shared_ptr<Config>& config,
+		const std::shared_ptr<Log>& log)
+		:
+			config_(config),
+			log_(log),
+			readBuffer_(readBuffer),
+			writeBuffer_(writeBuffer)
+	{	}
+	const std::shared_ptr<Config>& config_;
+	const std::shared_ptr<Log>& log_;
+	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 
 };
 
