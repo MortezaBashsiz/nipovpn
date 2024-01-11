@@ -15,7 +15,9 @@ enum RunMode
 * Class Config will contain all the configuration directives
 * This class is declared and initialized in main.cpp
 */
-class Config : private Uncopyable
+class Config 
+	: private Uncopyable,
+		public boost::enable_shared_from_this<Config>
 {
 private:
 
@@ -74,8 +76,6 @@ private:
 	std::string listenIp_;
 	unsigned short listenPort_;
 
-public:
-
 	/*
 	* Default constructor for Config. The main Config object is initialized here
 	*/
@@ -125,16 +125,24 @@ public:
 		}
 	}
 
+public:
+	typedef std::shared_ptr<Config> pointer;
+
+	static pointer create(const RunMode& mode, const std::string& filePath)
+	{
+		return pointer(new Config(mode, filePath));
+	}
+
 	/*
 	* Copy constructor if you want to copy and initialize it
 	*/
-	explicit Config(const Config& config)
+	explicit Config(const Config::pointer& config)
 		:
-			runMode_(config.runMode()),
-			log_(config.log()),
-			server_(config.server()),
-			agent_(config.agent()),
-			configYaml_(YAML::LoadFile(config.filePath()))
+			runMode_(config->runMode()),
+			log_(config->log()),
+			server_(config->server()),
+			agent_(config->agent()),
+			configYaml_(YAML::LoadFile(config->filePath()))
 	{	}
 
 	/*

@@ -1,9 +1,6 @@
 #ifndef AGENTHADLER_HPP
 #define AGENTHADLER_HPP
 
-#include "request.hpp"
-#include "response.hpp"
-
 /*
 * This class is the handler if the process is running in mode agent
 */
@@ -12,7 +9,7 @@ class AgentHandler : private Uncopyable
 public:
 	AgentHandler(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
-		const Config& config,
+		const std::shared_ptr<Config>& config,
 		const Log& log)
 		:
 			config_(config),
@@ -33,6 +30,7 @@ public:
 		Request request_(config_, log_, readBuffer_);
 		request_.detectType();
 		log_.write("Request detail : "+request_.toString(), Log::Level::DEBUG);
+		boost::asio::io_context io_context_;
 		if (request_.httpType() == Request::HttpType::HTTPS)
 		{
 			copyStreamBuff(readBuffer_, writeBuffer_);
@@ -44,7 +42,7 @@ public:
 	}
 
 private:
-	const Config& config_;
+	const std::shared_ptr<Config>& config_;
 	const Log& log_;
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 };

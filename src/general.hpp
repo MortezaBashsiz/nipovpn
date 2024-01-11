@@ -17,7 +17,7 @@ private:
 /*
 * FUCK function prints it on screen
 */
-const void FUCK(auto message)
+const void FUCK(const auto& message)
 {
 	std::cout << "FUCK FUCK FUCK FUCK FUCK FUCK FUCK FUCK : " << message << std::endl;
 }

@@ -1,8 +1,6 @@
 #ifndef AGENT_HPP
 #define AGENT_HPP
 
-#include "agenthandler.hpp"
-
 /*
 *	Thic class is to create and handle TCP connection
 * First we will create a AgentTCPServer and then in each accept action one connection will be created
@@ -14,7 +12,7 @@ class AgentTCPConnection
 public:
 	typedef boost::shared_ptr<AgentTCPConnection> pointer;
 
-	static pointer create(boost::asio::io_context& io_context, const Config& config, const Log& log)
+	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
 	{
 		return pointer(new AgentTCPConnection(io_context, config, log));
 	}
@@ -55,13 +53,14 @@ public:
 	{
 		if (!error || error == boost::asio::error::eof)
 		{
-			log_.write("["+config_.modeToString()+"], SRC " +
+			log_.write("["+config_->modeToString()+"], SRC " +
 					socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
 					, Log::Level::INFO);
 			log_.write(" [AgentTCPConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
 			
 			AgentHandler agentHandler_(readBuffer_, writeBuffer_, config_, log_);
 			agentHandler_.handle();
+			doWrite();
 		} else
 		{
 			log_.write(" [handleRead] " + error.what(), Log::Level::ERROR);
@@ -77,7 +76,6 @@ public:
 				boost::asio::placeholders::error,
 				boost::asio::placeholders::bytes_transferred)
 		);
-		doRead();
 	}
 
 	void doWrite(boost::asio::streambuf buff)
@@ -99,7 +97,7 @@ public:
 	}
 	
 private:
-	explicit AgentTCPConnection(boost::asio::io_context& io_context, const Config& config, const Log& log)
+	explicit AgentTCPConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
 		: socket_(io_context),
 			config_(config),
 			log_(log)
@@ -107,7 +105,7 @@ private:
 
 	boost::asio::ip::tcp::socket socket_;
 	boost::asio::streambuf readBuffer_, writeBuffer_;
-	const Config& config_;
+	const std::shared_ptr<Config>& config_;
 	const Log& log_;
 };
 
@@ -116,25 +114,27 @@ private:
 *	Thic class is to create and handle TCP client
 * Connects to the endpoint and handles the connection
 */
-class AgnetTCPClient : private Uncopyable, public boost::enable_shared_from_this<AgnetTCPClient>
+class AgnetTCPClient : private Uncopyable
 {
 public:
-	explicit AgnetTCPClient(boost::asio::io_context& io_context, const Config& config, const Log& log)
+	explicit AgnetTCPClient(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
 		: config_(config),
 			log_(log),
 			io_context_(io_context),
 			connection_(AgentTCPConnection::create(io_context, config, log)),
 			resolver_(io_context)
-	{	}
+	{	
+		doConnect();
+	}
 
 	void doConnect()
 	{
 		log_.write("[AgnetTCPClient doConnect] [DST] " + 
-				config_.agent().serverIp +":"+ 
-				std::to_string(config_.agent().serverPort)+" "
+				config_->agent().serverIp +":"+ 
+				std::to_string(config_->agent().serverPort)+" "
 					, Log::Level::DEBUG);
-		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(config_.agent().serverIp),
-					config_.agent().serverPort
+		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(config_->agent().serverIp),
+					config_->agent().serverPort
 			);
 
 		connection_->socket().async_connect(endpoint,
@@ -154,11 +154,11 @@ public:
 					boost::asio::placeholders::error, &log_));
 	}
 
-	const boost::asio::streambuf& doWrite(const boost::asio::streambuf& buff)
+	void doWrite(const boost::asio::streambuf& wrtiteBuff, boost::asio::streambuf& readBuff)
 	{
-		connection_->writeBuffer(buff);
+		connection_->writeBuffer(wrtiteBuff);
 		connection_->doWrite();
-		return connection_->readBuffer();
+		copyStreamBuff(connection_->readBuffer(), readBuff);
 	}
 
 private:
@@ -180,7 +180,7 @@ private:
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::resolver resolver_;
 	AgentTCPConnection::pointer connection_;
-	const Config& config_;
+	const std::shared_ptr<Config>& config_;
 	const Log& log_;
 };
 
@@ -192,15 +192,15 @@ private:
 class AgentTCPServer : private Uncopyable
 {
 public:
-	explicit AgentTCPServer(boost::asio::io_context& io_context, const Config& config, const Log& log)
+	explicit AgentTCPServer(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const Log& log)
 		: config_(config),
 			log_(log),
 			io_context_(io_context),
 			acceptor_(
 				io_context,
 				boost::asio::ip::tcp::endpoint(
-					boost::asio::ip::address::from_string(config.listenIp()),
-					config.listenPort()
+					boost::asio::ip::address::from_string(config->listenIp()),
+					config->listenPort()
 				)
 			)
 	{
@@ -210,6 +210,8 @@ public:
 private:
 	void startAccept()
 	{
+		// AgnetTCPClient client(io_context_, config_, log_);
+
 		AgentTCPConnection::pointer newConnection =
 			AgentTCPConnection::create(io_context_, config_, log_);
 
@@ -224,18 +226,13 @@ private:
 		if (!error)
 		{
 			newConnection->listen();
-			if (config_.runMode() == RunMode::agent)
-			{
-				AgnetTCPClient client(io_context_, config_, log_);
-				client.doConnect();
-			}
 		}
 		startAccept();
 	}
 
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::acceptor acceptor_;
-	const Config& config_;
+	const std::shared_ptr<Config>& config_;
 	const Log& log_;
 };
 

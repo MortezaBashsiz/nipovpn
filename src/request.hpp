@@ -59,7 +59,7 @@ public:
 	/*
 	* default constructor
 	*/
-	explicit Request(const Config& config, const Log& log, boost::asio::streambuf& buffer)
+	explicit Request(const std::shared_ptr<Config>& config, const Log& log, boost::asio::streambuf& buffer)
 		:
 			config_(config),
 			log_(log),
@@ -299,7 +299,7 @@ public:
 	}
 
 private:
-	const Config& config_;
+	const std::shared_ptr<Config>& config_;
 	const Log& log_;
 	HttpType httpType_;
 	boost::asio::streambuf &buffer_;

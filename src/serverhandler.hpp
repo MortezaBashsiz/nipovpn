@@ -4,14 +4,14 @@
 class ServerHandler : private Uncopyable
 {
 private:
-	const Config& config_;
+	const std::shared_ptr<Config>& config_;
 	const Log& log_;
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 
 public:
 	explicit ServerHandler(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
-		const Config& config,
+		const std::shared_ptr<Config>& config,
 		const Log& log)
 		:
 			config_(config),

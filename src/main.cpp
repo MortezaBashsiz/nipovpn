@@ -30,7 +30,8 @@ int main(int argc, char const *argv[])
 	* Declare and initialize main Config object
 	* See config.hpp
 	*/
-	Config config_(runMode_, std::string(argv[2]));
+	Config::pointer config_ =	Config::create(runMode_, std::string(argv[2]));
+	// Config config_(runMode_, std::string(argv[2]));
 
 	/*
 	* Declare and initialize main Log object
