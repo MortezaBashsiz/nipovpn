@@ -5,6 +5,7 @@
 
 #include "config.hpp"
 #include "log.hpp"
+#include "general.hpp"
 
 class ServerHandler 
 	: private Uncopyable
@@ -20,27 +21,16 @@ public:
 		return pointer(new ServerHandler(readBuffer, writeBuffer, config, log));
 	}
 
-	~ServerHandler()
-	{	}
+	~ServerHandler();
 
-	void handle()
-	{
-		std::iostream os(&writeBuffer_);
-		std::string message("OK");
-		os << message;
-	}
+	void handle();
 
 private:
 	explicit ServerHandler(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
 		const std::shared_ptr<Config>& config,
-		const std::shared_ptr<Log>& log)
-		:
-			config_(config),
-			log_(log),
-			readBuffer_(readBuffer),
-			writeBuffer_(writeBuffer)
-	{	}
+		const std::shared_ptr<Log>& log);
+
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
