@@ -1,4 +1,7 @@
-#include "main.hpp"
+#include "general.hpp"
+#include "config.hpp"
+#include "log.hpp"
+#include "runner.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -25,17 +28,16 @@ int main(int argc, char const *argv[])
 	if (argv[1] == std::string("agent"))
 		runMode_ = RunMode::agent;
 
-
 	/*
 	* Declare and initialize main Config object
 	* See config.hpp
 	*/
-	Config config_(runMode_, std::string(argv[2]));
+	Config::pointer config_ =	Config::create(runMode_, std::string(argv[2]));
 
 	/*
 	* Declare and initialize main Log object
 	*/
-	Log log_(config_);
+	Log::pointer log_ = Log::create(config_);
 
 	boost::asio::io_context io_context_;
 	Runner runner_(io_context_, config_, log_);

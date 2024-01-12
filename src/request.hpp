@@ -1,14 +1,25 @@
 #ifndef REQUEST_HPP
 #define REQUEST_HPP
 
+#include <boost/beast/http.hpp>
+#include <boost/lexical_cast.hpp>
+
 /*
 * This class is for handling request. When a request comes to TCPConnection(see tcp.hpp), It calls the
 * 	AgentHanler::handle function(see agenthandler.hpp) and object from this class will be created in AgentHanler::handle function
 * 	to do all operations related to the request
 */
-class Request : private Uncopyable
+class Request 
+	: private Uncopyable
 {
 public:
+
+	typedef std::shared_ptr<Request> pointer;
+
+	static pointer create(const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log, boost::asio::streambuf& buffer)
+	{
+		return pointer(new Request(config, log, buffer));
+	}
 
 	/*
 	* To define the type of HTTP/HTTPS request
@@ -55,25 +66,6 @@ public:
 		TlsTypes type;
 		TlsSteps step;
 	};
-
-	/*
-	* default constructor
-	*/
-	explicit Request(const Config& config, const Log& log, boost::asio::streambuf& buffer)
-		:
-			config_(config),
-			log_(log),
-			buffer_(buffer),
-			parsedHttpRequest_(),
-			parsedTlsRequest_
-			{
-				"",
-				"",
-				TlsTypes::TLSHandshake,
-				TlsSteps::ClientHello
-			},
-			httpType_(HttpType::HTTPS)
-	{	}
 
 	/*
 	* Copy constructor if you want to copy and initialize it
@@ -137,7 +129,7 @@ public:
 		parser.put(boost::asio::buffer(requestStr), error);
 		if (error)
 		{
-			log_.write(" [parseHttp] " + error.what(), Log::Level::ERROR);
+			log_->write(" [parseHttp] " + error.what(), Log::Level::ERROR);
 		} else
 		{
 			parsedHttpRequest_ = parser.get();
@@ -299,8 +291,27 @@ public:
 	}
 
 private:
-	const Config& config_;
-	const Log& log_;
+	/*
+	* default constructor
+	*/
+	explicit Request(const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log, boost::asio::streambuf& buffer)
+		:
+			config_(config),
+			log_(log),
+			buffer_(buffer),
+			parsedHttpRequest_(),
+			parsedTlsRequest_
+			{
+				"",
+				"",
+				TlsTypes::TLSHandshake,
+				TlsSteps::ClientHello
+			},
+			httpType_(HttpType::HTTPS)
+	{	}
+
+	const std::shared_ptr<Config>& config_;
+	const std::shared_ptr<Log>& log_;
 	HttpType httpType_;
 	boost::asio::streambuf &buffer_;
 	boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest_;

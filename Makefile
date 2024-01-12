@@ -1,15 +1,25 @@
-#
-# Makefile for many UNIX compilers using the
-# "standard" command name CC
-#
-CC=g++
-CFLAGS=-g -lyaml-cpp -std=c++20
-SRC=./src
+CXX       := g++
+# CXX_FLAGS := -Wall -Wextra -std=c++20 -ggdb 
+CXX_FLAGS := -std=c++20 -ggdb -lyaml-cpp
 
-all: nipovpn
-cleanserver:
-	rm $(SRC)/*.o
-	rm niposerver
+BIN     := bin
+SRC     := src
+LIB     := lib
+LIBRARIES   := 
+EXECUTABLE  := nipovpn
 
-nipovpn: 
-	cd $(SRC) && $(CC) $(CFLAGS) -o ../build/nipovpn main.cpp
+
+all: $(BIN)/$(EXECUTABLE)
+
+run: clean all
+		clear
+		@echo "🚀 Executing..."
+		./$(BIN)/$(EXECUTABLE)
+
+$(BIN)/$(EXECUTABLE): $(SRC)/*.cpp
+		@echo "🚧 Building..."
+		$(CXX) $(CXX_FLAGS) -L$(LIB) $^ -o $@ $(LIBRARIES)
+
+clean:
+		@echo "🧹 Clearing..."
+		-rm $(BIN)/*
