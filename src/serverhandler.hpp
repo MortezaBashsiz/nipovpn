@@ -1,6 +1,11 @@
 #ifndef SERVERHADLER_HPP
 #define SERVERHADLER_HPP
 
+#include <memory>
+
+#include "config.hpp"
+#include "log.hpp"
+
 class ServerHandler 
 	: private Uncopyable
 {

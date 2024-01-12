@@ -4,6 +4,8 @@
 #include <yaml-cpp/yaml.h>
 #include <memory>
 
+#include "general.hpp"
+
 /*
 * This enum defines the modes which program are able to start
 * Mode server and agent

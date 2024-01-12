@@ -26,7 +26,7 @@ private:
 /*
 * FUCK function prints it on screen
 */
-const void FUCK(const auto& message)
+inline const void FUCK(const auto& message)
 {
 	std::cout << "FUCK FUCK FUCK FUCK FUCK FUCK FUCK FUCK : " << message << std::endl;
 }
@@ -55,7 +55,7 @@ inline bool fileExists (const std::string& name) {
 * It checks if all the blocks (log, agent, server) with all items are defined or not
 * Returns the BoolStr structure, See general.cpp
 */
-const BoolStr validateConfig(int argc, char const *argv[])
+inline const BoolStr validateConfig(int argc, char const *argv[])
 {
 	/*
 	* Initializing default return result
@@ -154,13 +154,13 @@ const BoolStr validateConfig(int argc, char const *argv[])
 	return boolStr_;
 }
 
-const std::string streambufToString(const boost::asio::streambuf& buff)
+inline const std::string streambufToString(const boost::asio::streambuf& buff)
 {
 	std::string result(boost::asio::buffers_begin(buff.data()), boost::asio::buffers_begin(buff.data()) + buff.size());
 	return result;
 }
 
-void copyStreamBuff(const boost::asio::streambuf& source, boost::asio::streambuf& target)
+inline void copyStreamBuff(const boost::asio::streambuf& source, boost::asio::streambuf& target)
 {
 	std::size_t bytes_copied = buffer_copy(
   target.prepare(source.size()), 
@@ -168,7 +168,7 @@ void copyStreamBuff(const boost::asio::streambuf& source, boost::asio::streambuf
 	target.commit(bytes_copied);
 }
 
-const unsigned short hexToInt(const std::string& hexString)
+inline const unsigned short hexToInt(const std::string& hexString)
 {
 	std::stringstream hexStr;
 	unsigned short result;
@@ -177,7 +177,7 @@ const unsigned short hexToInt(const std::string& hexString)
 	return result;
 }
 
-const std::string hexToASCII(const std::string& hex)
+inline const std::string hexToASCII(const std::string& hex)
 {
 	std::string ascii = "";
 	for (size_t i = 0; i < hex.length(); i += 2){
@@ -188,7 +188,7 @@ const std::string hexToASCII(const std::string& hex)
 	return ascii;
 }
 
-const unsigned char charToHex(char& c)
+inline const unsigned char charToHex(char& c)
 {
     if ('0' <= c && c <= '9') return c - '0';
     if ('A' <= c && c <= 'F') return c - 'A' + 10;

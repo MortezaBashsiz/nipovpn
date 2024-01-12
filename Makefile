@@ -12,4 +12,4 @@ cleanserver:
 	rm niposerver
 
 nipovpn: 
-	cd $(SRC) && $(CC) $(CFLAGS) -o ../build/nipovpn main.cpp
+	cd $(SRC) && $(CC) $(CFLAGS) -o ../build/nipovpn main.cpp runner.cpp
