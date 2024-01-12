@@ -10,7 +10,7 @@ class TCPConnection
 		public boost::enable_shared_from_this<TCPConnection>
 {
 public:
-	typedef std::shared_ptr<TCPConnection> pointer;
+	typedef boost::shared_ptr<TCPConnection> pointer;
 
 	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 	{
@@ -60,12 +60,12 @@ public:
 			
 			if (config_->runMode() == RunMode::agent)
 			{
-				AgentHandler agentHandler_(readBuffer_, writeBuffer_, config_, log_);
-				agentHandler_.handle();
+				AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_);
+				agentHandler_->handle();
 			} else if (config_->runMode() == RunMode::server)
 			{
-				ServerHandler serverHandler_(readBuffer_, writeBuffer_, config_, log_);
-				serverHandler_.handle();
+				ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_);
+				serverHandler_->handle();
 			}
 			doWrite();
 		} else
@@ -118,6 +118,88 @@ private:
 
 
 /*
+* Thic class is to create and handle TCP client
+* Connects to the endpoint and handles the connection
+*/
+class TCPClient 
+	: private Uncopyable,
+		public boost::enable_shared_from_this<TCPClient>
+{
+public:
+	typedef std::shared_ptr<TCPClient> pointer;
+
+	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+	{
+		return pointer(new TCPClient(io_context, config, log));
+	}
+
+	void doConnect()
+	{
+		log_->write("[TCPClient doConnect] [DST] " + 
+				config_->agent().serverIp +":"+ 
+				std::to_string(config_->agent().serverPort)+" "
+					, Log::Level::DEBUG);
+		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(config_->agent().serverIp),
+					config_->agent().serverPort
+			);
+
+		connection_->socket().async_connect(endpoint,
+			boost::bind(&TCPClient::handleConnect, this, connection_,
+					boost::asio::placeholders::error, log_));
+	}
+
+	void doConnect(const std::string& ip, const unsigned short& port)
+	{
+		log_->write("[TCPClient doConnect] [DST] " + 
+				ip +":"+ std::to_string(port)+" "
+					, Log::Level::DEBUG);
+		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip),	port);
+
+		connection_->socket().async_connect(endpoint,
+			boost::bind(&TCPClient::handleConnect, this, connection_,
+					boost::asio::placeholders::error, log_));
+	}
+
+	void doWrite(const boost::asio::streambuf& wrtiteBuff, boost::asio::streambuf& readBuff)
+	{
+		connection_->writeBuffer(wrtiteBuff);
+		connection_->doWrite();
+		copyStreamBuff(connection_->readBuffer(), readBuff);
+	}
+
+private:
+		explicit TCPClient(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+		: config_(config),
+			log_(log),
+			io_context_(io_context),
+			connection_(TCPConnection::create(io_context, config, log)),
+			resolver_(io_context)
+	{	}
+
+	void handleConnect(TCPConnection::pointer newConnection,
+		const boost::system::error_code& error, const std::shared_ptr<Log>& log)
+	{
+		if (!error)
+		{
+			log->write("[TCPClient handleConnect] [DST] " + 
+				newConnection->socket().remote_endpoint().address().to_string() +":"+ 
+				std::to_string(newConnection->socket().remote_endpoint().port())+" "
+					, Log::Level::DEBUG);
+		} else
+		{
+			log->write("[TCPClient handleConnect] " + error.what(), Log::Level::ERROR);
+		}
+	}
+
+	boost::asio::io_context& io_context_;
+	boost::asio::ip::tcp::resolver resolver_;
+	TCPConnection::pointer connection_;
+	const std::shared_ptr<Config>& config_;
+	const std::shared_ptr<Log>& log_;
+};
+
+
+/*
 *	Thic class is to create and handle TCP server
 * Listening to the IP:Port and handling the socket is here
 */
@@ -141,8 +223,8 @@ private:
 			acceptor_(
 				io_context,
 				boost::asio::ip::tcp::endpoint(
-					boost::asio::ip::address::from_string(config.listenIp()),
-					config.listenPort()
+					boost::asio::ip::address::from_string(config->listenIp()),
+					config->listenPort()
 				)
 			)
 	{

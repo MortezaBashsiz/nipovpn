@@ -1,6 +1,8 @@
 #ifndef AGENTHADLER_HPP
 #define AGENTHADLER_HPP
 
+class TCPClient;
+
 /*
 * This class is the handler if the process is running in mode agent
 */
@@ -30,7 +32,8 @@ public:
 		Request::pointer request_ = Request::create(config_, log_, readBuffer_);
 		request_->detectType();
 		log_->write("Request detail : "+request_->toString(), Log::Level::DEBUG);
-		boost::asio::io_context io_context_;
+		// boost::asio::io_context io_context_;
+		// TCPClient:pointer tcpClient_ = TCPClient::create(io_context_, config_, log_);
 		if (request_->httpType() == Request::HttpType::HTTPS)
 		{
 			copyStreamBuff(readBuffer_, writeBuffer_);

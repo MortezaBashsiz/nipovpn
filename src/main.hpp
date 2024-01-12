@@ -22,8 +22,7 @@
 #include "response.hpp"
 #include "agenthandler.hpp"
 #include "serverhandler.hpp"
-#include "server.hpp"
-#include "agent.hpp"
+#include "tcp.hpp"
 #include "runner.hpp"
 
 #endif /* MAIN_HPP */

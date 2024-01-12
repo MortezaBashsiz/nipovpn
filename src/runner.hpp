@@ -27,16 +27,18 @@ public:
 		{
 			log_->write("Config initialized in " + config_->modeToString() + " mode ", Log::Level::INFO);
 			log_->write(config_->toString(), Log::Level::DEBUG);
-			if (config_->runMode() == RunMode::server)
-			{
-				ServerTCPServer::pointer tcpServer_ = ServerTCPServer::create(io_context_, config_, log_);
-				io_context_.run();
-			}
-			else if (config_->runMode() == RunMode::agent)
-			{
-				AgentTCPServer::pointer tcpAgent_ = AgentTCPServer::create(io_context_, config_, log_);
-				io_context_.run();
-			}
+			TCPServer::pointer tcpServer_ = TCPServer::create(io_context_, config_, log_);
+			io_context_.run();
+			// if (config_->runMode() == RunMode::server)
+			// {
+			// 	ServerTCPServer::pointer tcpServer_ = ServerTCPServer::create(io_context_, config_, log_);
+			// 	io_context_.run();
+			// }
+			// else if (config_->runMode() == RunMode::agent)
+			// {
+			// 	AgentTCPServer::pointer tcpAgent_ = AgentTCPServer::create(io_context_, config_, log_);
+			// 	io_context_.run();
+			// }
 		}
 		catch (std::exception& error)
 		{
