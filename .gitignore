@@ -31,5 +31,5 @@
 *.out
 *.app
 
-build
+bin
 temp
