@@ -1,4 +1,7 @@
-#include "main.hpp"
+#include "general.hpp"
+#include "config.hpp"
+#include "log.hpp"
+#include "runner.hpp"
 
 int main(int argc, char const *argv[])
 {

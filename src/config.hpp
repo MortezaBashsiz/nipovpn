@@ -1,6 +1,9 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
+#include <yaml-cpp/yaml.h>
+#include <memory>
+
 /*
 * This enum defines the modes which program are able to start
 * Mode server and agent

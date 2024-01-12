@@ -1,6 +1,15 @@
 #ifndef GENERAL_HPP
 #define GENERAL_HPP
 
+#include <iostream>
+#include <fstream>
+#include <ctime>
+#include <string>
+
+#include <yaml-cpp/yaml.h>
+
+#include <boost/asio.hpp>
+
 /*
 * General class to make the class uncopyable
 */

@@ -1,6 +1,15 @@
 #ifndef TCP_HPP
 #define TCP_HPP
 
+#include <boost/asio.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
+#include <boost/bind/bind.hpp>
+
+
+#include "serverhandler.hpp"
+#include "agenthandler.hpp"
+
 /*
 *	Thic class is to create and handle TCP connection
 * First we will create a TCPServer and then in each accept action one connection will be created

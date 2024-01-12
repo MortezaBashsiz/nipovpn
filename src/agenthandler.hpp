@@ -1,6 +1,8 @@
 #ifndef AGENTHADLER_HPP
 #define AGENTHADLER_HPP
 
+#include "request.hpp"
+
 class TCPClient;
 
 /*

@@ -1,6 +1,8 @@
 #ifndef RUNNER_HPP
 #define RUNNER_HPP
 
+#include "tcp.hpp"
+
 /*
 * This class is responsible to run the program and handle the exceptions
 * It is called in main function(see main.cpp)
