@@ -9,6 +9,7 @@
 
 #include "serverhandler.hpp"
 #include "agenthandler.hpp"
+#include "general.hpp"
 
 /*
 *	Thic class is to create and handle TCP connection
@@ -26,98 +27,28 @@ public:
 		return pointer(new TCPConnection(io_context, config, log));
 	}
 
-	boost::asio::ip::tcp::socket& socket()
-	{
-		return socket_;
-	}
+	boost::asio::ip::tcp::socket& socket();
 
-	void writeBuffer(const boost::asio::streambuf& buffer)
-	{
-		copyStreamBuff(buffer, writeBuffer_);
-	}
+	void writeBuffer(const boost::asio::streambuf& buffer);
 
-	const boost::asio::streambuf& readBuffer() const
-	{
-		return readBuffer_;
-	}
+	const boost::asio::streambuf& readBuffer() const;
 
-	void listen()
-	{
-		doRead();
-	}
+	void listen();
 
-	void doRead()
-	{
-		boost::asio::async_read(
-			socket_,
-			readBuffer_,
-			boost::bind(&TCPConnection::handleRead, shared_from_this(),
-				boost::asio::placeholders::error,
-				boost::asio::placeholders::bytes_transferred)
-		);
-	}
+	void doRead();
 
 	void handleRead(const boost::system::error_code& error,
-		size_t bytes_transferred)
-	{
-		if (!error || error == boost::asio::error::eof)
-		{
-			log_->write("["+config_->modeToString()+"], SRC " +
-					socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
-					, Log::Level::INFO);
-			log_->write(" [TCPConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
-			
-			if (config_->runMode() == RunMode::agent)
-			{
-				AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_);
-				agentHandler_->handle();
-			} else if (config_->runMode() == RunMode::server)
-			{
-				ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_);
-				serverHandler_->handle();
-			}
-			doWrite();
-		} else
-		{
-			log_->write(" [handleRead] " + error.what(), Log::Level::ERROR);
-		}
-	}
+		size_t bytes_transferred);
 
-	void doWrite()
-	{
-		boost::asio::async_write(
-			socket_,
-			writeBuffer_,
-			boost::bind(&TCPConnection::handleWrite, shared_from_this(),
-				boost::asio::placeholders::error,
-				boost::asio::placeholders::bytes_transferred)
-		);
-	}
+	void doWrite();
 
-	void doWrite(boost::asio::streambuf buff)
-	{
-		writeBuffer(buff);
-		doWrite();
-	}
+	void doWrite(boost::asio::streambuf buff);
 
 	void handleWrite(const boost::system::error_code& error,
-		size_t bytes_transferred)
-	{
-		if (!error || error == boost::asio::error::broken_pipe)
-		{
-			log_->write(" [TCPConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) , Log::Level::DEBUG);
-		} else
-		{
-			log_->write(" [TCPConnection handleWrite] " + error.what(), Log::Level::ERROR);
-		}
-	}
+		size_t bytes_transferred);
 	
 private:
-	explicit TCPConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
-		: socket_(io_context),
-			config_(config),
-			log_(log)
-	{ }
+	explicit TCPConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log);
 
 	boost::asio::ip::tcp::socket socket_;
 	boost::asio::streambuf readBuffer_, writeBuffer_;
@@ -142,63 +73,17 @@ public:
 		return pointer(new TCPClient(io_context, config, log));
 	}
 
-	void doConnect()
-	{
-		log_->write("[TCPClient doConnect] [DST] " + 
-				config_->agent().serverIp +":"+ 
-				std::to_string(config_->agent().serverPort)+" "
-					, Log::Level::DEBUG);
-		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(config_->agent().serverIp),
-					config_->agent().serverPort
-			);
+	void doConnect();
 
-		connection_->socket().async_connect(endpoint,
-			boost::bind(&TCPClient::handleConnect, this, connection_,
-					boost::asio::placeholders::error, log_));
-	}
+	void doConnect(const std::string& ip, const unsigned short& port);
 
-	void doConnect(const std::string& ip, const unsigned short& port)
-	{
-		log_->write("[TCPClient doConnect] [DST] " + 
-				ip +":"+ std::to_string(port)+" "
-					, Log::Level::DEBUG);
-		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip),	port);
-
-		connection_->socket().async_connect(endpoint,
-			boost::bind(&TCPClient::handleConnect, this, connection_,
-					boost::asio::placeholders::error, log_));
-	}
-
-	void doWrite(const boost::asio::streambuf& wrtiteBuff, boost::asio::streambuf& readBuff)
-	{
-		connection_->writeBuffer(wrtiteBuff);
-		connection_->doWrite();
-		copyStreamBuff(connection_->readBuffer(), readBuff);
-	}
+	void doWrite(const boost::asio::streambuf& wrtiteBuff, boost::asio::streambuf& readBuff);
 
 private:
-		explicit TCPClient(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
-		: config_(config),
-			log_(log),
-			io_context_(io_context),
-			connection_(TCPConnection::create(io_context, config, log)),
-			resolver_(io_context)
-	{	}
+		explicit TCPClient(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log);
 
 	void handleConnect(TCPConnection::pointer newConnection,
-		const boost::system::error_code& error, const std::shared_ptr<Log>& log)
-	{
-		if (!error)
-		{
-			log->write("[TCPClient handleConnect] [DST] " + 
-				newConnection->socket().remote_endpoint().address().to_string() +":"+ 
-				std::to_string(newConnection->socket().remote_endpoint().port())+" "
-					, Log::Level::DEBUG);
-		} else
-		{
-			log->write("[TCPClient handleConnect] " + error.what(), Log::Level::ERROR);
-		}
-	}
+		const boost::system::error_code& error, const std::shared_ptr<Log>& log);
 
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::resolver resolver_;
@@ -225,40 +110,12 @@ public:
 	}
 
 private:
-	explicit TCPServer(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
-		: config_(config),
-			log_(log),
-			io_context_(io_context),
-			acceptor_(
-				io_context,
-				boost::asio::ip::tcp::endpoint(
-					boost::asio::ip::address::from_string(config->listenIp()),
-					config->listenPort()
-				)
-			)
-	{
-		startAccept();
-	}
+	explicit TCPServer(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log);
 
-	void startAccept()
-	{
-		TCPConnection::pointer newConnection =
-			TCPConnection::create(io_context_, config_, log_);
-
-		acceptor_.async_accept(newConnection->socket(),
-				boost::bind(&TCPServer::handleAccept, this, newConnection,
-					boost::asio::placeholders::error));
-	}
+	void startAccept();
 
 	void handleAccept(TCPConnection::pointer newConnection,
-		const boost::system::error_code& error)
-	{
-		if (!error)
-		{
-			newConnection->listen();
-		}
-		startAccept();
-	}
+		const boost::system::error_code& error);
 
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::acceptor acceptor_;
