@@ -1,6 +1,5 @@
 CXX       := g++
-# CXX_FLAGS := -Wall -Wextra -std=c++20 -ggdb 
-CXX_FLAGS := -std=c++20 -ggdb -lyaml-cpp
+CXX_FLAGS := -Wall -Wextra -std=c++20 -ggdb -lyaml-cpp
 
 BIN     := bin
 SRC     := src
@@ -13,13 +12,13 @@ all: $(BIN)/$(EXECUTABLE)
 
 run: clean all
 		clear
-		@echo "🚀 Executing..."
+		@echo "Executing..."
 		./$(BIN)/$(EXECUTABLE)
 
 $(BIN)/$(EXECUTABLE): $(SRC)/*.cpp
-		@echo "🚧 Building..."
+		@echo "Building..."
 		$(CXX) $(CXX_FLAGS) -L$(LIB) $^ -o $@ $(LIBRARIES)
 
 clean:
-		@echo "🧹 Clearing..."
+		@echo "Clearing..."
 		-rm $(BIN)/*

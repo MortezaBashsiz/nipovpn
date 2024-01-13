@@ -49,11 +49,11 @@ public:
 	
 private:
 	explicit TCPConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log);
-
+	
 	boost::asio::ip::tcp::socket socket_;
-	boost::asio::streambuf readBuffer_, writeBuffer_;
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
+	boost::asio::streambuf readBuffer_, writeBuffer_;
 };
 
 
@@ -85,11 +85,11 @@ private:
 	void handleConnect(TCPConnection::pointer newConnection,
 		const boost::system::error_code& error, const std::shared_ptr<Log>& log);
 
-	boost::asio::io_context& io_context_;
-	boost::asio::ip::tcp::resolver resolver_;
-	TCPConnection::pointer connection_;
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
+	boost::asio::io_context& io_context_;
+	TCPConnection::pointer connection_;
+	boost::asio::ip::tcp::resolver resolver_;
 };
 
 
@@ -117,10 +117,10 @@ private:
 	void handleAccept(TCPConnection::pointer newConnection,
 		const boost::system::error_code& error);
 
-	boost::asio::io_context& io_context_;
-	boost::asio::ip::tcp::acceptor acceptor_;
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
+	boost::asio::io_context& io_context_;
+	boost::asio::ip::tcp::acceptor acceptor_;
 };
 
 #endif /* TCP_HPP */

@@ -3,8 +3,8 @@
 Runner::Runner(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 		:
 			config_(config),
-			io_context_(io_context),
-			log_(log)
+			log_(log),
+			io_context_(io_context)
 	{	}
 
 	Runner::~Runner()

@@ -46,7 +46,8 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 	if (!error || error == boost::asio::error::eof)
 	{
 		log_->write("["+config_->modeToString()+"], SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "
+				socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "+
+				std::to_string(bytes_transferred)+" "
 				, Log::Level::INFO);
 		log_->write(" [TCPConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
 		
@@ -88,7 +89,9 @@ void TCPConnection::handleWrite(const boost::system::error_code& error,
 {
 	if (!error || error == boost::asio::error::broken_pipe)
 	{
-		log_->write(" [TCPConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) , Log::Level::DEBUG);
+		log_->write(" [TCPConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) +" "+
+				std::to_string(bytes_transferred)+" ", 
+				Log::Level::DEBUG);
 	} else
 	{
 		log_->write(" [TCPConnection handleWrite] " + error.what(), Log::Level::ERROR);

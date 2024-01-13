@@ -53,7 +53,6 @@ private:
 		std::string userAgent;
 	};
 
-
 	/*
 	* RunMode is declared in general.hpp
 	*/
@@ -68,7 +67,7 @@ private:
 	* It contains the main yaml node of the config file
 	* For more information see Config default constructor and also in general.cpp function validateConfig
 	*/
-	const YAML::Node& configYaml_;
+	const YAML::Node configYaml_;
 
 	std::string listenIp_;
 	unsigned short listenPort_;
@@ -88,6 +87,13 @@ public:
 	}
 
 	/*
+	* Objects for separation of configuration sections (log, agent, server)
+	* For more information see the private items
+	*/
+	const Log log_;
+	const Server server_;
+	const Agent agent_;
+	/*
 	* Copy constructor if you want to copy and initialize it
 	*/
 	explicit Config(const Config::pointer& config);
@@ -96,14 +102,6 @@ public:
 	* Default distructor
 	*/
 	~Config();
-
-	/*
-	* Objects for separation of configuration sections (log, agent, server)
-	* For more information see the private items
-	*/
-	const Log log_;
-	const Server server_;
-	const Agent agent_;
 
 	/*
 	* Functions to handle private members

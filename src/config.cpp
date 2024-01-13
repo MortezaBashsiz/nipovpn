@@ -6,6 +6,8 @@ Config::Config(const RunMode& mode,
 		runMode_(mode),
 		filePath_(filePath),
 		configYaml_(YAML::LoadFile(filePath)),
+		listenIp_("127.0.0.1"),
+		listenPort_(0),
 		log_
 		{
 			configYaml_["log"]["logLevel"].as<std::string>(),
@@ -30,9 +32,7 @@ Config::Config(const RunMode& mode,
 			configYaml_["agent"]["endPoint"].as<std::string>(),
 			configYaml_["agent"]["httpVersion"].as<std::string>(),
 			configYaml_["agent"]["userAgent"].as<std::string>()
-		},
-		listenIp_("127.0.0.1"),
-		listenPort_(0)
+		}
 {
 	switch (runMode_){
 	case RunMode::server:
@@ -49,10 +49,10 @@ Config::Config(const RunMode& mode,
 Config::Config(const Config::pointer& config)
 	:
 		runMode_(config->runMode()),
+		configYaml_(YAML::LoadFile(config->filePath())),
 		log_(config->log()),
 		server_(config->server()),
-		agent_(config->agent()),
-		configYaml_(YAML::LoadFile(config->filePath()))
+		agent_(config->agent())
 {	}
 
 Config::~Config()
