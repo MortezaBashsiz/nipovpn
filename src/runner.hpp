@@ -1,3 +1,4 @@
+#pragma once
 #ifndef RUNNER_HPP
 #define RUNNER_HPP
 

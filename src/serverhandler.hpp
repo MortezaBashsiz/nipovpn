@@ -1,3 +1,4 @@
+#pragma once
 #ifndef SERVERHADLER_HPP
 #define SERVERHADLER_HPP
 
