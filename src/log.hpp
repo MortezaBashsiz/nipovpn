@@ -50,7 +50,7 @@ public:
 	/*
 	*	This function writes message in to the log file
 	*/
-	const void write(const std::string& message, const Level& level) const;
+	void write(const std::string& message, const Level& level) const;
 
 private:
 

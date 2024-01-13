@@ -6,14 +6,14 @@ Request::Request(const std::shared_ptr<Config>& config, const std::shared_ptr<Lo
 		log_(log),
 		buffer_(buffer),
 		parsedHttpRequest_(),
+		httpType_(Request::HttpType::HTTPS),
 		parsedTlsRequest_
 		{
 			"",
 			"",
 			TlsTypes::TLSHandshake,
 			TlsSteps::ClientHello
-		},
-		httpType_(Request::HttpType::HTTPS)
+		}
 {	}
 
 Request::Request(const Request& request)

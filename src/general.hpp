@@ -26,7 +26,7 @@ private:
 /*
 * FUCK function prints it on screen
 */
-inline const void FUCK(const auto& message)
+inline void FUCK(const auto& message)
 {
 	std::cout << "FUCK FUCK FUCK FUCK FUCK FUCK FUCK FUCK : " << message << std::endl;
 }
@@ -55,7 +55,7 @@ inline bool fileExists (const std::string& name) {
 * It checks if all the blocks (log, agent, server) with all items are defined or not
 * Returns the BoolStr structure, See general.cpp
 */
-inline const BoolStr validateConfig(int argc, char const *argv[])
+inline BoolStr validateConfig(int argc, char const *argv[])
 {
 	/*
 	* Initializing default return result
@@ -154,7 +154,7 @@ inline const BoolStr validateConfig(int argc, char const *argv[])
 	return boolStr_;
 }
 
-inline const std::string streambufToString(const boost::asio::streambuf& buff)
+inline std::string streambufToString(const boost::asio::streambuf& buff)
 {
 	std::string result(boost::asio::buffers_begin(buff.data()), boost::asio::buffers_begin(buff.data()) + buff.size());
 	return result;
@@ -168,7 +168,7 @@ inline void copyStreamBuff(const boost::asio::streambuf& source, boost::asio::st
 	target.commit(bytes_copied);
 }
 
-inline const unsigned short hexToInt(const std::string& hexString)
+inline unsigned short hexToInt(const std::string& hexString)
 {
 	std::stringstream hexStr;
 	unsigned short result;
@@ -177,7 +177,7 @@ inline const unsigned short hexToInt(const std::string& hexString)
 	return result;
 }
 
-inline const std::string hexToASCII(const std::string& hex)
+inline std::string hexToASCII(const std::string& hex)
 {
 	std::string ascii = "";
 	for (size_t i = 0; i < hex.length(); i += 2){
@@ -188,7 +188,7 @@ inline const std::string hexToASCII(const std::string& hex)
 	return ascii;
 }
 
-inline const unsigned char charToHex(char& c)
+inline unsigned char charToHex(char& c)
 {
     if ('0' <= c && c <= '9') return c - '0';
     if ('A' <= c && c <= 'F') return c - 'A' + 10;

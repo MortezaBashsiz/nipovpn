@@ -59,13 +59,12 @@ const std::string Log::levelToString(const Level& level) const
 	return result;
 }
 
-const void Log::write(const std::string& message, const Level& level) const
+void Log::write(const std::string& message, const Level& level) const
 {
 	std::ofstream logFile_(config_->log().file, logFile_.out | logFile_.app);
 	if (level <= level_ || level == Level::ERROR){
 		if (logFile_.is_open())
 		{
-			time_t now = time(0);
 			auto time = std::time(nullptr);
 			auto localtime = *std::localtime(&time);
 			std::ostringstream oss;

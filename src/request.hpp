@@ -17,7 +17,6 @@
 * 	to do all operations related to the request
 */
 class Request 
-	: private Uncopyable
 {
 public:
 
@@ -127,11 +126,10 @@ private:
 
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
-	HttpType httpType_;
 	boost::asio::streambuf &buffer_;
 	boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest_;
+	HttpType httpType_;
 	TlsRequest parsedTlsRequest_;
-
 };
 
 #endif /* REQUEST_HPP */
