@@ -1,3 +1,4 @@
+#pragma once
 #ifndef TCP_HPP
 #define TCP_HPP
 

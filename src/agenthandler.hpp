@@ -1,3 +1,4 @@
+#pragma once
 #ifndef AGENTHADLER_HPP
 #define AGENTHADLER_HPP
 

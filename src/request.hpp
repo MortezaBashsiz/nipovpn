@@ -1,3 +1,4 @@
+#pragma once
 #ifndef REQUEST_HPP
 #define REQUEST_HPP
 

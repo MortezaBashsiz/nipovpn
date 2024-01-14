@@ -1,3 +1,4 @@
+#pragma once
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 

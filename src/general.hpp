@@ -1,3 +1,4 @@
+#pragma once
 #ifndef GENERAL_HPP
 #define GENERAL_HPP
 
