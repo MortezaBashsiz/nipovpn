@@ -19,15 +19,11 @@ void AgentHandler::handle()
 	Request::pointer request_ = Request::create(config_, log_, readBuffer_);
 	request_->detectType();
 	log_->write("Request detail : "+request_->toString(), Log::Level::DEBUG);
-	// boost::asio::io_context io_context_;
-	// TCPClient:pointer tcpClient_ = TCPClient::create(io_context_, config_, log_);
-	if (request_->httpType() == Request::HttpType::HTTPS)
-	{
-		copyStreamBuff(readBuffer_, writeBuffer_);
-	}
-	else
-	{
-		copyStreamBuff(readBuffer_, writeBuffer_);
-	}
+	boost::asio::io_context io_context_;
+	TCPClient::pointer tcpClient_ = 
+		TCPClient::create(io_context_, config_, log_);
+	copyStreamBuff(readBuffer_, writeBuffer_);
+	tcpClient_->doConnect();
+	tcpClient_->doWrite(writeBuffer_, readBuffer_);
 }
 

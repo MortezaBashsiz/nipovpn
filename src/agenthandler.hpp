@@ -6,8 +6,7 @@
 #include "log.hpp"
 #include "request.hpp"
 #include "general.hpp"
-
-class TCPClient;
+#include "tcpclient.hpp"
 
 /*
 * This class is the handler if the process is running in mode agent

@@ -6,7 +6,7 @@
 
 #include "config.hpp"
 #include "log.hpp"
-#include "tcp.hpp"
+#include "tcpserver.hpp"
 
 /*
 * This class is responsible to run the program and handle the exceptions
