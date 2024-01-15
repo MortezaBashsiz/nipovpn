@@ -43,8 +43,6 @@ public:
 
 	void doWrite();
 
-	void doWrite(boost::asio::streambuf buff);
-
 	void handleWrite(const boost::system::error_code& error,
 		size_t bytes_transferred);
 	

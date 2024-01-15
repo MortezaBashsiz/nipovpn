@@ -34,7 +34,8 @@ void TCPServerConnection::doRead()
 	boost::asio::async_read(
 		socket_,
 		readBuffer_,
-		boost::bind(&TCPServerConnection::handleRead, shared_from_this(),
+		boost::bind(&TCPServerConnection::handleRead, 
+			shared_from_this(),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred)
 	);
@@ -45,11 +46,11 @@ void TCPServerConnection::handleRead(const boost::system::error_code& error,
 {
 	if (!error || error == boost::asio::error::eof)
 	{
-		log_->write("["+config_->modeToString()+"], SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "+
-				std::to_string(bytes_transferred)+" "
+		log_->write("["+config_->modeToString()+"] [SRC " +
+				socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+				std::to_string(bytes_transferred)+"] "
 				, Log::Level::INFO);
-		log_->write(" [TCPServerConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
+		log_->write("[TCPServerConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
 		
 		if (config_->runMode() == RunMode::agent)
 		{
@@ -63,7 +64,7 @@ void TCPServerConnection::handleRead(const boost::system::error_code& error,
 		doWrite();
 	} else
 	{
-		log_->write(" [handleRead] " + error.what(), Log::Level::ERROR);
+		log_->write("[handleRead] " + error.what(), Log::Level::ERROR);
 	}
 }
 
@@ -72,16 +73,11 @@ void TCPServerConnection::doWrite()
 	boost::asio::async_write(
 		socket_,
 		writeBuffer_,
-		boost::bind(&TCPServerConnection::handleWrite, shared_from_this(),
+		boost::bind(&TCPServerConnection::handleWrite, 
+			shared_from_this(),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred)
 	);
-}
-
-void TCPServerConnection::doWrite(boost::asio::streambuf buff)
-{
-	writeBuffer(buff);
-	doWrite();
 }
 
 void TCPServerConnection::handleWrite(const boost::system::error_code& error,

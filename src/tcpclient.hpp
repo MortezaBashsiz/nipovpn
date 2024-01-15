@@ -40,8 +40,6 @@ public:
 
 	void doWrite();
 
-	void doWrite(boost::asio::streambuf buff);
-
 	void handleWrite(const boost::system::error_code& error,
 		size_t bytes_transferred);
 	
@@ -64,7 +62,7 @@ class TCPClient
 		public boost::enable_shared_from_this<TCPClient>
 {
 public:
-	typedef std::shared_ptr<TCPClient> pointer;
+	typedef boost::shared_ptr<TCPClient> pointer;
 
 	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
 	{
@@ -81,7 +79,7 @@ private:
 		explicit TCPClient(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log);
 
 	void handleConnect(TCPClientConnection::pointer newConnection,
-		const boost::system::error_code& error, const std::shared_ptr<Log>& log);
+		const boost::system::error_code& error);
 
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
