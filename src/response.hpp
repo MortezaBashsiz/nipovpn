@@ -7,7 +7,6 @@ class Response
 public:
 	Response();
 	~Response();
-
 };
 
 #endif /* RESPONSE_HPP */

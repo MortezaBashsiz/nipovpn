@@ -47,9 +47,9 @@ void TCPServerConnection::handleRead(const boost::system::error_code& error,
 	if (!error || error == boost::asio::error::eof)
 	{
 		log_->write("["+config_->modeToString()+"] [SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
-				std::to_string(bytes_transferred)+"] "
-				, Log::Level::INFO);
+			socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+			std::to_string(bytes_transferred)+"] ",
+			Log::Level::INFO);
 		log_->write("[TCPServerConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
 		
 		if (config_->runMode() == RunMode::agent)
@@ -85,12 +85,12 @@ void TCPServerConnection::handleWrite(const boost::system::error_code& error,
 {
 	if (!error || error == boost::asio::error::broken_pipe)
 	{
-		log_->write(" [TCPServerConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) +" "+
-				std::to_string(bytes_transferred)+" ", 
-				Log::Level::DEBUG);
+		log_->write("[TCPServerConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) +" "+
+			std::to_string(bytes_transferred)+" ", 
+			Log::Level::DEBUG);
 	} else
 	{
-		log_->write(" [TCPServerConnection handleWrite] " + error.what(), Log::Level::ERROR);
+		log_->write("[TCPServerConnection handleWrite] " + error.what(), Log::Level::ERROR);
 	}
 }
 
@@ -118,8 +118,11 @@ void TCPServer::startAccept()
 		TCPServerConnection::create(io_context_, config_, log_);
 	
 	acceptor_.async_accept(newConnection->socket(),
-			boost::bind(&TCPServer::handleAccept, this, newConnection,
-				boost::asio::placeholders::error));
+		boost::bind(&TCPServer::handleAccept, 
+			this, 
+			newConnection,
+			boost::asio::placeholders::error)
+		);
 }
 
 void TCPServer::handleAccept(TCPServerConnection::pointer newConnection,
