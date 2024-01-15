@@ -31,9 +31,10 @@ void TCPServerConnection::listen()
 
 void TCPServerConnection::doRead()
 {
-	boost::asio::async_read(
+	boost::asio::async_read_until(
 		socket_,
 		readBuffer_,
+		"\r\n\r\n",
 		boost::bind(&TCPServerConnection::handleRead, 
 			shared_from_this(),
 			boost::asio::placeholders::error,
@@ -49,9 +50,7 @@ void TCPServerConnection::handleRead(const boost::system::error_code& error,
 		log_->write("["+config_->modeToString()+"] [SRC " +
 			socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
 			std::to_string(bytes_transferred)+"] ",
-			Log::Level::INFO);
-		log_->write("[TCPServerConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
-		
+			Log::Level::INFO);		
 		if (config_->runMode() == RunMode::agent)
 		{
 			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_);
@@ -83,7 +82,7 @@ void TCPServerConnection::doWrite()
 void TCPServerConnection::handleWrite(const boost::system::error_code& error,
 	size_t bytes_transferred)
 {
-	if (!error || error == boost::asio::error::broken_pipe)
+	if (!error)
 	{
 		log_->write("[TCPServerConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) +" "+
 			std::to_string(bytes_transferred)+" ", 

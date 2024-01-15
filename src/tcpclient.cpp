@@ -26,9 +26,10 @@ const boost::asio::streambuf& TCPClientConnection::readBuffer() const
 
 void TCPClientConnection::doRead()
 {
-	boost::asio::async_read(
+	boost::asio::async_read_until(
 		socket_,
 		readBuffer_,
+		"\r\n\r\n",
 		boost::bind(&TCPClientConnection::handleRead, 
 			shared_from_this(),
 			boost::asio::placeholders::error,
@@ -42,10 +43,9 @@ void TCPClientConnection::handleRead(const boost::system::error_code& error,
 	if (!error || error == boost::asio::error::eof)
 	{
 		log_->write("["+config_->modeToString()+"], SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "+
-				std::to_string(bytes_transferred)+" "
-				, Log::Level::INFO);
-		log_->write("[TCPClientConnection handleRead] Buffer : \n" + streambufToString(readBuffer_) , Log::Level::DEBUG);
+			socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+" "+
+			std::to_string(bytes_transferred)+" ",
+			Log::Level::INFO);
 	} else
 	{
 		log_->write("[handleRead] " + error.what(), Log::Level::ERROR);
