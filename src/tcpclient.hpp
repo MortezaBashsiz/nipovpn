@@ -16,13 +16,14 @@
 * First we will create a TCPServer and then in each accept action one connection will be created
 */
 class TCPClientConnection
-	: private Uncopyable,
-		public boost::enable_shared_from_this<TCPClientConnection>
+	: public boost::enable_shared_from_this<TCPClientConnection>
 {
 public:
 	typedef boost::shared_ptr<TCPClientConnection> pointer;
 
-	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+	static pointer create(boost::asio::io_context& io_context, 
+		const std::shared_ptr<Config>& config, 
+		const std::shared_ptr<Log>& log)
 	{
 		return pointer(new TCPClientConnection(io_context, config, log));
 	}
@@ -44,7 +45,9 @@ public:
 		size_t bytes_transferred);
 	
 private:
-	explicit TCPClientConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log);
+	explicit TCPClientConnection(boost::asio::io_context& io_context, 
+		const std::shared_ptr<Config>& config, 
+		const std::shared_ptr<Log>& log);
 	
 	boost::asio::ip::tcp::socket socket_;
 	const std::shared_ptr<Config>& config_;
@@ -57,14 +60,14 @@ private:
 * Thic class is to create and handle TCP client
 * Connects to the endpoint and handles the connection
 */
-class TCPClient 
-	: private Uncopyable,
-		public boost::enable_shared_from_this<TCPClient>
+class TCPClient
 {
 public:
 	typedef boost::shared_ptr<TCPClient> pointer;
 
-	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+	static pointer create(boost::asio::io_context& io_context, 
+		const std::shared_ptr<Config>& config, 
+		const std::shared_ptr<Log>& log)
 	{
 		return pointer(new TCPClient(io_context, config, log));
 	}
@@ -76,7 +79,9 @@ public:
 	void doWrite(const boost::asio::streambuf& wrtiteBuff, boost::asio::streambuf& readBuff);
 
 private:
-		explicit TCPClient(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log);
+		explicit TCPClient(boost::asio::io_context& io_context, 
+			const std::shared_ptr<Config>& config, 
+			const std::shared_ptr<Log>& log);
 
 	void handleConnect(TCPClientConnection::pointer newConnection,
 		const boost::system::error_code& error);

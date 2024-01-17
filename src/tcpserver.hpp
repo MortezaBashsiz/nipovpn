@@ -7,7 +7,6 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/bind/bind.hpp>
 
-
 #include "serverhandler.hpp"
 #include "agenthandler.hpp"
 #include "general.hpp"
@@ -17,13 +16,14 @@
 * First we will create a TCPServer and then in each accept action one connection will be created
 */
 class TCPServerConnection
-	: private Uncopyable,
-		public boost::enable_shared_from_this<TCPServerConnection>
+	: public boost::enable_shared_from_this<TCPServerConnection>
 {
 public:
 	typedef boost::shared_ptr<TCPServerConnection> pointer;
 
-	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+	static pointer create(boost::asio::io_context& io_context, 
+		const std::shared_ptr<Config>& config, 
+		const std::shared_ptr<Log>& log)
 	{
 		return pointer(new TCPServerConnection(io_context, config, log));
 	}
@@ -47,7 +47,9 @@ public:
 		size_t bytes_transferred);
 	
 private:
-	explicit TCPServerConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log);
+	explicit TCPServerConnection(boost::asio::io_context& io_context, 
+		const std::shared_ptr<Config>& config, 
+		const std::shared_ptr<Log>& log);
 	
 	boost::asio::ip::tcp::socket socket_;
 	const std::shared_ptr<Config>& config_;
@@ -60,19 +62,21 @@ private:
 * Listening to the IP:Port and handling the socket is here
 */
 class TCPServer 
-	: private Uncopyable,
-		public boost::enable_shared_from_this<TCPServer>
 {
 public:
-	typedef std::shared_ptr<TCPServer> pointer;
+	typedef boost::shared_ptr<TCPServer> pointer;
 
-	static pointer create(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+	static pointer create(boost::asio::io_context& io_context, 
+		const std::shared_ptr<Config>& config, 
+		const std::shared_ptr<Log>& log)
 	{
 		return pointer(new TCPServer(io_context, config, log));
 	}
 
 private:
-	explicit TCPServer(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log);
+	explicit TCPServer(boost::asio::io_context& io_context, 
+		const std::shared_ptr<Config>& config, 
+		const std::shared_ptr<Log>& log);
 
 	void startAccept();
 

@@ -3,7 +3,9 @@
 /*
 * TCPServerConnection
 */
-TCPServerConnection::TCPServerConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+TCPServerConnection::TCPServerConnection(boost::asio::io_context& io_context, 
+	const std::shared_ptr<Config>& config, 
+	const std::shared_ptr<Log>& log)
 	: socket_(io_context),
 		config_(config),
 		log_(log)
@@ -96,7 +98,9 @@ void TCPServerConnection::handleWrite(const boost::system::error_code& error,
 /*
 * TCPServer
 */
-TCPServer::TCPServer(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+TCPServer::TCPServer(boost::asio::io_context& io_context, 
+	const std::shared_ptr<Config>& config, 
+	const std::shared_ptr<Log>& log)
 	: config_(config),
 		log_(log),
 		io_context_(io_context),

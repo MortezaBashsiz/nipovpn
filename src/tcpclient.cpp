@@ -3,7 +3,9 @@
 /*
 * TCPClientConnection
 */
-TCPClientConnection::TCPClientConnection(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+TCPClientConnection::TCPClientConnection(boost::asio::io_context& io_context, 
+	const std::shared_ptr<Config>& config, 
+	const std::shared_ptr<Log>& log)
 	: socket_(io_context),
 		config_(config),
 		log_(log)
@@ -82,7 +84,9 @@ void TCPClientConnection::handleWrite(const boost::system::error_code& error,
 /*
 * TCPClient
 */
-TCPClient::TCPClient(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log)
+TCPClient::TCPClient(boost::asio::io_context& io_context, 
+	const std::shared_ptr<Config>& config, 
+	const std::shared_ptr<Log>& log)
 	: config_(config),
 		log_(log),
 		io_context_(io_context),
@@ -103,7 +107,7 @@ void TCPClient::doConnect()
 	boost::asio::async_connect(connection_->socket(),
 		endpoint,
 		boost::bind(&TCPClient::handleConnect, 
-			shared_from_this(), 
+			this, 
 			connection_,
 			boost::asio::placeholders::error)
 		);
@@ -121,7 +125,7 @@ void TCPClient::doConnect(const std::string& ip, const unsigned short& port)
 	boost::asio::async_connect(connection_->socket(),
 		endpoint,
 		boost::bind(&TCPClient::handleConnect, 
-			shared_from_this(), 
+			this, 
 			connection_,
 			boost::asio::placeholders::error)
 		);

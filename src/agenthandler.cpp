@@ -21,6 +21,7 @@ void AgentHandler::handle()
 	log_->write("Request detail : "+request_->toString(), Log::Level::DEBUG);
 	boost::asio::io_context io_context_;
 	TCPClient::pointer tcpClient_ = TCPClient::create(io_context_, config_, log_);
+	// io_context_.run();
 	copyStreamBuff(readBuffer_, writeBuffer_);
 	tcpClient_->doConnect();
 	tcpClient_->doWrite(writeBuffer_, readBuffer_);
