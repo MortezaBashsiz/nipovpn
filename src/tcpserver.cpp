@@ -5,10 +5,12 @@
 */
 TCPServerConnection::TCPServerConnection(boost::asio::io_context& io_context, 
 	const std::shared_ptr<Config>& config, 
-	const std::shared_ptr<Log>& log)
+	const std::shared_ptr<Log>& log,
+	const TCPClient::pointer& client)
 	: socket_(io_context),
 		config_(config),
-		log_(log)
+		log_(log),
+		client_(client)
 { }
 
 boost::asio::ip::tcp::socket& TCPServerConnection::socket()
@@ -55,7 +57,7 @@ void TCPServerConnection::handleRead(const boost::system::error_code& error,
 			Log::Level::INFO);		
 		if (config_->runMode() == RunMode::agent)
 		{
-			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_);
+			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
 			agentHandler_->handle();
 		} else if (config_->runMode() == RunMode::server)
 		{
@@ -100,9 +102,11 @@ void TCPServerConnection::handleWrite(const boost::system::error_code& error,
 */
 TCPServer::TCPServer(boost::asio::io_context& io_context, 
 	const std::shared_ptr<Config>& config, 
-	const std::shared_ptr<Log>& log)
+	const std::shared_ptr<Log>& log,
+	const TCPClient::pointer& client)
 	: config_(config),
 		log_(log),
+		client_(client),
 		io_context_(io_context),
 		acceptor_(
 			io_context,
@@ -118,7 +122,7 @@ TCPServer::TCPServer(boost::asio::io_context& io_context,
 void TCPServer::startAccept()
 {
 	TCPServerConnection::pointer newConnection =
-		TCPServerConnection::create(io_context_, config_, log_);
+		TCPServerConnection::create(io_context_, config_, log_, client_);
 	
 	acceptor_.async_accept(newConnection->socket(),
 		boost::bind(&TCPServer::handleAccept, 
