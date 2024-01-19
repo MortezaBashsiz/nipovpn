@@ -1,6 +1,6 @@
 #pragma once
-#ifndef TCPServer_HPP
-#define TCPServer_HPP
+#ifndef TCPSERVER_HPP
+#define TCPSERVER_HPP
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
@@ -10,55 +10,7 @@
 #include "serverhandler.hpp"
 #include "agenthandler.hpp"
 #include "general.hpp"
-
-/*
-*	Thic class is to create and handle TCP connection
-* First we will create a TCPServer and then in each accept action one connection will be created
-*/
-class TCPServerConnection
-	: public boost::enable_shared_from_this<TCPServerConnection>
-{
-public:
-	typedef boost::shared_ptr<TCPServerConnection> pointer;
-
-	static pointer create(boost::asio::io_context& io_context, 
-		const std::shared_ptr<Config>& config, 
-		const std::shared_ptr<Log>& log,
-		const TCPClient::pointer& client)
-	{
-		return pointer(new TCPServerConnection(io_context, config, log, client));
-	}
-
-	boost::asio::ip::tcp::socket& socket();
-
-	void writeBuffer(const boost::asio::streambuf& buffer);
-
-	const boost::asio::streambuf& readBuffer() const;
-
-	void listen();
-
-	void doRead();
-
-	void handleRead(const boost::system::error_code& error,
-		size_t bytes_transferred);
-
-	void doWrite();
-
-	void handleWrite(const boost::system::error_code& error,
-		size_t bytes_transferred);
-	
-private:
-	explicit TCPServerConnection(boost::asio::io_context& io_context, 
-		const std::shared_ptr<Config>& config, 
-		const std::shared_ptr<Log>& log,
-		const TCPClient::pointer& client);
-	
-	boost::asio::ip::tcp::socket socket_;
-	const std::shared_ptr<Config>& config_;
-	const std::shared_ptr<Log>& log_;
-	const TCPClient::pointer& client_;
-	boost::asio::streambuf readBuffer_, writeBuffer_;
-};
+#include "tcpconnection.hpp"
 
 /*
 *	Thic class is to create and handle TCP server
@@ -85,7 +37,7 @@ private:
 
 	void startAccept();
 
-	void handleAccept(TCPServerConnection::pointer newConnection,
+	void handleAccept(TCPConnection::pointer newConnection,
 		const boost::system::error_code& error);
 
 	const std::shared_ptr<Config>& config_;
@@ -95,4 +47,4 @@ private:
 	boost::asio::ip::tcp::acceptor acceptor_;
 };
 
-#endif /* TCPServer_HPP */
+#endif /* TCPSERVER_HPP */

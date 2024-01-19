@@ -16,8 +16,7 @@ ServerHandler::~ServerHandler()
 
 void ServerHandler::handle()
 {
-	FUCK("ServerHandler::handle : "+streambufToString(readBuffer_));
 	std::iostream os(&writeBuffer_);
-	std::string message("OK");
+	std::string message("SERVER HELLO\r\n\r\n");
 	os << message;
 }

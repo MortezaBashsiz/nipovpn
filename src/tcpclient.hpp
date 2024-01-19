@@ -1,6 +1,6 @@
 #pragma once
-#ifndef TCPClient_HPP
-#define TCPClient_HPP
+#ifndef TCPCLIENT_HPP
+#define TCPCLIENT_HPP
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
@@ -54,4 +54,4 @@ private:
 	boost::asio::ip::tcp::resolver resolver_;
 };
 
-#endif /* TCPClient_HPP */
+#endif /* TCPCLIENT_HPP */

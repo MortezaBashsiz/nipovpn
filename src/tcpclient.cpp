@@ -45,7 +45,6 @@ void TCPClient::doConnect()
 
 	boost::asio::ip::tcp::resolver resolver(io_context_);
 	auto endpoint = resolver.resolve(config_->agent().serverIp.c_str(), std::to_string(config_->agent().serverPort).c_str());
-	
 	boost::asio::async_connect(socket_,
 		endpoint,
 		boost::bind(&TCPClient::handleConnect, 
@@ -56,6 +55,8 @@ void TCPClient::doConnect()
 
 void TCPClient::handleConnect(const boost::system::error_code& error)
 {
+	boost::asio::socket_base::keep_alive option(true);
+	socket_.set_option(option);
 	if (!error)
 	{
 		log_->write("[TCPClient handleConnect] [DST] " + 
@@ -89,8 +90,37 @@ void TCPClient::handleWrite(const boost::system::error_code& error,
 		log_->write("[TCPClient handleWrite] Buffer : \n" + streambufToString(writeBuffer_) +" "+
 			std::to_string(bytes_transferred)+" ", 
 			Log::Level::DEBUG);
+		doRead();
 	} else
 	{
 		log_->write("[TCPClient handleWrite] " + error.what(), Log::Level::ERROR);
+	}
+}
+
+void TCPClient::doRead()
+{
+	boost::asio::async_read_until(
+		socket_,
+		readBuffer_,
+		"\r\n\r\n",
+		boost::bind(&TCPClient::handleRead, 
+			this,
+			boost::asio::placeholders::error,
+			boost::asio::placeholders::bytes_transferred)
+	);
+}
+
+void TCPClient::handleRead(const boost::system::error_code& error,
+	size_t bytes_transferred)
+{
+	if (!error || error == boost::asio::error::eof)
+	{
+		log_->write("["+config_->modeToString()+"] [SRC " +
+			socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+			std::to_string(bytes_transferred)+"] ",
+			Log::Level::INFO);
+	} else
+	{
+		log_->write("[handleRead] " + error.what(), Log::Level::ERROR);
 	}
 }
