@@ -6,8 +6,7 @@
 #include "log.hpp"
 #include "request.hpp"
 #include "general.hpp"
-
-class TCPClient;
+#include "tcpclient.hpp"
 
 /*
 * This class is the handler if the process is running in mode agent
@@ -21,9 +20,10 @@ public:
 	static pointer create(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
 		const std::shared_ptr<Config>& config,
-		const std::shared_ptr<Log>& log)
+		const std::shared_ptr<Log>& log,
+		const TCPClient::pointer& client)
 	{
-		return pointer(new AgentHandler(readBuffer, writeBuffer, config, log));
+		return pointer(new AgentHandler(readBuffer, writeBuffer, config, log, client));
 	}
 
 	~AgentHandler();
@@ -38,10 +38,12 @@ private:
 	AgentHandler(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
 		const std::shared_ptr<Config>& config,
-		const std::shared_ptr<Log>& log);
+		const std::shared_ptr<Log>& log,
+		const TCPClient::pointer& client);
 
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
+	const TCPClient::pointer& client_;
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
 };
 

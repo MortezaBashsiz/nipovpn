@@ -16,7 +16,8 @@ void Runner::run()
 	{
 		log_->write("Config initialized in " + config_->modeToString() + " mode ", Log::Level::INFO);
 		log_->write(config_->toString(), Log::Level::DEBUG);
-		TCPServer::pointer tcpServer_ = TCPServer::create(io_context_, config_, log_);
+		TCPClient::pointer tcpClient_ = TCPClient::create(io_context_, config_, log_);
+		TCPServer::pointer tcpServer_ = TCPServer::create(io_context_, config_, log_, tcpClient_);
 		io_context_.run();
 	}
 	catch (std::exception& error)
