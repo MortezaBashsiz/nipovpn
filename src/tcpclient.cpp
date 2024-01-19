@@ -59,9 +59,9 @@ void TCPClient::handleConnect(const boost::system::error_code& error)
 	socket_.set_option(option);
 	if (!error)
 	{
-		log_->write("[TCPClient handleConnect] [DST] " + 
+		log_->write("[TCPClient handleConnect] [DST " + 
 			socket_.remote_endpoint().address().to_string() +":"+ 
-			std::to_string(socket_.remote_endpoint().port())+" ",
+			std::to_string(socket_.remote_endpoint().port())+"] ",
 			Log::Level::DEBUG);
 		doWrite();
 	} else
@@ -87,8 +87,8 @@ void TCPClient::handleWrite(const boost::system::error_code& error,
 {
 	if (!error)
 	{
-		log_->write("[TCPClient handleWrite] Buffer : \n" + streambufToString(writeBuffer_) +" "+
-			std::to_string(bytes_transferred)+" ", 
+		log_->write("[TCPClient handleWrite] [Bytes " +
+			std::to_string(bytes_transferred)+"]", 
 			Log::Level::DEBUG);
 		doRead();
 	} else

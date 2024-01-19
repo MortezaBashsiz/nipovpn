@@ -88,8 +88,8 @@ void TCPConnection::handleWrite(const boost::system::error_code& error,
 {
 	if (!error)
 	{
-		log_->write("[TCPConnection handleWrite] Buffer : \n" + streambufToString(writeBuffer_) +" "+
-			std::to_string(bytes_transferred)+" ", 
+		log_->write("[TCPConnection handleWrite] [Bytes " +
+			std::to_string(bytes_transferred)+"] ", 
 			Log::Level::DEBUG);
 	} else
 	{
