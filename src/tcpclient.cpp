@@ -79,28 +79,16 @@ void TCPClient::handleConnect(const boost::system::error_code& error)
 
 void TCPClient::doWrite()
 {
-	boost::asio::async_write(
-		socket_,
-		writeBuffer_,
-		boost::bind(&TCPClient::handleWrite, 
-			this,
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred)
-	);
-}
-
-void TCPClient::handleWrite(const boost::system::error_code& error,
-	size_t bytes_transferred)
-{
-	if (!error)
+	try
 	{
-		log_->write("[TCPClient handleWrite] [Bytes " +
-			std::to_string(bytes_transferred)+"]", 
-			Log::Level::DEBUG);
-		doRead();
-	} else
+		boost::asio::write(
+			socket_,
+			writeBuffer_
+		);
+	}
+	catch (std::exception& error)
 	{
-		log_->write("[TCPClient handleWrite] " + error.what(), Log::Level::ERROR);
+		log_->write(error.what(), Log::Level::ERROR);
 	}
 }
 

@@ -43,7 +43,6 @@ private:
 			const std::shared_ptr<Log>& log);
 
 	void handleConnect(const boost::system::error_code& error);
-	void handleWrite(const boost::system::error_code& error,	size_t bytes_transferred);
 	void handleRead(const boost::system::error_code& error,	size_t bytes_transferred);
 
 	const std::shared_ptr<Config>& config_;
