@@ -59,10 +59,17 @@ void TCPClient::handleConnect(const boost::system::error_code& error)
 	socket_.set_option(option);
 	if (!error)
 	{
-		log_->write("[TCPClient handleConnect] [DST " + 
-			socket_.remote_endpoint().address().to_string() +":"+ 
-			std::to_string(socket_.remote_endpoint().port())+"] ",
-			Log::Level::DEBUG);
+		try
+		{
+			log_->write("[TCPClient handleConnect] [DST " + 
+				socket_.remote_endpoint().address().to_string() +":"+ 
+				std::to_string(socket_.remote_endpoint().port())+"] ",
+				Log::Level::DEBUG);
+		}
+		catch (std::exception& error)
+		{
+			log_->write(error.what(), Log::Level::ERROR);
+		}
 		doWrite();
 	} else
 	{
@@ -115,10 +122,17 @@ void TCPClient::handleRead(const boost::system::error_code& error,
 {
 	if (!error || error == boost::asio::error::eof)
 	{
-		log_->write("["+config_->modeToString()+"] [SRC " +
-			socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
-			std::to_string(bytes_transferred)+"] ",
-			Log::Level::INFO);
+		try
+		{
+			log_->write("["+config_->modeToString()+"] [SRC " +
+				socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+				std::to_string(bytes_transferred)+"] ",
+				Log::Level::INFO);
+		}
+		catch (std::exception& error)
+		{
+			log_->write(error.what(), Log::Level::ERROR);
+		}
 	} else
 	{
 		log_->write("[handleRead] " + error.what(), Log::Level::ERROR);

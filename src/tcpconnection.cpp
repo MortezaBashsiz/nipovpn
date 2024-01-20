@@ -51,10 +51,17 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 {
 	if (!error || error == boost::asio::error::eof)
 	{
-		log_->write("["+config_->modeToString()+"] [SRC " +
-			socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
-			std::to_string(bytes_transferred)+"] ",
-			Log::Level::INFO);		
+		try
+		{
+			log_->write("["+config_->modeToString()+"] [SRC " +
+				socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+				std::to_string(bytes_transferred)+"] ",
+				Log::Level::INFO);
+		}
+		catch (std::exception& error)
+		{
+			log_->write(error.what(), Log::Level::ERROR);
+		}
 		if (config_->runMode() == RunMode::agent)
 		{
 			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
