@@ -107,25 +107,56 @@ public:
 	/*
 	* Functions to handle private members
 	*/
-	const Log& log() const;
+	inline const Config::Log& log() const
+	{
+		return log_;
+	}
+	inline const Config::Server& server() const
+	{
+		return server_;
+	}
+	inline const Config::Agent& agent() const
+	{
+		return agent_;
+	}
+	inline const std::string& listenIp() const
+	{
+		return listenIp_;
+	}
 
-	const Server& server() const;
-
-	const Agent& agent() const;
-
-	const std::string& listenIp() const;
-
-	void listenIp(std::string ip);
-
-	const unsigned short& listenPort() const;
-
-	void listenPort(unsigned short port);
-
-	const RunMode& runMode() const;
-
-	const std::string& filePath() const;
-
-	const std::string modeToString() const;
+	inline void listenIp(std::string ip)
+	{
+		listenIp_ = ip;
+	}
+	inline const unsigned short& listenPort() const
+	{
+		return listenPort_;
+	}
+	inline void listenPort(unsigned short port)
+	{
+		listenPort_ = port;
+	}
+	inline const RunMode& runMode() const
+	{
+		return runMode_;
+	}
+	inline const std::string& filePath() const
+	{
+		return filePath_;
+	}
+	inline const std::string modeToString() const
+	{
+		switch (runMode_){
+			case RunMode::server:
+				return "server";
+				break;
+			case RunMode::agent:
+				return "agent";
+				break;
+			default:
+				return "UNKNOWN MODE";
+		}
+	}
 
 	const std::string toString() const;
 
