@@ -29,35 +29,9 @@ Log::Log(const std::shared_ptr<Log>& log)
 		logFileClosed(log->logFileClosed),
 		level_(log->level_)
 {}
+
 Log::~Log()
 {}
-
-const std::shared_ptr<Config>& Log::config() const
-{
-	return config_;
-}
-
-const Log::Level& Log::level() const
-{
-	return level_;
-}
-
-const std::string Log::levelToString(const Level& level) const
-{
-	std::string result("");
-	switch (level){
-		case Level::INFO:
-			result = "INFO";
-			break;
-		case Level::ERROR:
-			result = "ERROR";
-			break;
-		case Level::DEBUG:
-			result = "DEBUG";
-			break;
-	}
-	return result;
-}
 
 void Log::write(const std::string& message, const Level& level) const
 {

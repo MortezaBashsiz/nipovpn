@@ -6,7 +6,9 @@
 
 #include "config.hpp"
 #include "log.hpp"
+#include "request.hpp"
 #include "general.hpp"
+#include "tcpclient.hpp"
 
 class ServerHandler 
 	: private Uncopyable

@@ -20,9 +20,11 @@ void AgentHandler::handle()
 {
 	Request::pointer request_ = Request::create(config_, log_, readBuffer_);
 	request_->detectType();
-	log_->write("Request detail : "+request_->toString(), Log::Level::DEBUG);
+	log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
 	client_->doConnect();
 	client_->writeBuffer(readBuffer_);
 	client_->doWrite();
+	client_->doRead();
+	copyStreamBuff(client_->readBuffer(), writeBuffer_);
 }
 

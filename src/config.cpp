@@ -58,55 +58,6 @@ Config::Config(const Config::pointer& config)
 Config::~Config()
 { }
 
-const Config::Log& Config::log() const
-{
-	return log_;
-}
-const Config::Server& Config::server() const
-{
-	return server_;
-}
-const Config::Agent& Config::agent() const
-{
-	return agent_;
-}
-const std::string& Config::listenIp() const
-{
-	return listenIp_;
-}
-void Config::listenIp(std::string ip)
-{
-	listenIp_ = ip;
-}
-const unsigned short& Config::listenPort() const
-{
-	return listenPort_;
-}
-void Config::listenPort(unsigned short port)
-{
-	listenPort_ = port;
-}
-const RunMode& Config::runMode() const
-{
-	return runMode_;
-}
-const std::string& Config::filePath() const
-{
-	return filePath_;
-}
-const std::string Config::modeToString() const
-{
-	switch (runMode_){
-		case RunMode::server:
-			return "server";
-			break;
-		case RunMode::agent:
-			return "agent";
-			break;
-		default:
-			return "UNKNOWN MODE";
-	}
-}
 const std::string Config::toString() const
 {
 	return std::string("\nConfig :\n")

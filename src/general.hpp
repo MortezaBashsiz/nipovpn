@@ -16,11 +16,11 @@
 */
 class Uncopyable {
 public:
-  Uncopyable(){}
+	Uncopyable(){}
 
 private:
-  Uncopyable(const Uncopyable&);
-  Uncopyable& operator=(const Uncopyable&);
+	Uncopyable(const Uncopyable&);
+	Uncopyable& operator=(const Uncopyable&);
 };
 
 
@@ -164,8 +164,8 @@ inline std::string streambufToString(const boost::asio::streambuf& buff)
 inline void copyStreamBuff(const boost::asio::streambuf& source, boost::asio::streambuf& target)
 {
 	std::size_t bytes_copied = buffer_copy(
-  target.prepare(source.size()), 
-  source.data());
+	target.prepare(source.size()), 
+	source.data());
 	target.commit(bytes_copied);
 }
 
@@ -191,10 +191,26 @@ inline std::string hexToASCII(const std::string& hex)
 
 inline unsigned char charToHex(char& c)
 {
-    if ('0' <= c && c <= '9') return c - '0';
-    if ('A' <= c && c <= 'F') return c - 'A' + 10;
-    if ('a' <= c && c <= 'f') return c - 'a' + 10;
-    std::abort();
+	if ('0' <= c && c <= '9') return c - '0';
+	if ('A' <= c && c <= 'F') return c - 'A' + 10;
+	if ('a' <= c && c <= 'f') return c - 'a' + 10;
+	std::abort();
+}
+
+inline std::vector<std::string> splitString(std::string str, std::string token){
+	std::vector<std::string>result;
+	while(str.size()){
+			const long unsigned index = str.find(token);
+			if(index!=std::string::npos){
+					result.push_back(str.substr(0,index));
+					str = str.substr(index+token.size());
+					if(str.size()==0)result.push_back(str);
+			}else{
+					result.push_back(str);
+					str = "";
+			}
+	}
+	return result;
 }
 
 #endif /* GENERAL_HPP */

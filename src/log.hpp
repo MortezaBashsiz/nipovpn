@@ -39,14 +39,35 @@ public:
 	/*
 	* Functions to handle private members
 	*/
-	const std::shared_ptr<Config>& config() const;
-
-	const Level& level() const;
-
+	inline const std::shared_ptr<Config>& config() const
+	{
+		return config_;
+	}
+	
+	inline const Log::Level& level() const
+	{
+		return level_;
+	}
+	
 	/*
 	*	This fucntion returns string of Log::Level
 	*/
-	const std::string levelToString(const Level& level) const;
+	inline const std::string levelToString(const Level& level) const
+	{
+		std::string result("");
+		switch (level){
+			case Level::INFO:
+				result = "INFO";
+				break;
+			case Level::ERROR:
+				result = "ERROR";
+				break;
+			case Level::DEBUG:
+				result = "DEBUG";
+				break;
+		}
+		return result;
+	}
 
 	/*
 	*	This function writes message in to the log file
