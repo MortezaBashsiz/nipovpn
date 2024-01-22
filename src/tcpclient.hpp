@@ -34,6 +34,7 @@ public:
 
 
 	void doConnect();
+	void doConnect(const std::string& dstIP, const unsigned short& dstPort);
 	void doWrite();
 	void doRead();
 

@@ -69,6 +69,7 @@ void Request::parseHttp()
 	} else
 	{
 		parsedHttpRequest_ = parser.get();
+		setIPPort();
 	}
 }
 
@@ -118,6 +119,51 @@ void Request::parseTls()
 	}
 	if (tmpStr == "17"){
 		parsedTlsRequest_.type = TlsTypes::ApplicationData;
+	}
+	setIPPort();
+}
+
+void Request::setIPPort()
+{
+	std::string target{boost::lexical_cast<std::string>(parsedHttpRequest_.target())};
+	std::vector<std::string> splitted;
+	switch (httpType()){
+		case Request::HttpType::HTTPS:
+			splitted = splitString(target, ":");
+			if (!splitted.empty()){
+				dstIP_=splitted[0];
+				dstPort_ = std::stoi(splitted[1]);
+			} else
+			{
+				log_->write("[Request setIPPort] wrong request", Log::Level::ERROR);
+			}
+		break;
+		case Request::HttpType::HTTP:
+			if (parsedHttpRequest_.method() == boost::beast::http::verb::connect)
+			{
+				splitted = splitString(target, ":");
+				dstIP_=splitted[0];
+				dstPort_=std::stoi(splitted[1]);
+			} else
+			{
+				splitted = 	splitString(
+											splitString(
+												splitString(target, "http://")[1],
+											"/")[0],
+										":");
+				if (!splitted.empty())
+				{
+					dstIP_=splitted[0];
+					if (splitted.size() > 1)
+						dstPort_ = std::stoi(splitted[1]);
+					else
+						dstPort_ = 80;
+				}else
+				{
+					log_->write("[Request setIPPort] wrong request", Log::Level::ERROR);
+				}
+			}
+		break;
 	}
 }
 

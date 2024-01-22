@@ -52,7 +52,22 @@ void TCPClient::doConnect()
 			boost::asio::placeholders::error)
 		);
 }
+void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPort)
+{
+		log_->write("[TCPClient doConnect] [DST] " + 
+		dstIP +":"+ 
+		std::to_string(dstPort)+" ",
+		Log::Level::DEBUG);
 
+	boost::asio::ip::tcp::resolver resolver(io_context_);
+	auto endpoint = resolver.resolve(dstIP.c_str(), std::to_string(dstPort).c_str());
+	boost::asio::async_connect(socket_,
+		endpoint,
+		boost::bind(&TCPClient::handleConnect, 
+			this, 
+			boost::asio::placeholders::error)
+		);
+}
 void TCPClient::handleConnect(const boost::system::error_code& error)
 {
 	boost::asio::socket_base::keep_alive option(true);

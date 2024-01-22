@@ -7,6 +7,7 @@
 #include <boost/asio.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "config.hpp"
 #include "log.hpp"
@@ -114,6 +115,16 @@ public:
 	*/
 	const std::string tlsStepToString() const;
 
+	inline std::string dstIP() const
+	{
+		return dstIP_;
+	}
+
+	inline unsigned short dstPort() const
+	{
+		return dstPort_;
+	}
+
 	/*
 	* This function returns string of request based on the HttpType (HTTP|HTTPS)
 	*/
@@ -125,11 +136,18 @@ private:
 	*/
 	explicit Request(const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log, boost::asio::streambuf& buffer);
 
+	/*
+	* This function returns map of dst IP and Port for request
+	*/
+	void setIPPort();
+
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
 	boost::asio::streambuf &buffer_;
 	boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest_;
 	HttpType httpType_;
+	std::string dstIP_;
+	unsigned short dstPort_;
 	TlsRequest parsedTlsRequest_;
 };
 
