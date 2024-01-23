@@ -18,7 +18,7 @@ boost::asio::ip::tcp::socket& TCPConnection::socket()
 	return socket_;
 }
 
-void TCPConnection::writeBuffer(const boost::asio::streambuf& buffer)
+void TCPConnection::writeBuffer(boost::asio::streambuf& buffer)
 {
 	copyStreamBuff(buffer, writeBuffer_);
 }

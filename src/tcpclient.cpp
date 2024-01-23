@@ -18,12 +18,12 @@ boost::asio::ip::tcp::socket& TCPClient::socket()
 	return socket_;
 }
 
-void TCPClient::writeBuffer(const boost::asio::streambuf& buffer)
+void TCPClient::writeBuffer(boost::asio::streambuf& buffer)
 {
 	copyStreamBuff(buffer, writeBuffer_);
 }
 
-const boost::asio::streambuf& TCPClient::readBuffer() const
+boost::asio::streambuf& TCPClient::readBuffer()
 {
 	return readBuffer_;
 }

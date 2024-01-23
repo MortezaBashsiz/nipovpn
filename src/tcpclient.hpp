@@ -29,8 +29,8 @@ public:
 	}
 
 	boost::asio::ip::tcp::socket& socket();
-	void writeBuffer(const boost::asio::streambuf& buffer);
-	const boost::asio::streambuf& readBuffer() const;
+	void writeBuffer(boost::asio::streambuf& buffer);
+	boost::asio::streambuf& readBuffer();
 
 
 	void doConnect();

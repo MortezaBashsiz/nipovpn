@@ -35,6 +35,5 @@ void ServerHandler::handle()
 		client_->doWrite();
 		client_->doRead();
 		copyStreamBuff(client_->readBuffer(), writeBuffer_);
-		FUCK(streambufToString(client_->readBuffer()));
 	}
 }
