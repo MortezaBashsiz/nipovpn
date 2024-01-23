@@ -37,11 +37,8 @@ void TCPClient::doConnect()
 
 	boost::asio::ip::tcp::resolver resolver(io_context_);
 	auto endpoint = resolver.resolve(config_->agent().serverIp.c_str(), std::to_string(config_->agent().serverPort).c_str());
-	boost::asio::async_connect(socket_,
-		endpoint,
-		boost::bind(&TCPClient::handleConnect, 
-			this, 
-			boost::asio::placeholders::error)
+	boost::asio::connect(socket_,
+		endpoint
 		);
 }
 void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPort)
@@ -53,11 +50,8 @@ void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPor
 
 	boost::asio::ip::tcp::resolver resolver(io_context_);
 	auto endpoint = resolver.resolve(dstIP.c_str(), std::to_string(dstPort).c_str());
-	boost::asio::async_connect(socket_,
-		endpoint,
-		boost::bind(&TCPClient::handleConnect, 
-			this, 
-			boost::asio::placeholders::error)
+	boost::asio::connect(socket_,
+		endpoint
 		);
 }
 void TCPClient::handleConnect(const boost::system::error_code& error)
@@ -68,8 +62,8 @@ void TCPClient::handleConnect(const boost::system::error_code& error)
 	{
 		try
 		{
-			log_->write("[TCPClient handleConnect] [DST " + 
-				socket_.remote_endpoint().address().to_string() +":"+ 
+			log_->write("[TCPClient handleConnect] [DST " +
+				socket_.remote_endpoint().address().to_string() +":"+
 				std::to_string(socket_.remote_endpoint().port())+"] ",
 				Log::Level::DEBUG);
 		}
@@ -87,6 +81,12 @@ void TCPClient::doWrite()
 {
 	try
 	{
+		log_->write("[TCPClient doWrite] [DST " +
+			socket_.remote_endpoint().address().to_string() +":"+
+			std::to_string(socket_.remote_endpoint().port())+"] "+
+			"[Bytes " +
+			std::to_string(writeBuffer_.size())+"] ",
+			Log::Level::DEBUG);
 		boost::asio::write(
 			socket_,
 			writeBuffer_
@@ -118,8 +118,9 @@ void TCPClient::handleRead(const boost::system::error_code& error,
 	{
 		try
 		{
-			log_->write("["+config_->modeToString()+"] [SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+			log_->write("[TCPClient doRead] [SRC " +
+				socket_.remote_endpoint().address().to_string() +":"+
+				std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
 				std::to_string(bytes_transferred)+"] ",
 				Log::Level::INFO);
 		}

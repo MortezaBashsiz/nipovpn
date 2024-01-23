@@ -53,8 +53,9 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 	{
 		try
 		{
-			log_->write("["+config_->modeToString()+"] [SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+			log_->write("[TCPConnection doRead] [SRC " +
+				socket_.remote_endpoint().address().to_string() +":"+
+				std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
 				std::to_string(bytes_transferred)+"] ",
 				Log::Level::INFO);
 		}
@@ -80,26 +81,20 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 
 void TCPConnection::doWrite()
 {
-	boost::asio::async_write(
-		socket_,
-		writeBuffer_,
-		boost::bind(&TCPConnection::handleWrite, 
-			shared_from_this(),
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred)
-	);
-}
-
-void TCPConnection::handleWrite(const boost::system::error_code& error,
-	size_t bytes_transferred)
-{
-	if (!error)
+	try
 	{
-		log_->write("[TCPConnection handleWrite] [Bytes " +
-			std::to_string(bytes_transferred)+"] ", 
+		log_->write("[TCPConnection doWrite] [DST " + 
+			socket_.remote_endpoint().address().to_string() +":"+ 
+			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+			std::to_string(writeBuffer_.size())+"] ", 
 			Log::Level::DEBUG);
-	} else
+		boost::asio::write(
+			socket_,
+			writeBuffer_
+		);
+	}
+	catch (std::exception& error)
 	{
-		log_->write("[TCPConnection handleWrite] " + error.what(), Log::Level::ERROR);
+		log_->write(error.what(), Log::Level::ERROR);
 	}
 }

@@ -105,6 +105,16 @@ public:
 	*/
 	void parseTls();
 
+	inline boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest() const
+	{
+		return parsedHttpRequest_;
+	}
+
+	inline TlsRequest parsedTlsRequest() const
+	{
+		return parsedTlsRequest_;
+	}
+
 	/*
 	* This function returns the string of parsedTlsRequest_.type
 	*/
