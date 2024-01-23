@@ -43,9 +43,6 @@ private:
 			const std::shared_ptr<Config>& config, 
 			const std::shared_ptr<Log>& log);
 
-	void handleConnect(const boost::system::error_code& error);
-	void handleRead(const boost::system::error_code& error,	size_t bytes_transferred);
-
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
 	boost::asio::io_context& io_context_;
