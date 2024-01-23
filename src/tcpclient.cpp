@@ -91,5 +91,4 @@ void TCPClient::doRead()
 	{
 		log_->write(error.what(), Log::Level::ERROR);
 	}
-
 }
