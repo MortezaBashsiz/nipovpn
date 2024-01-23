@@ -77,10 +77,9 @@ void TCPClient::doRead()
 {
 	try
 	{
-		boost::asio::read_until(
+		boost::asio::read(
 			socket_,
-			readBuffer_,
-			"\r\n\r\n"
+			readBuffer_
 		);
 		log_->write("[TCPClient doRead] [SRC " +
 			socket_.remote_endpoint().address().to_string() +":"+

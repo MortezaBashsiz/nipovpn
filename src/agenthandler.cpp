@@ -25,6 +25,6 @@ void AgentHandler::handle()
 	client_->writeBuffer(readBuffer_);
 	client_->doWrite();
 	client_->doRead();
+	FUCK(streambufToString(client_->readBuffer()));
 	copyStreamBuff(client_->readBuffer(), writeBuffer_);
 }
-

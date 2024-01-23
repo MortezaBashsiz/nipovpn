@@ -38,7 +38,7 @@ void TCPConnection::doRead()
 	boost::asio::async_read_until(
 		socket_,
 		readBuffer_,
-		"\r\n\r\n",
+		"\r\n",
 		boost::bind(&TCPConnection::handleRead, 
 			shared_from_this(),
 			boost::asio::placeholders::error,

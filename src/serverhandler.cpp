@@ -26,7 +26,7 @@ void ServerHandler::handle()
 	{
 		boost::asio::streambuf tempBuff;
 		std::iostream os(&tempBuff);
-		std::string message("HTTP/1.1 200 Connection established\r\n\r\n");
+		std::string message("HTTP/1.1 200 Connection established\r\n");
 		os << message;
 		copyStreamBuff(tempBuff, writeBuffer_);
 	} else
@@ -35,5 +35,6 @@ void ServerHandler::handle()
 		client_->doWrite();
 		client_->doRead();
 		copyStreamBuff(client_->readBuffer(), writeBuffer_);
+		FUCK(streambufToString(client_->readBuffer()));
 	}
 }
