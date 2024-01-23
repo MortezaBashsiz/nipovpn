@@ -11,15 +11,7 @@ TCPClient::TCPClient(boost::asio::io_context& io_context,
 		io_context_(io_context),
 		socket_(io_context),
 		resolver_(io_context)
-{	
-	if (config->runMode() == RunMode::agent)
-	{
-		std::iostream os(&writeBuffer_);
-		std::string message("CLIENT HELLO\r\n\r\n");
-		os << message;
-		doConnect();
-	}
-}
+{ }
 
 boost::asio::ip::tcp::socket& TCPClient::socket()
 {
@@ -85,7 +77,6 @@ void TCPClient::handleConnect(const boost::system::error_code& error)
 		{
 			log_->write(error.what(), Log::Level::ERROR);
 		}
-		doWrite();
 	} else
 	{
 		log_->write("[TCPClient handleConnect] " + error.what(), Log::Level::ERROR);

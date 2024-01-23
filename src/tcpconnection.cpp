@@ -68,7 +68,7 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 			agentHandler_->handle();
 		} else if (config_->runMode() == RunMode::server)
 		{
-			ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_);
+			ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
 			serverHandler_->handle();
 		}
 		doWrite();

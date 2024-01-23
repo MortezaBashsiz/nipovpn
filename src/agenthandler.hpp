@@ -2,6 +2,8 @@
 #ifndef AGENTHADLER_HPP
 #define AGENTHADLER_HPP
 
+#include <memory>
+
 #include "config.hpp"
 #include "log.hpp"
 #include "request.hpp"
