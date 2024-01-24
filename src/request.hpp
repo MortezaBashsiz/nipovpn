@@ -93,17 +93,27 @@ public:
 	* This function will detect the type of request (HTTP|HTTPS)
 	* It checks the first byte of the body, in case of 16, 14, 17 it is HTTPS and else it may be HTTP
 	*/
-	void detectType();
+	bool detectType();
 
 	/*
 	* If the request is HTTP it will parse it and store in parsedHttpRequest_
 	*/
-	void parseHttp();
+	bool parseHttp();
 
 	/*
 	* If the request is HTTPS it will parse it and store in parsedTlsRequest_
 	*/
-	void parseTls();
+	bool parseTls();
+
+	inline boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest() const
+	{
+		return parsedHttpRequest_;
+	}
+
+	inline TlsRequest parsedTlsRequest() const
+	{
+		return parsedTlsRequest_;
+	}
 
 	/*
 	* This function returns the string of parsedTlsRequest_.type

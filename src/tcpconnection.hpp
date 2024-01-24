@@ -31,7 +31,7 @@ public:
 
 	boost::asio::ip::tcp::socket& socket();
 
-	void writeBuffer(const boost::asio::streambuf& buffer);
+	void writeBuffer(boost::asio::streambuf& buffer);
 
 	const boost::asio::streambuf& readBuffer() const;
 
@@ -43,9 +43,6 @@ public:
 		size_t bytes_transferred);
 
 	void doWrite();
-
-	void handleWrite(const boost::system::error_code& error,
-		size_t bytes_transferred);
 	
 private:
 	explicit TCPConnection(boost::asio::io_context& io_context, 

@@ -19,12 +19,16 @@ AgentHandler::~AgentHandler()
 void AgentHandler::handle()
 {
 	Request::pointer request_ = Request::create(config_, log_, readBuffer_);
-	request_->detectType();
-	log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
-	client_->doConnect();
-	client_->writeBuffer(readBuffer_);
-	client_->doWrite();
-	client_->doRead();
-	copyStreamBuff(client_->readBuffer(), writeBuffer_);
+	if (request_->detectType())
+	{
+		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
+		client_->doConnect();
+		client_->writeBuffer(readBuffer_);
+		client_->doWrite();
+		client_->doRead();
+		copyStreamBuff(client_->readBuffer(), writeBuffer_);
+	} else
+	{
+		log_->write("[AgentHandler handle] [NOT HTTP Request] [Request] : "+ streambufToString(readBuffer_), Log::Level::ERROR);
+	}
 }
-

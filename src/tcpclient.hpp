@@ -29,8 +29,8 @@ public:
 	}
 
 	boost::asio::ip::tcp::socket& socket();
-	void writeBuffer(const boost::asio::streambuf& buffer);
-	const boost::asio::streambuf& readBuffer() const;
+	void writeBuffer(boost::asio::streambuf& buffer);
+	boost::asio::streambuf& readBuffer();
 
 
 	void doConnect();
@@ -42,9 +42,6 @@ private:
 		explicit TCPClient(boost::asio::io_context& io_context, 
 			const std::shared_ptr<Config>& config, 
 			const std::shared_ptr<Log>& log);
-
-	void handleConnect(const boost::system::error_code& error);
-	void handleRead(const boost::system::error_code& error,	size_t bytes_transferred);
 
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;

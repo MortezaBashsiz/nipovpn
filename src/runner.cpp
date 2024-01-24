@@ -22,7 +22,6 @@ void Runner::run()
 	}
 	catch (std::exception& error)
 	{
-		log_->write(error.what(), Log::Level::ERROR);
-		std::cerr << error.what() << std::endl;
+		log_->write(std::string("[Runner run] ") + error.what(), Log::Level::ERROR);
 	}
 }

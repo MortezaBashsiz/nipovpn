@@ -18,7 +18,7 @@ boost::asio::ip::tcp::socket& TCPConnection::socket()
 	return socket_;
 }
 
-void TCPConnection::writeBuffer(const boost::asio::streambuf& buffer)
+void TCPConnection::writeBuffer(boost::asio::streambuf& buffer)
 {
 	copyStreamBuff(buffer, writeBuffer_);
 }
@@ -38,7 +38,7 @@ void TCPConnection::doRead()
 	boost::asio::async_read_until(
 		socket_,
 		readBuffer_,
-		"\r\n\r\n",
+		"\r\n",
 		boost::bind(&TCPConnection::handleRead, 
 			shared_from_this(),
 			boost::asio::placeholders::error,
@@ -53,14 +53,15 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 	{
 		try
 		{
-			log_->write("["+config_->modeToString()+"] [SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+			log_->write("[TCPConnection doRead] [SRC " +
+				socket_.remote_endpoint().address().to_string() +":"+
+				std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
 				std::to_string(bytes_transferred)+"] ",
 				Log::Level::INFO);
 		}
 		catch (std::exception& error)
 		{
-			log_->write(error.what(), Log::Level::ERROR);
+			log_->write(std::string("[TCPConnection handleRead log] ") + error.what(), Log::Level::ERROR);
 		}
 		if (config_->runMode() == RunMode::agent)
 		{
@@ -68,38 +69,32 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 			agentHandler_->handle();
 		} else if (config_->runMode() == RunMode::server)
 		{
-			ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_);
+			ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
 			serverHandler_->handle();
 		}
 		doWrite();
 	} else
 	{
-		log_->write("[handleRead] " + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPConnection handleRead] ") + error.what(), Log::Level::ERROR);
 	}
 }
 
 void TCPConnection::doWrite()
 {
-	boost::asio::async_write(
-		socket_,
-		writeBuffer_,
-		boost::bind(&TCPConnection::handleWrite, 
-			shared_from_this(),
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred)
-	);
-}
-
-void TCPConnection::handleWrite(const boost::system::error_code& error,
-	size_t bytes_transferred)
-{
-	if (!error)
+	try
 	{
-		log_->write("[TCPConnection handleWrite] [Bytes " +
-			std::to_string(bytes_transferred)+"] ", 
+		log_->write("[TCPConnection doWrite] [DST " + 
+			socket_.remote_endpoint().address().to_string() +":"+ 
+			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+			std::to_string(writeBuffer_.size())+"] ", 
 			Log::Level::DEBUG);
-	} else
+		boost::asio::write(
+			socket_,
+			writeBuffer_
+		);
+	}
+	catch (std::exception& error)
 	{
-		log_->write("[TCPConnection handleWrite] " + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPConnection doWrite] ") + error.what(), Log::Level::ERROR);
 	}
 }
