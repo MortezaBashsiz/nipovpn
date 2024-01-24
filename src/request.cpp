@@ -38,7 +38,7 @@ void Request::httpType(const Request::HttpType& httpType)
 	httpType_ = httpType;
 }
 
-void Request::detectType()
+bool Request::detectType()
 {
 	std::string requestStr(streambufToString(buffer_));
 	std::string tmpStr;
@@ -47,16 +47,22 @@ void Request::detectType()
 	if (tmpStr == "16" || tmpStr == "14" || tmpStr == "17")
 	{
 		httpType(Request::HttpType::HTTPS);
-		parseTls();
+		if (parseTls())
+			return true;
+		else
+			return false;
 	}
 	else
 	{
 		httpType(Request::HttpType::HTTP);
-		parseHttp();
+		if(parseHttp())
+			return true;
+		else
+			return false;
 	}
 }
 
-void Request::parseHttp()
+bool Request::parseHttp()
 {
 	std::string requestStr(streambufToString(buffer_));
 	boost::beast::http::request_parser<boost::beast::http::string_body> parser;
@@ -65,21 +71,24 @@ void Request::parseHttp()
 	parser.put(boost::asio::buffer(requestStr), error);
 	if (error)
 	{
-		log_->write(std::string("[parseHttp] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[Request parseHttp] ") + error.what(), Log::Level::DEBUG);
+		return false;
 	} else
 	{
 		parsedHttpRequest_ = parser.get();
 		setIPPort();
+		return true;
 	}
 }
 
-void Request::parseTls()
+bool Request::parseTls()
 {
 	parsedTlsRequest_.body = streambufToString(buffer_);
 	std::string tmpStr;
 	unsigned short pos=0;
 	tmpStr = parsedTlsRequest_.body.substr(pos, 2);
-	if (tmpStr == "16"){
+	if (tmpStr == "16")
+	{
 		parsedTlsRequest_.type = TlsTypes::TLSHandshake;
 		pos=10;
 		tmpStr = parsedTlsRequest_.body.substr(pos, 2);
@@ -113,14 +122,20 @@ void Request::parseTls()
 				parsedTlsRequest_.sni = hexToASCII(tmpStr);
 			}
 		}
-	}
-	if (tmpStr == "14"){
+		setIPPort();
+		return true;
+	}else	if (tmpStr == "14")
+	{
 		parsedTlsRequest_.type = TlsTypes::ChangeCipherSpec;
-	}
-	if (tmpStr == "17"){
+		setIPPort();
+		return true;
+	}else	if (tmpStr == "17")
+	{
 		parsedTlsRequest_.type = TlsTypes::ApplicationData;
-	}
-	setIPPort();
+		setIPPort();
+		return true;
+	} else 
+		return false;
 }
 
 void Request::setIPPort()
