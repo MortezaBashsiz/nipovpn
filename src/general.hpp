@@ -23,7 +23,6 @@ private:
 	Uncopyable& operator=(const Uncopyable&);
 };
 
-
 /*
 * FUCK function prints it on screen
 */

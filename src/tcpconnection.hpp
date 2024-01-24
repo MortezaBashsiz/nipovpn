@@ -39,8 +39,11 @@ public:
 
 	void doRead();
 
+	void doReadSSL();
+
 	void handleRead(const boost::system::error_code& error,
-		size_t bytes_transferred);
+		size_t bytes_transferred,
+		bool isReadSSL);
 
 	void doWrite();
 	

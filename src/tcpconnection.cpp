@@ -42,13 +42,33 @@ void TCPConnection::doRead()
 		boost::bind(&TCPConnection::handleRead, 
 			shared_from_this(),
 			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred)
+			boost::asio::placeholders::bytes_transferred,
+			false)
+	);
+}
+
+void TCPConnection::doReadSSL()
+{
+		boost::asio::async_read(
+		socket_,
+		readBuffer_,
+		boost::asio::transfer_at_least(1),
+		boost::bind(&TCPConnection::handleRead, 
+			shared_from_this(),
+			boost::asio::placeholders::error,
+			boost::asio::placeholders::bytes_transferred,
+			true)
 	);
 }
 
 void TCPConnection::handleRead(const boost::system::error_code& error,
-	size_t bytes_transferred)
+	size_t bytes_transferred,
+	bool isReadSSL)
 {
+	if (isReadSSL)
+	{
+		
+	}
 	if (!error || error == boost::asio::error::eof)
 	{
 		try
@@ -68,17 +88,21 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
 			agentHandler_->handle();
 			doWrite();
-			if (agentHandler_->request()->httpType() == Request::HttpType::HTTPS)
-				doRead();
+			if (agentHandler_->request()->httpType() == Request::HttpType::HTTPS || 
+					agentHandler_->request()->parsedHttpRequest().method() == boost::beast::http::verb::connect)
+			{
+				doReadSSL();
+			}
 		} else if (config_->runMode() == RunMode::server)
 		{
 			ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
 			serverHandler_->handle();
 			doWrite();
-			if (serverHandler_->request()->httpType() == Request::HttpType::HTTPS)
+			if (serverHandler_->request()->httpType() == Request::HttpType::HTTPS || 
+					serverHandler_->request()->parsedHttpRequest().method() == boost::beast::http::verb::connect)
 			{
 				readBuffer_.consume(readBuffer_.size());
-				doRead();
+				doReadSSL();
 			}
 		}
 	} else
