@@ -69,7 +69,7 @@ void TCPClient::doWrite()
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string(" [TCPClient doWrite] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPClient doWrite] ") + error.what(), Log::Level::ERROR);
 	}
 }
 
@@ -77,9 +77,10 @@ void TCPClient::doRead()
 {
 	try
 	{
-		boost::asio::read(
+		boost::asio::read_until(
 			socket_,
-			readBuffer_
+			readBuffer_,
+			"\r\n"
 		);
 		log_->write("[TCPClient doRead] [SRC " +
 			socket_.remote_endpoint().address().to_string() +":"+
@@ -89,6 +90,6 @@ void TCPClient::doRead()
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string(" [TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
 	}
 }
