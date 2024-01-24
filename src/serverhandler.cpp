@@ -10,7 +10,8 @@ ServerHandler::ServerHandler(boost::asio::streambuf& readBuffer,
 		log_(log),
 		client_(client),
 		readBuffer_(readBuffer),
-		writeBuffer_(writeBuffer)
+		writeBuffer_(writeBuffer),
+		request_(Request::create(config, log, readBuffer))
 {	}
 
 ServerHandler::~ServerHandler()
@@ -18,7 +19,6 @@ ServerHandler::~ServerHandler()
 
 void ServerHandler::handle()
 {
-	Request::pointer request_ = Request::create(config_, log_, readBuffer_);
 	if (request_->detectType())
 	{
 		request_->detectType();
@@ -28,7 +28,7 @@ void ServerHandler::handle()
 		{
 			boost::asio::streambuf tempBuff;
 			std::iostream os(&tempBuff);
-			std::string message("HTTP/1.1 200 Connection established\r\n");
+			std::string message("HTTP/1.1 200 Connection established\r\n\r\n");
 			os << message;
 			copyStreamBuff(tempBuff, writeBuffer_);
 		} else

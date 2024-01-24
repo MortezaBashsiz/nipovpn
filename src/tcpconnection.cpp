@@ -67,12 +67,20 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 		{
 			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
 			agentHandler_->handle();
+			doWrite();
+			if (agentHandler_->request()->httpType() == Request::HttpType::HTTPS)
+				doRead();
 		} else if (config_->runMode() == RunMode::server)
 		{
 			ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
 			serverHandler_->handle();
+			doWrite();
+			if (serverHandler_->request()->httpType() == Request::HttpType::HTTPS)
+			{
+				readBuffer_.consume(readBuffer_.size());
+				doRead();
+			}
 		}
-		doWrite();
 	} else
 	{
 		log_->write(std::string("[TCPConnection handleRead] ") + error.what(), Log::Level::ERROR);

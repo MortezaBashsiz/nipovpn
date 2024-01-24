@@ -10,7 +10,8 @@ AgentHandler::AgentHandler(boost::asio::streambuf& readBuffer,
 		log_(log),
 		client_(client),
 		readBuffer_(readBuffer),
-		writeBuffer_(writeBuffer)
+		writeBuffer_(writeBuffer),
+		request_(Request::create(config, log, readBuffer))
 {	}
 
 AgentHandler::~AgentHandler()
@@ -18,7 +19,6 @@ AgentHandler::~AgentHandler()
 
 void AgentHandler::handle()
 {
-	Request::pointer request_ = Request::create(config_, log_, readBuffer_);
 	if (request_->detectType())
 	{
 		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
