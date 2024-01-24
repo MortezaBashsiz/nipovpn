@@ -65,7 +65,7 @@ void Request::parseHttp()
 	parser.put(boost::asio::buffer(requestStr), error);
 	if (error)
 	{
-		log_->write(" [parseHttp] " + error.what(), Log::Level::ERROR);
+		log_->write(std::string(" [parseHttp] ") + error.what(), Log::Level::ERROR);
 	} else
 	{
 		parsedHttpRequest_ = parser.get();

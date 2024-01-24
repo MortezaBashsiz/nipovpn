@@ -69,7 +69,7 @@ void TCPClient::doWrite()
 	}
 	catch (std::exception& error)
 	{
-		log_->write(error.what(), Log::Level::ERROR);
+		log_->write(std::string(" [TCPClient doWrite] ") + error.what(), Log::Level::ERROR);
 	}
 }
 
@@ -89,6 +89,6 @@ void TCPClient::doRead()
 	}
 	catch (std::exception& error)
 	{
-		log_->write(error.what(), Log::Level::ERROR);
+		log_->write(std::string(" [TCPClient doRead] ") + error.what(), Log::Level::ERROR);
 	}
 }

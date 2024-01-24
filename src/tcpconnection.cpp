@@ -38,7 +38,7 @@ void TCPConnection::doRead()
 	boost::asio::async_read_until(
 		socket_,
 		readBuffer_,
-		"\r\n\r\n",
+		"\r\n",
 		boost::bind(&TCPConnection::handleRead, 
 			shared_from_this(),
 			boost::asio::placeholders::error,
@@ -61,7 +61,7 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 		}
 		catch (std::exception& error)
 		{
-			log_->write(error.what(), Log::Level::ERROR);
+			log_->write(std::string(" [TCPConnection handleRead log] ") + error.what(), Log::Level::ERROR);
 		}
 		if (config_->runMode() == RunMode::agent)
 		{
@@ -75,7 +75,7 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 		doWrite();
 	} else
 	{
-		log_->write("[handleRead] " + error.what(), Log::Level::ERROR);
+		log_->write(std::string(" [TCPConnection handleRead] ") + error.what(), Log::Level::ERROR);
 	}
 }
 
@@ -95,6 +95,6 @@ void TCPConnection::doWrite()
 	}
 	catch (std::exception& error)
 	{
-		log_->write(error.what(), Log::Level::ERROR);
+		log_->write(std::string(" [TCPConnection doWrite] ") + error.what(), Log::Level::ERROR);
 	}
 }
