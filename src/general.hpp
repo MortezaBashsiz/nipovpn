@@ -10,6 +10,10 @@
 #include <yaml-cpp/yaml.h>
 
 #include <boost/asio.hpp>
+#include <boost/archive/iterators/binary_from_base64.hpp>
+#include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
+#include <boost/algorithm/string.hpp>
 
 /*
 * General class to make the class uncopyable
@@ -22,7 +26,6 @@ private:
 	Uncopyable(const Uncopyable&);
 	Uncopyable& operator=(const Uncopyable&);
 };
-
 
 /*
 * FUCK function prints it on screen
@@ -161,13 +164,39 @@ inline std::string streambufToString(const boost::asio::streambuf& buff)
 	return result;
 }
 
-inline void copyStreamBuff(boost::asio::streambuf& source, boost::asio::streambuf& target)
+inline void copyStringToStreambuf(const std::string& inputStr, boost::asio::streambuf& buff)
+{
+	buff.consume(buff.size());
+	std::iostream os(&buff);
+	os << inputStr;
+}
+
+inline void moveStreamBuff(boost::asio::streambuf& source, boost::asio::streambuf& target)
 {
 	std::size_t bytes_copied = boost::asio::buffer_copy(
 		target.prepare(source.size()), 
 		source.data());
 	target.commit(bytes_copied);
 	source.consume(source.size());
+}
+
+inline void copyStreamBuff(boost::asio::streambuf& source, boost::asio::streambuf& target)
+{
+	std::size_t bytes_copied = boost::asio::buffer_copy(
+		target.prepare(source.size()), 
+		source.data());
+	target.commit(bytes_copied);
+}
+
+inline std::string hexArrToStrTemp(const unsigned char* data, std::size_t size)
+{
+	std::stringstream tempStr;
+	tempStr << std::hex << std::setfill('0');
+	for (long unsigned int i = 0; i < size; ++i)
+	{
+		tempStr << std::setw(2) << static_cast<unsigned>(data[i]);
+	}
+	return tempStr.str();
 }
 
 inline unsigned short hexToInt(const std::string& hexString)
@@ -212,6 +241,27 @@ inline std::vector<std::string> splitString(std::string str, std::string token){
 			}
 	}
 	return result;
+}
+
+inline std::string decode64(const std::string &inputStr) {
+	return boost::algorithm::trim_right_copy_if(
+		std::string(
+			boost::archive::iterators::transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>(std::begin(inputStr)),
+			boost::archive::iterators::transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>(std::end(inputStr))
+		), 
+		[](char c) 
+		{
+			return c == '\0';
+		}
+	);
+}
+
+inline std::string encode64(const std::string &inputStr) {
+	auto tmp = std::string(
+		boost::archive::iterators::base64_from_binary<boost::archive::iterators::transform_width<std::string::const_iterator, 6, 8>>(std::begin(inputStr)),
+		boost::archive::iterators::base64_from_binary<boost::archive::iterators::transform_width<std::string::const_iterator, 6, 8>>(std::end(inputStr))
+	);
+	return tmp.append((3 - inputStr.size() % 3) % 3, '=');
 }
 
 #endif /* GENERAL_HPP */

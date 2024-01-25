@@ -2,6 +2,8 @@
 #ifndef AGENTHADLER_HPP
 #define AGENTHADLER_HPP
 
+#include <boost/beast/core/detail/base64.hpp>
+
 #include <memory>
 
 #include "config.hpp"
@@ -36,6 +38,11 @@ public:
 	*/
 	void handle();
 
+	inline const Request::pointer request() const
+	{
+		return request_;
+	}
+
 private:
 	AgentHandler(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,
@@ -47,6 +54,7 @@ private:
 	const std::shared_ptr<Log>& log_;
 	const TCPClient::pointer& client_;
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
+	Request::pointer request_;
 };
 
 #endif /* AGENTHADLER_HPP */

@@ -20,12 +20,7 @@ boost::asio::ip::tcp::socket& TCPClient::socket()
 
 void TCPClient::writeBuffer(boost::asio::streambuf& buffer)
 {
-	copyStreamBuff(buffer, writeBuffer_);
-}
-
-boost::asio::streambuf& TCPClient::readBuffer()
-{
-	return readBuffer_;
+	moveStreamBuff(buffer, writeBuffer_);
 }
 
 void TCPClient::doConnect()
@@ -40,6 +35,8 @@ void TCPClient::doConnect()
 		boost::asio::ip::tcp::resolver resolver(io_context_);
 		auto endpoint = resolver.resolve(config_->agent().serverIp.c_str(), std::to_string(config_->agent().serverPort).c_str());
 		boost::asio::connect(socket_, endpoint);
+		boost::asio::socket_base::keep_alive option(true);
+		socket_.set_option(option);
 	}
 	catch (std::exception& error)
 	{
@@ -59,6 +56,8 @@ void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPor
 		boost::asio::ip::tcp::resolver resolver(io_context_);
 		auto endpoint = resolver.resolve(dstIP.c_str(), std::to_string(dstPort).c_str());
 		boost::asio::connect(socket_, endpoint);
+		boost::asio::socket_base::keep_alive option(true);
+		socket_.set_option(option);
 	}
 	catch (std::exception& error)
 	{
@@ -105,5 +104,26 @@ void TCPClient::doRead()
 	catch (std::exception& error)
 	{
 		log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+	}
+}
+
+void TCPClient::doReadSSL()
+{
+	try
+	{
+		boost::asio::read(
+			socket_,
+			readBuffer_,
+			boost::asio::transfer_at_least(1)
+		);
+		log_->write("[TCPClient doReadSSL] [SRC " +
+			socket_.remote_endpoint().address().to_string() +":"+
+			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+			std::to_string(readBuffer_.size())+"] ",
+			Log::Level::DEBUG);
+	}
+	catch (std::exception& error)
+	{
+		log_->write(std::string("[TCPClient doReadSSL] ") + error.what(), Log::Level::ERROR);
 	}
 }

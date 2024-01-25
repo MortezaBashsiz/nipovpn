@@ -30,13 +30,21 @@ public:
 
 	boost::asio::ip::tcp::socket& socket();
 	void writeBuffer(boost::asio::streambuf& buffer);
-	boost::asio::streambuf& readBuffer();
 
+	inline boost::asio::streambuf& writeBuffer()
+	{
+		return writeBuffer_;
+	}
+	inline boost::asio::streambuf& readBuffer()
+	{
+		return readBuffer_;
+	}
 
 	void doConnect();
 	void doConnect(const std::string& dstIP, const unsigned short& dstPort);
 	void doWrite();
 	void doRead();
+	void doReadSSL();
 
 private:
 		explicit TCPClient(boost::asio::io_context& io_context, 

@@ -10,7 +10,8 @@ AgentHandler::AgentHandler(boost::asio::streambuf& readBuffer,
 		log_(log),
 		client_(client),
 		readBuffer_(readBuffer),
-		writeBuffer_(writeBuffer)
+		writeBuffer_(writeBuffer),
+		request_(Request::create(config, log, readBuffer))
 {	}
 
 AgentHandler::~AgentHandler()
@@ -18,15 +19,18 @@ AgentHandler::~AgentHandler()
 
 void AgentHandler::handle()
 {
-	Request::pointer request_ = Request::create(config_, log_, readBuffer_);
 	if (request_->detectType())
 	{
 		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
-		client_->doConnect();
+		if (! client_->socket().is_open() || request_->httpType() == Request::HttpType::HTTP)
+			client_->doConnect();
 		client_->writeBuffer(readBuffer_);
 		client_->doWrite();
-		client_->doRead();
-		copyStreamBuff(client_->readBuffer(), writeBuffer_);
+		if (request_->httpType() == Request::HttpType::HTTPS)
+			client_->doReadSSL();
+		if (request_->httpType() == Request::HttpType::HTTP)
+			client_->doRead();
+		moveStreamBuff(client_->readBuffer(), writeBuffer_);
 	} else
 	{
 		log_->write("[AgentHandler handle] [NOT HTTP Request] [Request] : "+ streambufToString(readBuffer_), Log::Level::ERROR);

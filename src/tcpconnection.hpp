@@ -31,16 +31,25 @@ public:
 
 	boost::asio::ip::tcp::socket& socket();
 
-	void writeBuffer(boost::asio::streambuf& buffer);
-
-	const boost::asio::streambuf& readBuffer() const;
+	inline void writeBuffer(boost::asio::streambuf& buffer)
+	{
+		moveStreamBuff(buffer, writeBuffer_);
+	}
+	
+	inline const boost::asio::streambuf& readBuffer() const
+	{
+		return readBuffer_;
+	}
 
 	void start();
 
 	void doRead();
 
+	void doReadSSL();
+
 	void handleRead(const boost::system::error_code& error,
-		size_t bytes_transferred);
+		size_t bytes_transferred,
+		bool isReadSSL);
 
 	void doWrite();
 	
