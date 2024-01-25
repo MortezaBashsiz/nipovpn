@@ -18,16 +18,6 @@ boost::asio::ip::tcp::socket& TCPConnection::socket()
 	return socket_;
 }
 
-void TCPConnection::writeBuffer(boost::asio::streambuf& buffer)
-{
-	copyStreamBuff(buffer, writeBuffer_);
-}
-
-const boost::asio::streambuf& TCPConnection::readBuffer() const
-{
-	return readBuffer_;
-}
-
 void TCPConnection::start()
 {
 	doRead();

@@ -85,9 +85,15 @@ public:
 	/*
 	* Functions to handle private members
 	*/
-	const HttpType& httpType() const;
+	inline const Request::HttpType& httpType() const
+	{
+		return httpType_;
+	}
 
-	void httpType(const HttpType& httpType);
+	inline void httpType(const Request::HttpType& httpType)
+	{
+		httpType_ = httpType;
+	}
 
 	/*
 	* This function will detect the type of request (HTTP|HTTPS)

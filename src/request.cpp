@@ -28,16 +28,6 @@ Request::Request(const Request& request)
 Request::~Request()
 { }
 
-const Request::HttpType& Request::httpType() const
-{
-	return httpType_;
-}
-
-void Request::httpType(const Request::HttpType& httpType)
-{
-	httpType_ = httpType;
-}
-
 bool Request::detectType()
 {
 	std::string requestStr(

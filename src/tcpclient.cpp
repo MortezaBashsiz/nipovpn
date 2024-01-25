@@ -23,11 +23,6 @@ void TCPClient::writeBuffer(boost::asio::streambuf& buffer)
 	copyStreamBuff(buffer, writeBuffer_);
 }
 
-boost::asio::streambuf& TCPClient::readBuffer()
-{
-	return readBuffer_;
-}
-
 void TCPClient::doConnect()
 {
 	try

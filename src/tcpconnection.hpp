@@ -31,9 +31,15 @@ public:
 
 	boost::asio::ip::tcp::socket& socket();
 
-	void writeBuffer(boost::asio::streambuf& buffer);
-
-	const boost::asio::streambuf& readBuffer() const;
+	inline void writeBuffer(boost::asio::streambuf& buffer)
+	{
+		copyStreamBuff(buffer, writeBuffer_);
+	}
+	
+	inline const boost::asio::streambuf& readBuffer() const
+	{
+		return readBuffer_;
+	}
 
 	void start();
 
