@@ -22,7 +22,8 @@ void AgentHandler::handle()
 	if (request_->detectType())
 	{
 		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
-		client_->doConnect();
+		if (! client_->socket().is_open())
+			client_->doConnect();
 		client_->writeBuffer(readBuffer_);
 		client_->doWrite();
 		client_->doRead();

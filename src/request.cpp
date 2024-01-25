@@ -156,12 +156,13 @@ bool Request::parseTls()
 
 void Request::setIPPort()
 {
-	std::string target{boost::lexical_cast<std::string>(parsedHttpRequest_.target())};
+	std::string target{};
 	std::vector<std::string> splitted;
 	switch (httpType()){
 		case Request::HttpType::HTTPS:
+			target = parsedTlsRequest_.sni;
 			splitted = splitString(target, ":");
-			if (!splitted.empty()){
+			if (splitted.size() > 1){
 				dstIP_=splitted[0];
 				dstPort_ = std::stoi(splitted[1]);
 			} else
@@ -171,6 +172,7 @@ void Request::setIPPort()
 			}
 		break;
 		case Request::HttpType::HTTP:
+			target = boost::lexical_cast<std::string>(parsedHttpRequest_.target());
 			if (parsedHttpRequest_.method() == boost::beast::http::verb::connect)
 			{
 				splitted = splitString(target, ":");

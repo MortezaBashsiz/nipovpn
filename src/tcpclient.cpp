@@ -40,6 +40,8 @@ void TCPClient::doConnect()
 		boost::asio::ip::tcp::resolver resolver(io_context_);
 		auto endpoint = resolver.resolve(config_->agent().serverIp.c_str(), std::to_string(config_->agent().serverPort).c_str());
 		boost::asio::connect(socket_, endpoint);
+		boost::asio::socket_base::keep_alive option(true);
+		socket_.set_option(option);
 	}
 	catch (std::exception& error)
 	{
@@ -59,6 +61,8 @@ void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPor
 		boost::asio::ip::tcp::resolver resolver(io_context_);
 		auto endpoint = resolver.resolve(dstIP.c_str(), std::to_string(dstPort).c_str());
 		boost::asio::connect(socket_, endpoint);
+		boost::asio::socket_base::keep_alive option(true);
+		socket_.set_option(option);
 	}
 	catch (std::exception& error)
 	{
