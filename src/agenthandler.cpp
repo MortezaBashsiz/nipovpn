@@ -30,7 +30,7 @@ void AgentHandler::handle()
 			client_->doReadSSL();
 		if (request_->httpType() == Request::HttpType::HTTP)
 			client_->doRead();
-		copyStreamBuff(client_->readBuffer(), writeBuffer_);
+		moveStreamBuff(client_->readBuffer(), writeBuffer_);
 	} else
 	{
 		log_->write("[AgentHandler handle] [NOT HTTP Request] [Request] : "+ streambufToString(readBuffer_), Log::Level::ERROR);

@@ -20,7 +20,7 @@ boost::asio::ip::tcp::socket& TCPClient::socket()
 
 void TCPClient::writeBuffer(boost::asio::streambuf& buffer)
 {
-	copyStreamBuff(buffer, writeBuffer_);
+	moveStreamBuff(buffer, writeBuffer_);
 }
 
 void TCPClient::doConnect()

@@ -30,7 +30,7 @@ void ServerHandler::handle()
 			std::iostream os(&tempBuff);
 			std::string message("HTTP/1.1 200 Connection established\r\n\r\n");
 			os << message;
-			copyStreamBuff(tempBuff, writeBuffer_);
+			moveStreamBuff(tempBuff, writeBuffer_);
 		} else
 		{
 			client_->writeBuffer(readBuffer_);
@@ -39,7 +39,7 @@ void ServerHandler::handle()
 				client_->doReadSSL();
 			if (request_->httpType() == Request::HttpType::HTTP)
 				client_->doRead();
-			copyStreamBuff(client_->readBuffer(), writeBuffer_);
+			moveStreamBuff(client_->readBuffer(), writeBuffer_);
 		}
 	}else
 	{

@@ -33,7 +33,7 @@ public:
 
 	inline void writeBuffer(boost::asio::streambuf& buffer)
 	{
-		copyStreamBuff(buffer, writeBuffer_);
+		moveStreamBuff(buffer, writeBuffer_);
 	}
 	
 	inline const boost::asio::streambuf& readBuffer() const

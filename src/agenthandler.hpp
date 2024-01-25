@@ -2,6 +2,8 @@
 #ifndef AGENTHADLER_HPP
 #define AGENTHADLER_HPP
 
+#include <boost/beast/core/detail/base64.hpp>
+
 #include <memory>
 
 #include "config.hpp"
