@@ -35,7 +35,10 @@ void ServerHandler::handle()
 		{
 			client_->writeBuffer(readBuffer_);
 			client_->doWrite();
-			client_->doRead();
+			if (request_->httpType() == Request::HttpType::HTTPS)
+				client_->doReadSSL();
+			if (request_->httpType() == Request::HttpType::HTTP)
+				client_->doRead();
 			copyStreamBuff(client_->readBuffer(), writeBuffer_);
 		}
 	}else

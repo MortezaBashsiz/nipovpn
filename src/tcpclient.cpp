@@ -111,3 +111,24 @@ void TCPClient::doRead()
 		log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
 	}
 }
+
+void TCPClient::doReadSSL()
+{
+	try
+	{
+		boost::asio::read(
+			socket_,
+			readBuffer_,
+			boost::asio::transfer_at_least(1)
+		);
+		log_->write("[TCPClient doReadSSL] [SRC " +
+			socket_.remote_endpoint().address().to_string() +":"+
+			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+			std::to_string(readBuffer_.size())+"] ",
+			Log::Level::DEBUG);
+	}
+	catch (std::exception& error)
+	{
+		log_->write(std::string("[TCPClient doReadSSL] ") + error.what(), Log::Level::ERROR);
+	}
+}

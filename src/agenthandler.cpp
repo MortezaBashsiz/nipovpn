@@ -22,11 +22,14 @@ void AgentHandler::handle()
 	if (request_->detectType())
 	{
 		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
-		if (! client_->socket().is_open())
+		if (! client_->socket().is_open() || request_->httpType() == Request::HttpType::HTTP)
 			client_->doConnect();
 		client_->writeBuffer(readBuffer_);
 		client_->doWrite();
-		client_->doRead();
+		if (request_->httpType() == Request::HttpType::HTTPS)
+			client_->doReadSSL();
+		if (request_->httpType() == Request::HttpType::HTTP)
+			client_->doRead();
 		copyStreamBuff(client_->readBuffer(), writeBuffer_);
 	} else
 	{

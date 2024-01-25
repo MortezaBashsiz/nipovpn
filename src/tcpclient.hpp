@@ -37,6 +37,7 @@ public:
 	void doConnect(const std::string& dstIP, const unsigned short& dstPort);
 	void doWrite();
 	void doRead();
+	void doReadSSL();
 
 private:
 		explicit TCPClient(boost::asio::io_context& io_context, 
