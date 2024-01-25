@@ -40,7 +40,16 @@ void Request::httpType(const Request::HttpType& httpType)
 
 bool Request::detectType()
 {
-	std::string requestStr(streambufToString(buffer_));
+	std::string requestStr(
+		hexArrToStrTemp(
+			reinterpret_cast<unsigned char*>(
+				const_cast<char*>(
+					streambufToString(buffer_).c_str()
+				)
+			),
+			streambufToString(buffer_).length()
+		)
+	);
 	std::string tmpStr;
 	unsigned short pos=0;
 	tmpStr = requestStr.substr(pos, 2);
@@ -83,7 +92,14 @@ bool Request::parseHttp()
 
 bool Request::parseTls()
 {
-	parsedTlsRequest_.body = streambufToString(buffer_);
+	parsedTlsRequest_.body = hexArrToStrTemp(
+			reinterpret_cast<unsigned char*>(
+				const_cast<char*>(
+					streambufToString(buffer_).c_str()
+				)
+			),
+			streambufToString(buffer_).length()
+		);
 	std::string tmpStr;
 	unsigned short pos=0;
 	tmpStr = parsedTlsRequest_.body.substr(pos, 2);
@@ -150,7 +166,8 @@ void Request::setIPPort()
 				dstPort_ = std::stoi(splitted[1]);
 			} else
 			{
-				log_->write("[Request setIPPort] wrong request", Log::Level::ERROR);
+				dstIP_ = target;
+				dstPort_ = 443;
 			}
 		break;
 		case Request::HttpType::HTTP:

@@ -169,6 +169,17 @@ inline void copyStreamBuff(boost::asio::streambuf& source, boost::asio::streambu
 	source.consume(source.size());
 }
 
+inline std::string hexArrToStrTemp(const unsigned char* data, std::size_t size)
+{
+	std::stringstream tempStr;
+	tempStr << std::hex << std::setfill('0');
+	for (long unsigned int i = 0; i < size; ++i)
+	{
+		tempStr << std::setw(2) << static_cast<unsigned>(data[i]);
+	}
+	return tempStr.str();
+}
+
 inline unsigned short hexToInt(const std::string& hexString)
 {
 	std::stringstream hexStr;

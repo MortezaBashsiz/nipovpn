@@ -66,9 +66,7 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 	bool isReadSSL)
 {
 	if (isReadSSL)
-	{
-		
-	}
+	{	}
 	if (!error || error == boost::asio::error::eof)
 	{
 		try
