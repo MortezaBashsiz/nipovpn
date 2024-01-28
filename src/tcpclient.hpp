@@ -10,6 +10,7 @@
 #include "config.hpp"
 #include "log.hpp"
 #include "general.hpp"
+#include "request.hpp"
 
 
 /*
@@ -42,9 +43,13 @@ public:
 
 	void doConnect();
 	void doConnect(const std::string& dstIP, const unsigned short& dstPort);
-	void doWrite();
+	void doWrite(const Request::HttpType& httpType);
+	void handleWrite(const boost::system::error_code& error,
+		size_t bytes_transferred);
 	void doRead();
 	void doReadSSL();
+	void handleRead(const boost::system::error_code& error,
+		size_t bytes_transferred);
 
 private:
 		explicit TCPClient(boost::asio::io_context& io_context, 

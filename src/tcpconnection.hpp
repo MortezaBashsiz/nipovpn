@@ -52,6 +52,9 @@ public:
 		bool isReadSSL);
 
 	void doWrite();
+
+	void handleWrite(const boost::system::error_code& error,
+		size_t bytes_transferred);
 	
 private:
 	explicit TCPConnection(boost::asio::io_context& io_context, 
