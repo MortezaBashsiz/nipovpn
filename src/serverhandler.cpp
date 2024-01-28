@@ -12,10 +12,10 @@ ServerHandler::ServerHandler(boost::asio::streambuf& readBuffer,
 		readBuffer_(readBuffer),
 		writeBuffer_(writeBuffer),
 		request_(Request::create(config, log, readBuffer))
-{	}
+{ }
 
 ServerHandler::~ServerHandler()
-{	}
+{ }
 
 void ServerHandler::handle()
 {
@@ -24,21 +24,23 @@ void ServerHandler::handle()
 		request_->detectType();
 		log_->write("[ServerHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
 		client_->doConnect(request_->dstIP(), request_->dstPort());
-		if (request_->parsedHttpRequest().method() == boost::beast::http::verb::connect && client_->socket().is_open())
+		if (request_->parsedHttpRequest().method() == boost::beast::http::verb::connect)
 		{
 			boost::asio::streambuf tempBuff;
 			std::iostream os(&tempBuff);
-			std::string message("HTTP/1.1 200 Connection established\r\n\r\n");
-			os << message;
+			if (client_->socket().is_open())
+			{
+				std::string message("HTTP/1.1 200 Connection established\r\n\r\n");
+				os << message;
+			} else
+			{
+				std::string message("HTTP/1.1 500 Connection failed\r\n\r\n");
+				os << message;
+			}
 			moveStreamBuff(tempBuff, writeBuffer_);
 		} else
 		{
-			client_->writeBuffer(readBuffer_);
-			client_->doWrite();
-			if (request_->httpType() == Request::HttpType::HTTPS)
-				client_->doReadSSL();
-			if (request_->httpType() == Request::HttpType::HTTP)
-				client_->doRead();
+			client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
 			moveStreamBuff(client_->readBuffer(), writeBuffer_);
 		}
 	}else

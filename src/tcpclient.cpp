@@ -65,10 +65,11 @@ void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPor
 	}
 }
 
-void TCPClient::doWrite()
+void TCPClient::doWrite(const Request::HttpType& httpType, const boost::beast::http::verb& verb, boost::asio::streambuf& buffer)
 {
 	try
 	{
+    moveStreamBuff(buffer, writeBuffer_);
 		log_->write("[TCPClient doWrite] [DST " +
 			socket_.remote_endpoint().address().to_string() +":"+
 			std::to_string(socket_.remote_endpoint().port())+"] "+
@@ -79,6 +80,15 @@ void TCPClient::doWrite()
 			socket_,
 			writeBuffer_
 		);
+		if (verb == boost::beast::http::verb::connect)
+		{
+			doReadUntil("\r\n\r\n");
+			return;
+		}
+		if (httpType == Request::HttpType::HTTPS)
+			doReadSSL();
+		else if (httpType == Request::HttpType::HTTP)
+			doRead();
 	}
 	catch (std::exception& error)
 	{
@@ -90,12 +100,32 @@ void TCPClient::doRead()
 {
 	try
 	{
+		boost::asio::read(
+			socket_,
+			readBuffer_
+		);
+		log_->write("[TCPClient doRead] [SRC " +
+			socket_.remote_endpoint().address().to_string() +":"+
+			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+			std::to_string(readBuffer_.size())+"] ",
+			Log::Level::DEBUG);
+	}
+	catch (std::exception& error)
+	{
+		log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+	}
+}
+
+void TCPClient::doReadUntil(const std::string& until)
+{
+	try
+	{
 		boost::asio::read_until(
 			socket_,
 			readBuffer_,
-			"\r\n"
+			until
 		);
-		log_->write("[TCPClient doRead] [SRC " +
+		log_->write("[TCPClient doReadUntil] [SRC " +
 			socket_.remote_endpoint().address().to_string() +":"+
 			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
 			std::to_string(readBuffer_.size())+"] ",
@@ -114,7 +144,7 @@ void TCPClient::doReadSSL()
 		boost::asio::read(
 			socket_,
 			readBuffer_,
-			boost::asio::transfer_at_least(1)
+			boost::asio::transfer_all()
 		);
 		log_->write("[TCPClient doReadSSL] [SRC " +
 			socket_.remote_endpoint().address().to_string() +":"+

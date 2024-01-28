@@ -24,12 +24,7 @@ void AgentHandler::handle()
 		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
 		if (! client_->socket().is_open() || request_->httpType() == Request::HttpType::HTTP)
 			client_->doConnect();
-		client_->writeBuffer(readBuffer_);
-		client_->doWrite();
-		if (request_->httpType() == Request::HttpType::HTTPS)
-			client_->doReadSSL();
-		if (request_->httpType() == Request::HttpType::HTTP)
-			client_->doRead();
+		client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
 		moveStreamBuff(client_->readBuffer(), writeBuffer_);
 	} else
 	{
