@@ -23,7 +23,8 @@ void ServerHandler::handle()
 	{
 		request_->detectType();
 		log_->write("[ServerHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
-		client_->doConnect(request_->dstIP(), request_->dstPort());
+		if (!client_->socket().is_open())
+			client_->doConnect(request_->dstIP(), request_->dstPort());
 		if (request_->parsedHttpRequest().method() == boost::beast::http::verb::connect)
 		{
 			boost::asio::streambuf tempBuff;
@@ -40,6 +41,12 @@ void ServerHandler::handle()
 			moveStreamBuff(tempBuff, writeBuffer_);
 		} else
 		{
+			if (request_->httpType() == Request::HttpType::HTTPS && request_->parsedTlsRequest().step == Request::TlsSteps::ClientHello)
+			{
+				boost::asio::streambuf tempBuff;
+				copyStringToStreambuf((streambufToString(readBuffer_) + "0000000000"), tempBuff);
+				moveStreamBuff(tempBuff, readBuffer_);
+			}
 			client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
 			moveStreamBuff(client_->readBuffer(), writeBuffer_);
 		}

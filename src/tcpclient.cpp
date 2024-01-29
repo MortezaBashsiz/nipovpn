@@ -69,7 +69,7 @@ void TCPClient::doWrite(const Request::HttpType& httpType, const boost::beast::h
 {
 	try
 	{
-    moveStreamBuff(buffer, writeBuffer_);
+		moveStreamBuff(buffer, writeBuffer_);
 		log_->write("[TCPClient doWrite] [DST " +
 			socket_.remote_endpoint().address().to_string() +":"+
 			std::to_string(socket_.remote_endpoint().port())+"] "+
@@ -141,16 +141,21 @@ void TCPClient::doReadSSL()
 {
 	try
 	{
+		boost::system::error_code error;
 		boost::asio::read(
 			socket_,
 			readBuffer_,
-			boost::asio::transfer_all()
+			boost::asio::transfer_all(),
+			error
 		);
-		log_->write("[TCPClient doReadSSL] [SRC " +
-			socket_.remote_endpoint().address().to_string() +":"+
-			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
-			std::to_string(readBuffer_.size())+"] ",
-			Log::Level::DEBUG);
+		if (!error || error == boost::asio::error::eof)
+		{
+			log_->write("[TCPClient doReadSSL] [SRC " +
+				socket_.remote_endpoint().address().to_string() +":"+
+				std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+				std::to_string(readBuffer_.size())+"] ",
+				Log::Level::DEBUG);
+		}
 	}
 	catch (std::exception& error)
 	{
