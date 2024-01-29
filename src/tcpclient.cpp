@@ -65,7 +65,9 @@ void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPor
 	}
 }
 
-void TCPClient::doWrite(const Request::HttpType& httpType, const boost::beast::http::verb& verb, boost::asio::streambuf& buffer)
+void TCPClient::doWrite(const Request::HttpType& httpType, 
+  const boost::beast::http::verb& verb, 
+  boost::asio::streambuf& buffer)
 {
 	try
 	{
@@ -145,7 +147,7 @@ void TCPClient::doReadSSL()
 		boost::asio::read(
 			socket_,
 			readBuffer_,
-			boost::asio::transfer_all(),
+			boost::asio::transfer_at_least(1),
 			error
 		);
 		if (!error || error == boost::asio::error::eof)
