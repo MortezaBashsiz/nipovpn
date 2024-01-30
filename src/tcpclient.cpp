@@ -102,15 +102,23 @@ void TCPClient::doRead()
 {
 	try
 	{
+		boost::system::error_code error;
 		boost::asio::read(
 			socket_,
-			readBuffer_
+			readBuffer_,
+			error
 		);
-		log_->write("[TCPClient doRead] [SRC " +
-			socket_.remote_endpoint().address().to_string() +":"+
-			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
-			std::to_string(readBuffer_.size())+"] ",
-			Log::Level::DEBUG);
+		if (!error || error == boost::asio::error::eof)
+		{
+			log_->write("[TCPClient doRead] [SRC " +
+				socket_.remote_endpoint().address().to_string() +":"+
+				std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+				std::to_string(readBuffer_.size())+"] ",
+				Log::Level::DEBUG);
+		} else
+		{
+			log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+		}
 	}
 	catch (std::exception& error)
 	{
@@ -157,6 +165,9 @@ void TCPClient::doReadSSL()
 				std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
 				std::to_string(readBuffer_.size())+"] ",
 				Log::Level::DEBUG);
+		} else
+		{
+			log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
 		}
 	}
 	catch (std::exception& error)

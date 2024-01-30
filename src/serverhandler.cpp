@@ -40,6 +40,7 @@ void ServerHandler::handle()
 			moveStreamBuff(tempBuff, writeBuffer_);
 		} else
 		{
+			client_->doConnect(request_->dstIP(), request_->dstPort());
 			client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
 			moveStreamBuff(client_->readBuffer(), writeBuffer_);
 		}
