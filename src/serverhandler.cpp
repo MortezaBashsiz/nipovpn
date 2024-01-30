@@ -21,7 +21,6 @@ void ServerHandler::handle()
 {
 	if (request_->detectType())
 	{
-		request_->detectType();
 		log_->write("[ServerHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
 		if (!client_->socket().is_open())
 			client_->doConnect(request_->dstIP(), request_->dstPort());
