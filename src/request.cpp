@@ -37,7 +37,7 @@ bool Request::detectType()
 					streambufToString(buffer_).c_str()
 				)
 			),
-			streambufToString(buffer_).length()
+			buffer_.size()
 		)
 	);
 	std::string tmpStr;
@@ -256,6 +256,7 @@ const std::string Request::toString() const
 							+ "TLS Type : " + tlsTypeToString() + "\n"
 							+ "TLS Step : " + tlsStepToString() + "\n"
 							+ "SNI : " + parsedTlsRequest_.sni + "\n"
+							+ "Body Size : " + boost::lexical_cast<std::string>(parsedTlsRequest_.body.size()) + "\n"
 							+ "Body : " + parsedTlsRequest_.body + "\n";
 			break;
 		case Request::HttpType::HTTP:
@@ -264,7 +265,8 @@ const std::string Request::toString() const
 							+ "Version : " + boost::lexical_cast<std::string>(parsedHttpRequest_.version()) + "\n"
 							+ "Target : " + boost::lexical_cast<std::string>(parsedHttpRequest_.target()) + "\n"
 							+ "User Agent : " + boost::lexical_cast<std::string>(parsedHttpRequest_["User-Agent"]) + "\n"
-							+ "Body Size : " + boost::lexical_cast<std::string>(parsedHttpRequest_.body().size()) + "\n";
+							+ "Body Size : " + boost::lexical_cast<std::string>(parsedHttpRequest_.body().size()) + "\n"
+							+ "Body : " + boost::lexical_cast<std::string>(parsedHttpRequest_.body()) + "\n";
 			break;
 		default:
 			return "UNKNOWN HTTPTYPE";

@@ -38,9 +38,14 @@ void ServerHandler::handle()
 				os << message;
 			}
 			moveStreamBuff(tempBuff, writeBuffer_);
-		} else
+		} else if (request()->httpType() == Request::HttpType::HTTP)
 		{
 			client_->doConnect(request_->dstIP(), request_->dstPort());
+			client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
+			moveStreamBuff(client_->readBuffer(), writeBuffer_);
+		}
+		else if (request()->httpType() == Request::HttpType::HTTPS)
+		{
 			client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
 			moveStreamBuff(client_->readBuffer(), writeBuffer_);
 		}
