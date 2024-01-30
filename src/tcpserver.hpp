@@ -23,17 +23,15 @@ public:
 
 	static pointer create(boost::asio::io_context& io_context, 
 		const std::shared_ptr<Config>& config, 
-		const std::shared_ptr<Log>& log,
-		const TCPClient::pointer& client)
+		const std::shared_ptr<Log>& log)
 	{
-		return pointer(new TCPServer(io_context, config, log, client));
+		return pointer(new TCPServer(io_context, config, log));
 	}
 
 private:
 	explicit TCPServer(boost::asio::io_context& io_context, 
 		const std::shared_ptr<Config>& config, 
-		const std::shared_ptr<Log>& log,
-		const TCPClient::pointer& client);
+		const std::shared_ptr<Log>& log);
 
 	void startAccept();
 
@@ -42,7 +40,7 @@ private:
 
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
-	const TCPClient::pointer& client_;
+	TCPClient::pointer client_;
 	boost::asio::io_context& io_context_;
 	boost::asio::ip::tcp::acceptor acceptor_;
 };

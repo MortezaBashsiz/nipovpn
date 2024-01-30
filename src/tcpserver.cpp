@@ -5,11 +5,10 @@
 */
 TCPServer::TCPServer(boost::asio::io_context& io_context, 
 	const std::shared_ptr<Config>& config, 
-	const std::shared_ptr<Log>& log,
-	const TCPClient::pointer& client)
+	const std::shared_ptr<Log>& log)
 	: config_(config),
 		log_(log),
-		client_(client),
+		client_(TCPClient::create(io_context, config, log)),
 		io_context_(io_context),
 		acceptor_(
 			io_context,
