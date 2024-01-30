@@ -189,7 +189,7 @@ inline void copyStreamBuff(boost::asio::streambuf& source, boost::asio::streambu
 	target.commit(bytes_copied);
 }
 
-inline std::string hexArrToStrTemp(const unsigned char* data, std::size_t size)
+inline std::string hexArrToStr(const unsigned char* data, const std::size_t& size)
 {
 	std::stringstream tempStr;
 	tempStr << std::hex << std::setfill('0');

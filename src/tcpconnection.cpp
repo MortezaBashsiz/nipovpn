@@ -28,12 +28,11 @@ void TCPConnection::doRead()
 	boost::asio::async_read_until(
 		socket_,
 		readBuffer_,
-		"\r\n",
+		"\r\n\r\n",
 		boost::bind(&TCPConnection::handleRead, 
 			shared_from_this(),
 			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred,
-			false)
+			boost::asio::placeholders::bytes_transferred)
 	);
 }
 
@@ -46,17 +45,13 @@ void TCPConnection::doReadSSL()
 		boost::bind(&TCPConnection::handleRead, 
 			shared_from_this(),
 			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred,
-			true)
+			boost::asio::placeholders::bytes_transferred)
 	);
 }
 
 void TCPConnection::handleRead(const boost::system::error_code& error,
-	size_t bytes_transferred,
-	bool isReadSSL)
+	size_t bytes_transferred)
 {
-	if (isReadSSL)
-	{	}
 	if (!error || error == boost::asio::error::eof)
 	{
 		try

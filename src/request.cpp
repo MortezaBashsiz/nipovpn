@@ -31,7 +31,7 @@ Request::~Request()
 bool Request::detectType()
 {
 	std::string requestStr(
-		hexArrToStrTemp(
+		hexArrToStr(
 			reinterpret_cast<unsigned char*>(
 				const_cast<char*>(
 					streambufToString(buffer_).c_str()
@@ -46,6 +46,7 @@ bool Request::detectType()
 	if (tmpStr == "16" || tmpStr == "14" || tmpStr == "17")
 	{
 		httpType(Request::HttpType::HTTPS);
+		parsedTlsRequest_.body = requestStr;
 		if (parseTls())
 			return true;
 		else
@@ -82,14 +83,6 @@ bool Request::parseHttp()
 
 bool Request::parseTls()
 {
-	parsedTlsRequest_.body = hexArrToStrTemp(
-			reinterpret_cast<unsigned char*>(
-				const_cast<char*>(
-					streambufToString(buffer_).c_str()
-				)
-			),
-			streambufToString(buffer_).length()
-		);
 	std::string tmpStr;
 	unsigned short pos=0;
 	tmpStr = parsedTlsRequest_.body.substr(pos, 2);
