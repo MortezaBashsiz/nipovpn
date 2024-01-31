@@ -34,7 +34,8 @@ public:
 	*/
 	enum HttpType {
 		HTTPS,
-		HTTP
+		HTTP,
+		CONNECT
 	};
 
 	/*

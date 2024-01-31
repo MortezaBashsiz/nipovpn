@@ -89,7 +89,7 @@ void TCPClient::doWrite(const Request::HttpType& httpType,
 		}
 		if (httpType == Request::HttpType::HTTPS)
 			doReadSSL();
-		else if (httpType == Request::HttpType::HTTP)
+		else if (httpType == Request::HttpType::HTTP || httpType == Request::HttpType::CONNECT)
 			doRead();
 	}
 	catch (std::exception& error)
