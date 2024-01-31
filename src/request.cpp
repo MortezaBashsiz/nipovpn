@@ -54,9 +54,10 @@ bool Request::detectType()
 	}
 	else
 	{
-		httpType(Request::HttpType::HTTP);
 		if(parseHttp())
+		{
 			return true;
+		}
 		else
 			return false;
 	}
@@ -76,6 +77,10 @@ bool Request::parseHttp()
 	} else
 	{
 		parsedHttpRequest_ = parser.get();
+		if (parsedHttpRequest_.method() == boost::beast::http::verb::connect)
+			httpType(Request::HttpType::CONNECT);
+		else
+			httpType(Request::HttpType::HTTP);
 		setIPPort();
 		return true;
 	}
@@ -156,30 +161,28 @@ void Request::setIPPort()
 		break;
 		case Request::HttpType::HTTP:
 			target = boost::lexical_cast<std::string>(parsedHttpRequest_.target());
-			if (parsedHttpRequest_.method() == boost::beast::http::verb::connect)
+			splitted = 	splitString(
+										splitString(
+											splitString(target, "http://")[1],
+										"/")[0],
+									":");
+			if (!splitted.empty())
 			{
-				splitted = splitString(target, ":");
 				dstIP_=splitted[0];
-				dstPort_=std::stoi(splitted[1]);
-			} else
+				if (splitted.size() > 1)
+					dstPort_ = std::stoi(splitted[1]);
+				else
+					dstPort_ = 80;
+			}else
 			{
-				splitted = 	splitString(
-											splitString(
-												splitString(target, "http://")[1],
-											"/")[0],
-										":");
-				if (!splitted.empty())
-				{
-					dstIP_=splitted[0];
-					if (splitted.size() > 1)
-						dstPort_ = std::stoi(splitted[1]);
-					else
-						dstPort_ = 80;
-				}else
-				{
-					log_->write("[Request setIPPort] wrong request", Log::Level::ERROR);
-				}
+				log_->write("[Request setIPPort] wrong request", Log::Level::ERROR);
 			}
+		break;
+		case Request::HttpType::CONNECT:
+			target = boost::lexical_cast<std::string>(parsedHttpRequest_.target());
+			splitted = splitString(target, ":");
+			dstIP_=splitted[0];
+			dstPort_=std::stoi(splitted[1]);
 		break;
 	}
 }
@@ -267,6 +270,11 @@ const std::string Request::toString() const
 							+ "User Agent : " + boost::lexical_cast<std::string>(parsedHttpRequest_["User-Agent"]) + "\n"
 							+ "Body Size : " + boost::lexical_cast<std::string>(parsedHttpRequest_.body().size()) + "\n"
 							+ "Body : " + boost::lexical_cast<std::string>(parsedHttpRequest_.body()) + "\n";
+			break;
+		case Request::HttpType::CONNECT:
+			return std::string("\n")
+							+ "Method : " + boost::lexical_cast<std::string>(parsedHttpRequest_.method()) + "\n"
+							+ "Target : " + boost::lexical_cast<std::string>(parsedHttpRequest_.target()) + "\n";
 			break;
 		default:
 			return "UNKNOWN HTTPTYPE";
