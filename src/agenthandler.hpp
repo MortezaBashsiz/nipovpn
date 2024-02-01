@@ -8,7 +8,7 @@
 
 #include "config.hpp"
 #include "log.hpp"
-#include "request.hpp"
+#include "http.hpp"
 #include "general.hpp"
 #include "tcpclient.hpp"
 
@@ -38,7 +38,7 @@ public:
 	*/
 	void handle();
 
-	inline const Request::pointer request() const
+	inline const HTTP::pointer request() const
 	{
 		return request_;
 	}
@@ -54,7 +54,7 @@ private:
 	const std::shared_ptr<Log>& log_;
 	const TCPClient::pointer& client_;
 	boost::asio::streambuf &readBuffer_, &writeBuffer_;
-	Request::pointer request_;
+	HTTP::pointer request_;
 };
 
 #endif /* AGENTHADLER_HPP */

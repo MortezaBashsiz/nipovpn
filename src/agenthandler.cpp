@@ -11,7 +11,7 @@ AgentHandler::AgentHandler(boost::asio::streambuf& readBuffer,
 		client_(client),
 		readBuffer_(readBuffer),
 		writeBuffer_(writeBuffer),
-		request_(Request::create(config, log, readBuffer))
+		request_(HTTP::create(config, log, readBuffer))
 {	}
 
 AgentHandler::~AgentHandler()
@@ -28,12 +28,12 @@ void AgentHandler::handle()
 	if (request_->detectType())
 	{
 		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
-		if (! client_->socket().is_open() || request_->httpType() == Request::HttpType::HTTP || request_->httpType() == Request::HttpType::CONNECT)
+		if (! client_->socket().is_open() || request_->httpType() == HTTP::HttpType::http || request_->httpType() == HTTP::HttpType::connect)
 			client_->doConnect();
 		copyStringToStreambuf(newReq, readBuffer_);
 		log_->write("[AgentHandler handle] [Request To Server] : \n"+newReq, Log::Level::DEBUG);
 		client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
-		Request::pointer response = Request::create(config_, log_, client_->readBuffer());
+		HTTP::pointer response = HTTP::create(config_, log_, client_->readBuffer());
 		if (response->parseHttpResp())
 		{
 			log_->write("[AgentHandler handle] [Response] : "+response->restoString(), Log::Level::DEBUG);

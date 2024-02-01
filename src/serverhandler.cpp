@@ -11,7 +11,7 @@ ServerHandler::ServerHandler(boost::asio::streambuf& readBuffer,
 		client_(client),
 		readBuffer_(readBuffer),
 		writeBuffer_(writeBuffer),
-		request_(Request::create(config, log, readBuffer))
+		request_(HTTP::create(config, log, readBuffer))
 { }
 
 ServerHandler::~ServerHandler()
@@ -26,7 +26,7 @@ void ServerHandler::handle()
 		if (request_->detectType())
 		{		
 			log_->write("[ServerHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
-			if (request_->httpType() == Request::HttpType::CONNECT)
+			if (request_->httpType() == HTTP::HttpType::connect)
 			{
 				boost::asio::streambuf tempBuff;
 				std::iostream os(&tempBuff);
@@ -41,7 +41,7 @@ void ServerHandler::handle()
 					os << message;
 				}
 				moveStreamBuff(tempBuff, writeBuffer_);
-			} else if (request_->httpType() == Request::HttpType::HTTP)
+			} else if (request_->httpType() == HTTP::HttpType::http)
 			{
 				if (!client_->socket().is_open())
 					client_->doConnect(request_->dstIP(), request_->dstPort());
@@ -54,7 +54,7 @@ void ServerHandler::handle()
 				);
 				copyStringToStreambuf(newRes, writeBuffer_);
 				client_->socket().close();
-			} else if (request_->httpType() == Request::HttpType::HTTPS)
+			} else if (request_->httpType() == HTTP::HttpType::https)
 			{
 				if (!client_->socket().is_open())
 					client_->doConnect(request_->dstIP(), request_->dstPort());

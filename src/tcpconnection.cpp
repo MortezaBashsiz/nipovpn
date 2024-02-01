@@ -95,7 +95,7 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
 			agentHandler_->handle();
 			doWrite();
-			if (agentHandler_->request()->httpType() == Request::HttpType::HTTPS || 
+			if (agentHandler_->request()->httpType() == HTTP::HttpType::https || 
 					agentHandler_->request()->parsedHttpRequest().method() == boost::beast::http::verb::connect)
 			{
 				doReadSSL();
@@ -105,7 +105,7 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 			ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
 			serverHandler_->handle();
 			doWrite();
-			if (serverHandler_->request()->httpType() == Request::HttpType::HTTPS || 
+			if (serverHandler_->request()->httpType() == HTTP::HttpType::https || 
 					serverHandler_->request()->parsedHttpRequest().method() == boost::beast::http::verb::connect)
 			{
 				readBuffer_.consume(readBuffer_.size());

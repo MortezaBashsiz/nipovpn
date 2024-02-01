@@ -1,12 +1,14 @@
-#include "request.hpp"
+#include "http.hpp"
 
-Request::Request(const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log, boost::asio::streambuf& buffer)
+HTTP::HTTP(const std::shared_ptr<Config>& config, 
+	const std::shared_ptr<Log>& log, 
+	boost::asio::streambuf& buffer)
 	:
 		config_(config),
 		log_(log),
 		buffer_(buffer),
 		parsedHttpRequest_(),
-		httpType_(Request::HttpType::HTTPS),
+		httpType_(HTTP::HttpType::https),
 		parsedTlsRequest_
 		{
 			"",
@@ -16,19 +18,19 @@ Request::Request(const std::shared_ptr<Config>& config, const std::shared_ptr<Lo
 		}
 {	}
 
-Request::Request(const Request& request)
+HTTP::HTTP(const HTTP& http)
 	:
-		config_(request.config_),
-		log_(request.log_),
-		buffer_(request.buffer_),
-		parsedHttpRequest_(request.parsedHttpRequest_),
-		parsedTlsRequest_(request.parsedTlsRequest_)
+		config_(http.config_),
+		log_(http.log_),
+		buffer_(http.buffer_),
+		parsedHttpRequest_(http.parsedHttpRequest_),
+		parsedTlsRequest_(http.parsedTlsRequest_)
 { }
 
-Request::~Request()
+HTTP::~HTTP()
 { }
 
-bool Request::detectType()
+bool HTTP::detectType()
 {
 	std::string requestStr(
 		hexArrToStr(
@@ -45,7 +47,7 @@ bool Request::detectType()
 	tmpStr = requestStr.substr(pos, 2);
 	if (tmpStr == "16" || tmpStr == "14" || tmpStr == "17")
 	{
-		httpType(Request::HttpType::HTTPS);
+		httpType(HTTP::HttpType::https);
 		parsedTlsRequest_.body = requestStr;
 		if (parseTls())
 			return true;
@@ -63,7 +65,7 @@ bool Request::detectType()
 	}
 }
 
-bool Request::parseHttp()
+bool HTTP::parseHttp()
 {
 	std::string requestStr(streambufToString(buffer_));
 	boost::beast::http::request_parser<boost::beast::http::string_body> parser;
@@ -72,21 +74,21 @@ bool Request::parseHttp()
 	parser.put(boost::asio::buffer(requestStr), error);
 	if (error)
 	{
-		log_->write(std::string("[Request parseHttp] ") + error.what(), Log::Level::DEBUG);
+		log_->write(std::string("[HTTP parseHttp] ") + error.what(), Log::Level::DEBUG);
 		return false;
 	} else
 	{
 		parsedHttpRequest_ = parser.get();
 		if (parsedHttpRequest_.method() == boost::beast::http::verb::connect)
-			httpType(Request::HttpType::CONNECT);
+			httpType(HTTP::HttpType::connect);
 		else
-			httpType(Request::HttpType::HTTP);
+			httpType(HTTP::HttpType::http);
 		setIPPort();
 		return true;
 	}
 }
 
-bool Request::parseHttpResp()
+bool HTTP::parseHttpResp()
 {
 	std::string requestStr(streambufToString(buffer_));
 	parser_.eager(true);
@@ -94,7 +96,7 @@ bool Request::parseHttpResp()
 	parser_.put(boost::asio::buffer(requestStr), error);
 	if (error)
 	{
-		log_->write(std::string("[Request parseHttpResp] ") + error.what(), Log::Level::DEBUG);
+		log_->write(std::string("[HTTP parseHttpResp] ") + error.what(), Log::Level::DEBUG);
 		return false;
 	} else
 	{
@@ -103,7 +105,7 @@ bool Request::parseHttpResp()
 	}
 }
 
-bool Request::parseTls()
+bool HTTP::parseTls()
 {
 	std::string tmpStr;
 	unsigned short pos=0;
@@ -159,7 +161,7 @@ bool Request::parseTls()
 		return false;
 }
 
-const std::string Request::genHttpPostReqString(const std::string& body) const
+const std::string HTTP::genHttpPostReqString(const std::string& body) const
 {
 	return std::string("POST http://google.com/seite2.php HTTP/1.1\r\n")
 		+ "Host: google.com\r\n"
@@ -172,7 +174,7 @@ const std::string Request::genHttpPostReqString(const std::string& body) const
 		+ body + "\r\n\r\n";
 }
 
-const std::string Request::genHttpOkResString(const std::string& body) const
+const std::string HTTP::genHttpOkResString(const std::string& body) const
 {
 	return std::string("HTTP/1.1 200 OK\r\n")
 		+ "Content-Type: application/x-www-form-urlencoded\r\n"
@@ -184,12 +186,12 @@ const std::string Request::genHttpOkResString(const std::string& body) const
 		+ body + "\r\n\r\n";
 }
 
-void Request::setIPPort()
+void HTTP::setIPPort()
 {
 	std::string target{};
 	std::vector<std::string> splitted;
 	switch (httpType()){
-		case Request::HttpType::HTTPS:
+		case HTTP::HttpType::https:
 			target = parsedTlsRequest_.sni;
 			splitted = splitString(target, ":");
 			if (splitted.size() > 1){
@@ -201,7 +203,7 @@ void Request::setIPPort()
 				dstPort_ = 443;
 			}
 		break;
-		case Request::HttpType::HTTP:
+		case HTTP::HttpType::http:
 			target = boost::lexical_cast<std::string>(parsedHttpRequest_.target());
 			splitted = 	splitString(
 										splitString(
@@ -217,10 +219,10 @@ void Request::setIPPort()
 					dstPort_ = 80;
 			}else
 			{
-				log_->write("[Request setIPPort] wrong request", Log::Level::ERROR);
+				log_->write("[HTTP setIPPort] wrong request", Log::Level::ERROR);
 			}
 		break;
-		case Request::HttpType::CONNECT:
+		case HTTP::HttpType::connect:
 			target = boost::lexical_cast<std::string>(parsedHttpRequest_.target());
 			splitted = splitString(target, ":");
 			dstIP_=splitted[0];
@@ -229,7 +231,7 @@ void Request::setIPPort()
 	}
 }
 
-const std::string Request::tlsTypeToString() const
+const std::string HTTP::tlsTypeToString() const
 {
 	switch (parsedTlsRequest_.type){
 		case TlsTypes::TLSHandshake:
@@ -246,7 +248,7 @@ const std::string Request::tlsTypeToString() const
 	}
 }
 
-const std::string Request::tlsStepToString() const
+const std::string HTTP::tlsStepToString() const
 {
 	switch (parsedTlsRequest_.step){
 		case TlsSteps::ClientHello:
@@ -293,10 +295,10 @@ const std::string Request::tlsStepToString() const
 	}
 }
 
-const std::string Request::toString() const
+const std::string HTTP::toString() const
 {
 	switch (httpType()){
-		case Request::HttpType::HTTPS:
+		case HTTP::HttpType::https:
 			return std::string("\n")
 							+ "TLS Type : " + tlsTypeToString() + "\n"
 							+ "TLS Step : " + tlsStepToString() + "\n"
@@ -304,7 +306,7 @@ const std::string Request::toString() const
 							+ "Body Size : " + boost::lexical_cast<std::string>(parsedTlsRequest_.body.size()) + "\n"
 							+ "Body : " + parsedTlsRequest_.body + "\n";
 			break;
-		case Request::HttpType::HTTP:
+		case HTTP::HttpType::http:
 			return std::string("\n")
 							+ "Method : " + boost::lexical_cast<std::string>(parsedHttpRequest_.method()) + "\n"
 							+ "Version : " + boost::lexical_cast<std::string>(parsedHttpRequest_.version()) + "\n"
@@ -313,7 +315,7 @@ const std::string Request::toString() const
 							+ "Body Size : " + boost::lexical_cast<std::string>(parsedHttpRequest_.body().size()) + "\n"
 							+ "Body : " + boost::lexical_cast<std::string>(parsedHttpRequest_.body()) + "\n";
 			break;
-		case Request::HttpType::CONNECT:
+		case HTTP::HttpType::connect:
 			return std::string("\n")
 							+ "Method : " + boost::lexical_cast<std::string>(parsedHttpRequest_.method()) + "\n"
 							+ "Target : " + boost::lexical_cast<std::string>(parsedHttpRequest_.target()) + "\n";
@@ -323,7 +325,7 @@ const std::string Request::toString() const
 	}
 }
 
-const std::string Request::restoString() const
+const std::string HTTP::restoString() const
 {
 	return std::string("\n")
 					+ boost::lexical_cast<std::string>(parsedHttpResponse_.base()) + "\n"
