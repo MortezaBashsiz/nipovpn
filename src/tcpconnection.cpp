@@ -34,7 +34,7 @@ void TCPConnection::doRead()
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string("[TCPConnection doRead log] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPConnection doRead] [log] ") + error.what(), Log::Level::ERROR);
 	}
 
 	boost::asio::async_read_until(
@@ -59,9 +59,8 @@ void TCPConnection::doReadSSL()
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string("[TCPConnection doReadSSL log] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPConnection doReadSSL] [log] ") + error.what(), Log::Level::ERROR);
 	}
-
 	boost::asio::async_read(
 		socket_,
 		readBuffer_,
@@ -86,7 +85,7 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string("[TCPConnection handleRead log] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPConnection handleRead] [log] ") + error.what(), Log::Level::ERROR);
 	}
 	if (!error || error == boost::asio::error::eof)
 	{

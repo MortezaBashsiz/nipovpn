@@ -48,7 +48,7 @@ void AgentHandler::handle()
 			}
 		} else
 		{
-			log_->write("[AgentHandler handle] [Response to connect] : "+streambufToString(client_->readBuffer()), Log::Level::DEBUG);
+			log_->write("[AgentHandler handle] [Response to connect] : \n"+streambufToString(client_->readBuffer()), Log::Level::DEBUG);
 			moveStreamBuff(client_->readBuffer(), writeBuffer_);
 		}
 	} else
