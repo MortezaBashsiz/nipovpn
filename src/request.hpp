@@ -106,17 +106,25 @@ public:
 	* If the request is HTTP it will parse it and store in parsedHttpRequest_
 	*/
 	bool parseHttp();
+	bool parseHttpResp();
 
 	/*
 	* If the request is HTTPS it will parse it and store in parsedTlsRequest_
 	*/
 	bool parseTls();
 
-	const std::string genHttpReqString(const std::string& body) const;
+	const std::string genHttpPostReqString(const std::string& body) const;
+
+	const std::string genHttpOkResString(const std::string& body) const;
 
 	inline boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest() const
 	{
 		return parsedHttpRequest_;
+	}
+
+	inline boost::beast::http::response<boost::beast::http::string_body> parsedHttpResponse() const
+	{
+		return parsedHttpResponse_;
 	}
 
 	inline TlsRequest parsedTlsRequest() const
@@ -148,6 +156,7 @@ public:
 	* This function returns string of request based on the HttpType (HTTP|HTTPS)
 	*/
 	const std::string toString() const;
+	const std::string restoString() const;
 
 private:
 	/*
@@ -163,7 +172,9 @@ private:
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
 	boost::asio::streambuf &buffer_;
+	boost::beast::http::parser<false, boost::beast::http::string_body> parser_;
 	boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest_;
+	boost::beast::http::response<boost::beast::http::string_body> parsedHttpResponse_;
 	HttpType httpType_;
 	std::string dstIP_;
 	unsigned short dstPort_;

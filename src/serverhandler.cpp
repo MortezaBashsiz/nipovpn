@@ -21,6 +21,7 @@ void ServerHandler::handle()
 {
 	if (request_->detectType())
 	{
+		log_->write("[ServerHandler handle] [Request From Agent] : "+request_->toString(), Log::Level::DEBUG);
 		copyStringToStreambuf(decode64(boost::lexical_cast<std::string>(request_->parsedHttpRequest().body())), readBuffer_);
 		if (request_->detectType())
 		{		
@@ -45,14 +46,26 @@ void ServerHandler::handle()
 				if (!client_->socket().is_open())
 					client_->doConnect(request_->dstIP(), request_->dstPort());
 				client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
-				moveStreamBuff(client_->readBuffer(), writeBuffer_);
+				std::string newRes(request_->genHttpOkResString(
+					encode64(
+						streambufToString(client_->readBuffer())
+						)
+					)
+				);
+				copyStringToStreambuf(newRes, writeBuffer_);
 				client_->socket().close();
 			} else if (request_->httpType() == Request::HttpType::HTTPS)
 			{
 				if (!client_->socket().is_open())
 					client_->doConnect(request_->dstIP(), request_->dstPort());
 				client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
-				moveStreamBuff(client_->readBuffer(), writeBuffer_);
+				std::string newRes(request_->genHttpOkResString(
+					encode64(
+						streambufToString(client_->readBuffer())
+						)
+					)
+				);
+				copyStringToStreambuf(newRes, writeBuffer_);
 			}
 		}else
 		{

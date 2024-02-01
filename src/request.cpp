@@ -86,6 +86,23 @@ bool Request::parseHttp()
 	}
 }
 
+bool Request::parseHttpResp()
+{
+	std::string requestStr(streambufToString(buffer_));
+	parser_.eager(true);
+	boost::beast::error_code error;
+	parser_.put(boost::asio::buffer(requestStr), error);
+	if (error)
+	{
+		log_->write(std::string("[Request parseHttpResp] ") + error.what(), Log::Level::DEBUG);
+		return false;
+	} else
+	{
+		parsedHttpResponse_ = parser_.release();
+		return true;
+	}
+}
+
 bool Request::parseTls()
 {
 	std::string tmpStr;
@@ -142,7 +159,7 @@ bool Request::parseTls()
 		return false;
 }
 
-const std::string Request::genHttpReqString(const std::string& body) const
+const std::string Request::genHttpPostReqString(const std::string& body) const
 {
 	return std::string("POST http://google.com/seite2.php HTTP/1.1\r\n")
 		+ "Host: google.com\r\n"
@@ -151,6 +168,18 @@ const std::string Request::genHttpReqString(const std::string& body) const
 		+ "Connection: keep-alive\r\n"
 		+ "Content-Length: " + std::to_string(body.length()) + "\r\n"
 		+ "Content-Type: application/x-www-form-urlencoded\r\n"
+		+ "\r\n"
+		+ body + "\r\n\r\n";
+}
+
+const std::string Request::genHttpOkResString(const std::string& body) const
+{
+	return std::string("HTTP/1.1 200 OK\r\n")
+		+ "Content-Type: application/x-www-form-urlencoded\r\n"
+		+ "Content-Length: " + std::to_string(body.length()) + "\r\n"
+		+ "Connection: keep-alive\r\n"
+		// + "Cache-Control: no-cache\r\n"
+		// + "Pragma: no-cache\r\n"
 		+ "\r\n"
 		+ body + "\r\n\r\n";
 }
@@ -292,4 +321,12 @@ const std::string Request::toString() const
 		default:
 			return "UNKNOWN HTTPTYPE";
 	}
+}
+
+const std::string Request::restoString() const
+{
+	return std::string("\n")
+					+ boost::lexical_cast<std::string>(parsedHttpResponse_.base()) + "\n"
+					+ "Body Size : " + boost::lexical_cast<std::string>(parsedHttpResponse_.body().length()) + "\n"
+					+ "Body : " + parsedHttpResponse_.body() + "\n";
 }
