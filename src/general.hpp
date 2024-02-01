@@ -220,12 +220,23 @@ inline std::string hexToASCII(const std::string& hex)
 	return ascii;
 }
 
-inline unsigned char charToHex(char& c)
+inline unsigned char charToHex(const char& c)
 {
 	if ('0' <= c && c <= '9') return c - '0';
 	if ('A' <= c && c <= 'F') return c - 'A' + 10;
 	if ('a' <= c && c <= 'f') return c - 'a' + 10;
 	std::abort();
+}
+
+inline std::vector<unsigned char> strTohexArr(const std::string & hexStr)
+{
+    if (hexStr.size() % 2 != 0) std::abort();
+    std::vector<unsigned char> result(hexStr.size() / 2);
+
+    for (std::size_t i = 0; i != hexStr.size() / 2; ++i)
+        result[i] = 16 * charToHex(hexStr[2 * i]) + charToHex(hexStr[2 * i + 1]);
+
+    return result;
 }
 
 inline std::vector<std::string> splitString(std::string str, std::string token){
