@@ -142,6 +142,19 @@ bool Request::parseTls()
 		return false;
 }
 
+const std::string Request::genHttpReqString(const std::string& body) const
+{
+	return std::string("POST http://google.com/seite2.php HTTP/1.1\r\n")
+		+ "Host: google.com\r\n"
+		+ "User-Agent: Mozilla/5.0\r\n"
+		+ "Accept: */*\r\n"
+		+ "Connection: keep-alive\r\n"
+		+ "Content-Length: " + std::to_string(body.length()) + "\r\n"
+		+ "Content-Type: application/x-www-form-urlencoded\r\n"
+		+ "\r\n"
+		+ body + "\r\n\r\n";
+}
+
 void Request::setIPPort()
 {
 	std::string target{};

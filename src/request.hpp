@@ -112,6 +112,8 @@ public:
 	*/
 	bool parseTls();
 
+	const std::string genHttpReqString(const std::string& body) const;
+
 	inline boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest() const
 	{
 		return parsedHttpRequest_;

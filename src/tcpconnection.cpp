@@ -25,6 +25,18 @@ void TCPConnection::start()
 
 void TCPConnection::doRead()
 {
+	try
+	{
+		log_->write("[TCPConnection doRead] [SRC " +
+			socket_.remote_endpoint().address().to_string() +":"+
+			std::to_string(socket_.remote_endpoint().port())+"]",
+			Log::Level::DEBUG);
+	}
+	catch (std::exception& error)
+	{
+		log_->write(std::string("[TCPConnection doRead log] ") + error.what(), Log::Level::ERROR);
+	}
+
 	boost::asio::async_read_until(
 		socket_,
 		readBuffer_,
@@ -38,10 +50,22 @@ void TCPConnection::doRead()
 
 void TCPConnection::doReadSSL()
 {
-		boost::asio::async_read(
+	try
+	{
+		log_->write("[TCPConnection doReadSSL] [SRC " +
+			socket_.remote_endpoint().address().to_string() +":"+
+			std::to_string(socket_.remote_endpoint().port())+"]",
+			Log::Level::DEBUG);
+	}
+	catch (std::exception& error)
+	{
+		log_->write(std::string("[TCPConnection doReadSSL log] ") + error.what(), Log::Level::ERROR);
+	}
+
+	boost::asio::async_read(
 		socket_,
 		readBuffer_,
-		boost::asio::transfer_at_least(1),
+		boost::asio::transfer_at_least(513),
 		boost::bind(&TCPConnection::handleRead, 
 			shared_from_this(),
 			boost::asio::placeholders::error,
@@ -52,20 +76,20 @@ void TCPConnection::doReadSSL()
 void TCPConnection::handleRead(const boost::system::error_code& error,
 	size_t bytes_transferred)
 {
+	try
+	{
+		log_->write("[TCPConnection handleRead] [SRC " +
+			socket_.remote_endpoint().address().to_string() +":"+
+			std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+			std::to_string(bytes_transferred)+"] ",
+			Log::Level::INFO);
+	}
+	catch (std::exception& error)
+	{
+		log_->write(std::string("[TCPConnection handleRead log] ") + error.what(), Log::Level::ERROR);
+	}
 	if (!error || error == boost::asio::error::eof)
 	{
-		try
-		{
-			log_->write("[TCPConnection doRead] [SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+
-				std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
-				std::to_string(bytes_transferred)+"] ",
-				Log::Level::INFO);
-		}
-		catch (std::exception& error)
-		{
-			log_->write(std::string("[TCPConnection handleRead log] ") + error.what(), Log::Level::ERROR);
-		}
 		if (config_->runMode() == RunMode::agent)
 		{
 			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);

@@ -19,11 +19,18 @@ AgentHandler::~AgentHandler()
 
 void AgentHandler::handle()
 {
+	std::string newReq(request_->genHttpReqString(
+				encode64(
+					streambufToString(readBuffer_)
+				)
+			)
+		);
 	if (request_->detectType())
 	{
 		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
 		if (! client_->socket().is_open() || request_->httpType() == Request::HttpType::HTTP || request_->httpType() == Request::HttpType::CONNECT)
 			client_->doConnect();
+		copyStringToStreambuf(newReq, readBuffer_);
 		client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
 		moveStreamBuff(client_->readBuffer(), writeBuffer_);
 	} else
