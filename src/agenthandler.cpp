@@ -19,12 +19,13 @@ AgentHandler::~AgentHandler()
 
 void AgentHandler::handle()
 {
-	std::string newReq(request_->genHttpPostReqString(
-				encode64(
-					streambufToString(readBuffer_)
-				)
+	std::string newReq(
+		request_->genHttpPostReqString(
+			encode64(
+				streambufToString(readBuffer_)
 			)
-		);
+		)
+	);
 	if (request_->detectType())
 	{
 		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
