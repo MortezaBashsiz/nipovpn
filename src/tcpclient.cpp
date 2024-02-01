@@ -102,6 +102,7 @@ void TCPClient::doRead()
 {
 	try
 	{
+		readBuffer_.consume(readBuffer_.size());
 		boost::system::error_code error;
 		boost::asio::read(
 			socket_,
@@ -130,6 +131,7 @@ void TCPClient::doReadUntil(const std::string& until)
 {
 	try
 	{
+		readBuffer_.consume(readBuffer_.size());
 		boost::asio::read_until(
 			socket_,
 			readBuffer_,
