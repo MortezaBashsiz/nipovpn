@@ -65,7 +65,7 @@ void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPor
 	}
 }
 
-void TCPClient::doWrite(const Request::HttpType& httpType, 
+void TCPClient::doWrite(const HTTP::HttpType& httpType, 
   const boost::beast::http::verb& verb, 
   boost::asio::streambuf& buffer)
 {
@@ -87,9 +87,9 @@ void TCPClient::doWrite(const Request::HttpType& httpType,
 			doReadUntil("\r\n\r\n");
 			return;
 		}
-		if (httpType == Request::HttpType::HTTPS)
+		if (httpType == HTTP::HttpType::https)
 			doReadSSL();
-		else if (httpType == Request::HttpType::HTTP || httpType == Request::HttpType::CONNECT)
+		else if (httpType == HTTP::HttpType::http || httpType == HTTP::HttpType::connect)
 			doRead();
 	}
 	catch (std::exception& error)
@@ -102,6 +102,7 @@ void TCPClient::doRead()
 {
 	try
 	{
+		readBuffer_.consume(readBuffer_.size());
 		boost::system::error_code error;
 		boost::asio::read(
 			socket_,
@@ -130,6 +131,7 @@ void TCPClient::doReadUntil(const std::string& until)
 {
 	try
 	{
+		readBuffer_.consume(readBuffer_.size());
 		boost::asio::read_until(
 			socket_,
 			readBuffer_,

@@ -1,6 +1,6 @@
 #pragma once
-#ifndef REQUEST_HPP
-#define REQUEST_HPP
+#ifndef HTTP_HPP
+#define HTTP_HPP
 
 #include <memory>
 
@@ -18,24 +18,24 @@
 * 	AgentHanler::handle function(see agenthandler.hpp) and object from this class will be created in AgentHanler::handle function
 * 	to do all operations related to the request
 */
-class Request 
+class HTTP 
 {
 public:
 
-	typedef std::shared_ptr<Request> pointer;
+	typedef std::shared_ptr<HTTP> pointer;
 
 	static pointer create(const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log, boost::asio::streambuf& buffer)
 	{
-		return pointer(new Request(config, log, buffer));
+		return pointer(new HTTP(config, log, buffer));
 	}
 
 	/*
 	* To define the type of HTTP/HTTPS request
 	*/
 	enum HttpType {
-		HTTPS,
-		HTTP,
-		CONNECT
+		https,
+		http,
+		connect
 	};
 
 	/*
@@ -67,7 +67,7 @@ public:
 	};
 
 	/*
-	* To define the TLS request, This struct is used while parsing a request after we detect that it is a TLS Request
+	* To define the TLS request, This struct is used while parsing a request after we detect that it is a TLS HTTP
 	*/
 	struct TlsRequest {
 		std::string sni;
@@ -79,19 +79,19 @@ public:
 	/*
 	* Copy constructor if you want to copy and initialize it
 	*/
-	explicit Request(const Request& request);
+	explicit HTTP(const HTTP& request);
 
-	~Request();
+	~HTTP();
 
 	/*
 	* Functions to handle private members
 	*/
-	inline const Request::HttpType& httpType() const
+	inline const HTTP::HttpType& httpType() const
 	{
 		return httpType_;
 	}
 
-	inline void httpType(const Request::HttpType& httpType)
+	inline void httpType(const HTTP::HttpType& httpType)
 	{
 		httpType_ = httpType;
 	}
@@ -106,15 +106,25 @@ public:
 	* If the request is HTTP it will parse it and store in parsedHttpRequest_
 	*/
 	bool parseHttp();
+	bool parseHttpResp();
 
 	/*
 	* If the request is HTTPS it will parse it and store in parsedTlsRequest_
 	*/
 	bool parseTls();
 
+	const std::string genHttpPostReqString(const std::string& body) const;
+
+	const std::string genHttpOkResString(const std::string& body) const;
+
 	inline boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest() const
 	{
 		return parsedHttpRequest_;
+	}
+
+	inline boost::beast::http::response<boost::beast::http::string_body> parsedHttpResponse() const
+	{
+		return parsedHttpResponse_;
 	}
 
 	inline TlsRequest parsedTlsRequest() const
@@ -146,12 +156,13 @@ public:
 	* This function returns string of request based on the HttpType (HTTP|HTTPS)
 	*/
 	const std::string toString() const;
+	const std::string restoString() const;
 
 private:
 	/*
 	* default constructor
 	*/
-	explicit Request(const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log, boost::asio::streambuf& buffer);
+	explicit HTTP(const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log, boost::asio::streambuf& buffer);
 
 	/*
 	* This function returns map of dst IP and Port for request
@@ -161,11 +172,13 @@ private:
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
 	boost::asio::streambuf &buffer_;
+	boost::beast::http::parser<false, boost::beast::http::string_body> parser_;
 	boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest_;
+	boost::beast::http::response<boost::beast::http::string_body> parsedHttpResponse_;
 	HttpType httpType_;
 	std::string dstIP_;
 	unsigned short dstPort_;
 	TlsRequest parsedTlsRequest_;
 };
 
-#endif /* REQUEST_HPP */
+#endif /* HTTP_HPP */

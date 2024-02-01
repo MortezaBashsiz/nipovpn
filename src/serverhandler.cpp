@@ -11,7 +11,7 @@ ServerHandler::ServerHandler(boost::asio::streambuf& readBuffer,
 		client_(client),
 		readBuffer_(readBuffer),
 		writeBuffer_(writeBuffer),
-		request_(Request::create(config, log, readBuffer))
+		request_(HTTP::create(config, log, readBuffer))
 { }
 
 ServerHandler::~ServerHandler()
@@ -21,38 +21,58 @@ void ServerHandler::handle()
 {
 	if (request_->detectType())
 	{
-		log_->write("[ServerHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
-		if (request_->httpType() == Request::HttpType::CONNECT)
-		{
-			boost::asio::streambuf tempBuff;
-			std::iostream os(&tempBuff);
-			client_->doConnect(request_->dstIP(), request_->dstPort());
-			if (client_->socket().is_open())
+		log_->write("[ServerHandler handle] [Request From Agent] : "+request_->toString(), Log::Level::DEBUG);
+		copyStringToStreambuf(decode64(boost::lexical_cast<std::string>(request_->parsedHttpRequest().body())), readBuffer_);
+		if (request_->detectType())
+		{		
+			log_->write("[ServerHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
+			if (request_->httpType() == HTTP::HttpType::connect)
 			{
-				std::string message("HTTP/1.1 200 Connection established\r\n\r\n");
-				os << message;
-			} else
+				boost::asio::streambuf tempBuff;
+				std::iostream os(&tempBuff);
+				client_->doConnect(request_->dstIP(), request_->dstPort());
+				if (client_->socket().is_open())
+				{
+					std::string message("HTTP/1.1 200 Connection established\r\n\r\n");
+					os << message;
+				} else
+				{
+					std::string message("HTTP/1.1 500 Connection failed\r\n\r\n");
+					os << message;
+				}
+				moveStreamBuff(tempBuff, writeBuffer_);
+			} else if (request_->httpType() == HTTP::HttpType::http)
 			{
-				std::string message("HTTP/1.1 500 Connection failed\r\n\r\n");
-				os << message;
+				if (!client_->socket().is_open())
+					client_->doConnect(request_->dstIP(), request_->dstPort());
+				client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
+				std::string newRes(request_->genHttpOkResString(
+					encode64(
+						streambufToString(client_->readBuffer())
+						)
+					)
+				);
+				copyStringToStreambuf(newRes, writeBuffer_);
+				client_->socket().close();
+			} else if (request_->httpType() == HTTP::HttpType::https)
+			{
+				if (!client_->socket().is_open())
+					client_->doConnect(request_->dstIP(), request_->dstPort());
+				client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
+				std::string newRes(request_->genHttpOkResString(
+					encode64(
+						streambufToString(client_->readBuffer())
+						)
+					)
+				);
+				copyStringToStreambuf(newRes, writeBuffer_);
 			}
-			moveStreamBuff(tempBuff, writeBuffer_);
-		} else if (request_->httpType() == Request::HttpType::HTTP)
+		}else
 		{
-			if (!client_->socket().is_open())
-				client_->doConnect(request_->dstIP(), request_->dstPort());
-			client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
-			moveStreamBuff(client_->readBuffer(), writeBuffer_);
-			client_->socket().close();
-		} else if (request_->httpType() == Request::HttpType::HTTPS)
-		{
-			if (!client_->socket().is_open())
-				client_->doConnect(request_->dstIP(), request_->dstPort());
-			client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
-			moveStreamBuff(client_->readBuffer(), writeBuffer_);
+			log_->write("[ServerHandler handle] [NOT HTTP Request] [Request] : "+ streambufToString(readBuffer_), Log::Level::ERROR);
 		}
-	}else
+	}	else
 	{
-		log_->write("[AgentHandler handle] [NOT HTTP Request] [Request] : "+ streambufToString(readBuffer_), Log::Level::ERROR);
+		log_->write("[ServerHandler handle] [NOT HTTP Request From Agent] [Request] : "+ streambufToString(readBuffer_), Log::Level::ERROR);
 	}
 }

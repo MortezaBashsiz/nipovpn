@@ -10,7 +10,7 @@
 #include "config.hpp"
 #include "log.hpp"
 #include "general.hpp"
-#include "request.hpp"
+#include "http.hpp"
 
 /*
 * Thic class is to create and handle TCP client
@@ -42,7 +42,7 @@ public:
 
 	void doConnect();
 	void doConnect(const std::string& dstIP, const unsigned short& dstPort);
-	void doWrite(const Request::HttpType& httpType, 
+	void doWrite(const HTTP::HttpType& httpType, 
     const boost::beast::http::verb& verb, 
     boost::asio::streambuf& buffer);
 	void doRead();
