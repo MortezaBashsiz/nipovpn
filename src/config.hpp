@@ -11,7 +11,7 @@
 * This enum defines the modes which program are able to start
 * Mode server and agent
 */
-enum RunMode
+enum class RunMode
 {
 	server,
 	agent

@@ -32,7 +32,7 @@ public:
 	/*
 	* To define the type of HTTP/HTTPS request
 	*/
-	enum HttpType {
+	enum class HttpType {
 		https,
 		http,
 		connect
@@ -41,7 +41,7 @@ public:
 	/*
 	* To define the type of the TLS request
 	*/
-	enum TlsTypes {
+	enum class TlsTypes {
 		TLSHandshake,
 		ChangeCipherSpec,
 		ApplicationData
@@ -50,7 +50,7 @@ public:
 	/*
 	* To define the step of request in TLS handshake
 	*/
-	enum TlsSteps {
+	enum class TlsSteps {
 		ClientHello,
 		ServerHello,
 		ServerCertificate,

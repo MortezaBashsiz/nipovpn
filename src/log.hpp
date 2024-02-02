@@ -12,7 +12,7 @@ class Log
 	: private Uncopyable
 {
 public:
-	enum Level
+	enum class Level
 	{
 		INFO,
 		ERROR,
