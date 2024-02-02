@@ -19,7 +19,7 @@
 class TCPClient
 {
 public:
-	typedef boost::shared_ptr<TCPClient> pointer;
+	using pointer =  boost::shared_ptr<TCPClient>;
 
 	static pointer create(boost::asio::io_context& io_context, 
 		const std::shared_ptr<Config>& config, 

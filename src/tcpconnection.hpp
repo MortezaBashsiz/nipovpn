@@ -19,7 +19,7 @@ class TCPConnection
 	: public boost::enable_shared_from_this<TCPConnection>
 {
 public:
-	typedef boost::shared_ptr<TCPConnection> pointer;
+	using pointer =  boost::shared_ptr<TCPConnection>;
 
 	static pointer create(boost::asio::io_context& io_context, 
 		const std::shared_ptr<Config>& config, 

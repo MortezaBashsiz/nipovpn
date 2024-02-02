@@ -80,7 +80,7 @@ private:
 		const std::string& filePath);
 
 public:
-	typedef std::shared_ptr<Config> pointer;
+	using pointer =  std::shared_ptr<Config>;
 
 	static pointer create(const RunMode& mode, const std::string& filePath)
 	{

@@ -19,7 +19,7 @@
 class TCPServer 
 {
 public:
-	typedef boost::shared_ptr<TCPServer> pointer;
+	using pointer =  boost::shared_ptr<TCPServer>;
 
 	static pointer create(boost::asio::io_context& io_context, 
 		const std::shared_ptr<Config>& config, 

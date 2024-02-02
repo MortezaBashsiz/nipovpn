@@ -17,7 +17,7 @@ class ServerHandler
 	: private Uncopyable
 {
 public:
-	typedef std::shared_ptr<ServerHandler> pointer;
+	using pointer =  std::shared_ptr<ServerHandler>;
 
 	static pointer create(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,

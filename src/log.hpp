@@ -19,7 +19,7 @@ public:
 		DEBUG
 	};
 
-	typedef std::shared_ptr<Log> pointer;
+	using pointer =  std::shared_ptr<Log>;
 
 	static pointer create(const std::shared_ptr<Config>& config)
 	{

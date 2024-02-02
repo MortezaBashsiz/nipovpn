@@ -22,7 +22,7 @@ class HTTP
 {
 public:
 
-	typedef std::shared_ptr<HTTP> pointer;
+	using pointer =  std::shared_ptr<HTTP>;
 
 	static pointer create(const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log, boost::asio::streambuf& buffer)
 	{
