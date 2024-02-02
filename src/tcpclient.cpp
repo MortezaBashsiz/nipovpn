@@ -149,6 +149,7 @@ void TCPClient::doReadSSL()
 {
 	try
 	{
+		readBuffer_.consume(readBuffer_.size());
 		boost::system::error_code error;
 		boost::asio::read(
 			socket_,
