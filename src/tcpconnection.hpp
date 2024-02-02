@@ -43,7 +43,7 @@ public:
 
 	void start();
 
-	void doRead();
+	void doReadUntil(const std::string& until);
 
 	void doReadSSL();
 

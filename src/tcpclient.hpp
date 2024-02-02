@@ -43,12 +43,11 @@ public:
 	void doConnect();
 	void doConnect(const std::string& dstIP, const unsigned short& dstPort);
 	void doWrite(const HTTP::HttpType& httpType, 
-    const boost::beast::http::verb& verb, 
-    boost::asio::streambuf& buffer);
+		boost::asio::streambuf& buffer);
 	void doRead();
-  void handleRead(const boost::system::error_code& error,
-    size_t bytes_transferred);
-  void doReadUntil(const std::string& until);
+	void handleRead(const boost::system::error_code& error,
+		size_t bytes_transferred);
+	void doReadUntil(const std::string& until);
 	void doReadSSL();
 
 private:

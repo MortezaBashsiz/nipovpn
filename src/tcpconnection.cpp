@@ -20,27 +20,30 @@ boost::asio::ip::tcp::socket& TCPConnection::socket()
 
 void TCPConnection::start()
 {
-	doRead();
+	if (config_->runMode() == RunMode::agent)
+		doReadUntil("\r\n\r\n");
+	else if (config_->runMode() == RunMode::server)
+		doReadUntil("\r\nCOMP\r\n\r\n");
 }
 
-void TCPConnection::doRead()
+void TCPConnection::doReadUntil(const std::string& until)
 {
 	try
 	{
-		log_->write("[TCPConnection doRead] [SRC " +
+		log_->write("[TCPConnection doReadUntil] [SRC " +
 			socket_.remote_endpoint().address().to_string() +":"+
 			std::to_string(socket_.remote_endpoint().port())+"]",
 			Log::Level::DEBUG);
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string("[TCPConnection doRead] [log] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPConnection doReadUntil] [log] ") + error.what(), Log::Level::ERROR);
 	}
 
 	boost::asio::async_read_until(
 		socket_,
 		readBuffer_,
-		"\r\n\r\n",
+		until,
 		boost::bind(&TCPConnection::handleRead, 
 			shared_from_this(),
 			boost::asio::placeholders::error,
@@ -95,7 +98,7 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 			agentHandler_->handle();
 			doWrite();
 			if (agentHandler_->request()->httpType() == HTTP::HttpType::https || 
-					agentHandler_->request()->parsedHttpRequest().method() == boost::beast::http::verb::connect)
+					agentHandler_->request()->httpType() == HTTP::HttpType::connect)
 			{
 				doReadSSL();
 			}
@@ -105,10 +108,10 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 			serverHandler_->handle();
 			doWrite();
 			if (serverHandler_->request()->httpType() == HTTP::HttpType::https || 
-					serverHandler_->request()->parsedHttpRequest().method() == boost::beast::http::verb::connect)
+					serverHandler_->request()->httpType() == HTTP::HttpType::connect)
 			{
 				readBuffer_.consume(readBuffer_.size());
-				doReadSSL();
+				doReadUntil("\r\nCOMP\r\n\r\n");
 			}
 		}
 	} else

@@ -21,8 +21,15 @@ void ServerHandler::handle()
 {
 	if (request_->detectType())
 	{
-		log_->write("[ServerHandler handle] [Request From Agent] : "+request_->toString(), Log::Level::DEBUG);
-		copyStringToStreambuf(decode64(boost::lexical_cast<std::string>(request_->parsedHttpRequest().body())), readBuffer_);
+		log_->write("[ServerHandler handle] [Request From Agent] : "+request_->toString(), Log::Level::DEBUG);		
+		auto tempHexArr = strTohexArr(
+			decode64(
+				boost::lexical_cast<std::string>(request_->parsedHttpRequest().body())
+			)
+		);
+		std::string tempHexArrStr(tempHexArr.begin(), tempHexArr.end());
+		copyStringToStreambuf(tempHexArrStr, readBuffer_);
+
 		if (request_->detectType())
 		{		
 			log_->write("[ServerHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
@@ -45,7 +52,7 @@ void ServerHandler::handle()
 			{
 				if (!client_->socket().is_open())
 					client_->doConnect(request_->dstIP(), request_->dstPort());
-				client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
+				client_->doWrite(request_->httpType(), readBuffer_);
 				std::string newRes(request_->genHttpOkResString(
 					encode64(
 						streambufToString(client_->readBuffer())
@@ -58,7 +65,7 @@ void ServerHandler::handle()
 			{
 				if (!client_->socket().is_open())
 					client_->doConnect(request_->dstIP(), request_->dstPort());
-				client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
+				client_->doWrite(request_->httpType(), readBuffer_);
 				std::string newRes(request_->genHttpOkResString(
 					encode64(
 						streambufToString(client_->readBuffer())
