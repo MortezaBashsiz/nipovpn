@@ -36,9 +36,13 @@ public:
 		moveStreamBuff(buffer, writeBuffer_);
 	}
 	
-	inline const boost::asio::streambuf& readBuffer() const
+	inline const boost::asio::streambuf& readBuffer()&
 	{
 		return readBuffer_;
+	}
+	inline const boost::asio::streambuf&& readBuffer()&&
+	{
+		return std::move(readBuffer_);
 	}
 
 	void start();

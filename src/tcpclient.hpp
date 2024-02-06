@@ -31,13 +31,22 @@ public:
 	boost::asio::ip::tcp::socket& socket();
 	void writeBuffer(boost::asio::streambuf& buffer);
 
-	inline boost::asio::streambuf& writeBuffer()
+	inline boost::asio::streambuf& writeBuffer()&
 	{
 		return writeBuffer_;
 	}
-	inline boost::asio::streambuf& readBuffer()
+	inline boost::asio::streambuf&& writeBuffer()&&
+	{
+		return std::move(writeBuffer_);
+	}
+
+	inline boost::asio::streambuf& readBuffer()&
 	{
 		return readBuffer_;
+	}
+	inline boost::asio::streambuf&& readBuffer()&&
+	{
+		return std::move(readBuffer_);
 	}
 
 	void doConnect();
