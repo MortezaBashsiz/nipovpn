@@ -11,7 +11,7 @@
 * This enum defines the modes which program are able to start
 * Mode server and agent
 */
-enum RunMode
+enum class RunMode
 {
 	server,
 	agent
@@ -80,7 +80,7 @@ private:
 		const std::string& filePath);
 
 public:
-	typedef std::shared_ptr<Config> pointer;
+	using pointer =  std::shared_ptr<Config>;
 
 	static pointer create(const RunMode& mode, const std::string& filePath)
 	{
@@ -107,43 +107,79 @@ public:
 	/*
 	* Functions to handle private members
 	*/
-	inline const Config::Log& log() const
+	inline const Config::Log& log()&
 	{
 		return log_;
 	}
-	inline const Config::Server& server() const
+	inline const Config::Log&& log()&&
+	{
+		return std::move(log_);
+	}
+
+	inline const Config::Server& server()&
 	{
 		return server_;
 	}
-	inline const Config::Agent& agent() const
+	inline const Config::Server&& server()&&
+	{
+		return std::move(server_);
+	}
+
+	inline const Config::Agent& agent()&
 	{
 		return agent_;
 	}
-	inline const std::string& listenIp() const
+	inline const Config::Agent&& agent()&&
+	{
+		return std::move(agent_);
+	}
+
+	inline const std::string& listenIp()&
 	{
 		return listenIp_;
+	}
+	inline const std::string&& listenIp()&&
+	{
+		return std::move(listenIp_);
 	}
 
 	inline void listenIp(std::string ip)
 	{
 		listenIp_ = ip;
 	}
-	inline const unsigned short& listenPort() const
+
+	inline const unsigned short& listenPort()&
 	{
 		return listenPort_;
 	}
+	inline const unsigned short&& listenPort()&&
+	{
+		return std::move(listenPort_);
+	}
+
 	inline void listenPort(unsigned short port)
 	{
 		listenPort_ = port;
 	}
-	inline const RunMode& runMode() const
+
+	inline const RunMode& runMode()&
 	{
 		return runMode_;
 	}
-	inline const std::string& filePath() const
+	inline const RunMode& runMode()&&
+	{
+		return std::move(runMode_);
+	}
+
+	inline const std::string& filePath()&
 	{
 		return filePath_;
 	}
+	inline const std::string&& filePath()&&
+	{
+		return std::move(filePath_);
+	}
+
 	inline const std::string modeToString() const
 	{
 		switch (runMode_){

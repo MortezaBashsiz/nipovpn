@@ -12,14 +12,14 @@ class Log
 	: private Uncopyable
 {
 public:
-	enum Level
+	enum class Level
 	{
 		INFO,
 		ERROR,
 		DEBUG
 	};
 
-	typedef std::shared_ptr<Log> pointer;
+	using pointer =  std::shared_ptr<Log>;
 
 	static pointer create(const std::shared_ptr<Config>& config)
 	{
@@ -39,14 +39,22 @@ public:
 	/*
 	* Functions to handle private members
 	*/
-	inline const std::shared_ptr<Config>& config() const
+	inline const std::shared_ptr<Config>& config()&
 	{
 		return config_;
 	}
+	inline const std::shared_ptr<Config>&& config()&&
+	{
+		return std::move(config_);
+	}
 	
-	inline const Log::Level& level() const
+	inline const Log::Level& level()&
 	{
 		return level_;
+	}
+	inline const Log::Level&& level()&&
+	{
+		return std::move(level_);
 	}
 	
 	/*

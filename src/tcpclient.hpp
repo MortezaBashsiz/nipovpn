@@ -19,7 +19,7 @@
 class TCPClient
 {
 public:
-	typedef boost::shared_ptr<TCPClient> pointer;
+	using pointer =  boost::shared_ptr<TCPClient>;
 
 	static pointer create(boost::asio::io_context& io_context, 
 		const std::shared_ptr<Config>& config, 
@@ -31,24 +31,32 @@ public:
 	boost::asio::ip::tcp::socket& socket();
 	void writeBuffer(boost::asio::streambuf& buffer);
 
-	inline boost::asio::streambuf& writeBuffer()
+	inline boost::asio::streambuf& writeBuffer()&
 	{
 		return writeBuffer_;
 	}
-	inline boost::asio::streambuf& readBuffer()
+	inline boost::asio::streambuf&& writeBuffer()&&
+	{
+		return std::move(writeBuffer_);
+	}
+
+	inline boost::asio::streambuf& readBuffer()&
 	{
 		return readBuffer_;
+	}
+	inline boost::asio::streambuf&& readBuffer()&&
+	{
+		return std::move(readBuffer_);
 	}
 
 	void doConnect();
 	void doConnect(const std::string& dstIP, const unsigned short& dstPort);
 	void doWrite(const HTTP::HttpType& httpType, 
-    const boost::beast::http::verb& verb, 
-    boost::asio::streambuf& buffer);
+		boost::asio::streambuf& buffer);
 	void doRead();
-  void handleRead(const boost::system::error_code& error,
-    size_t bytes_transferred);
-  void doReadUntil(const std::string& until);
+	void handleRead(const boost::system::error_code& error,
+		size_t bytes_transferred);
+	void doReadUntil(const std::string& until);
 	void doReadSSL();
 
 private:

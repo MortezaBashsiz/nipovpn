@@ -22,10 +22,18 @@ void AgentHandler::handle()
 	std::string newReq(
 		request_->genHttpPostReqString(
 			encode64(
-				streambufToString(readBuffer_)
+				hexArrToStr(
+					reinterpret_cast<unsigned char*>(
+						const_cast<char*>(
+							streambufToString(readBuffer_).c_str()
+						)
+					),
+					readBuffer_.size()
+				)
 			)
 		)
 	);
+
 	if (request_->detectType())
 	{
 		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
@@ -33,7 +41,7 @@ void AgentHandler::handle()
 			client_->doConnect();
 		copyStringToStreambuf(newReq, readBuffer_);
 		log_->write("[AgentHandler handle] [Request To Server] : \n"+newReq, Log::Level::DEBUG);
-		client_->doWrite(request_->httpType(), request_->parsedHttpRequest().method(), readBuffer_);
+		client_->doWrite(request_->httpType(), readBuffer_);
 		if (request_->httpType() != HTTP::HttpType::connect)
 		{
 			HTTP::pointer response = HTTP::create(config_, log_, client_->readBuffer());
@@ -48,7 +56,7 @@ void AgentHandler::handle()
 			}
 		} else
 		{
-			log_->write("[AgentHandler handle] [Response to connect] : "+streambufToString(client_->readBuffer()), Log::Level::DEBUG);
+			log_->write("[AgentHandler handle] [Response to connect] : \n"+streambufToString(client_->readBuffer()), Log::Level::DEBUG);
 			moveStreamBuff(client_->readBuffer(), writeBuffer_);
 		}
 	} else

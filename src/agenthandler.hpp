@@ -19,7 +19,7 @@ class AgentHandler
 	: private Uncopyable
 {
 public:
-	typedef std::shared_ptr<AgentHandler> pointer;
+	using pointer = std::shared_ptr<AgentHandler>;
 
 	static pointer create(boost::asio::streambuf& readBuffer,
 		boost::asio::streambuf& writeBuffer,

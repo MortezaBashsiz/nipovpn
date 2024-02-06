@@ -171,7 +171,8 @@ const std::string HTTP::genHttpPostReqString(const std::string& body) const
 		+ "Content-Length: " + std::to_string(body.length()) + "\r\n"
 		+ "Content-Type: application/x-www-form-urlencoded\r\n"
 		+ "\r\n"
-		+ body + "\r\n\r\n";
+		+ body 
+		+ "\r\nCOMP\r\n\r\n";
 }
 
 const std::string HTTP::genHttpOkResString(const std::string& body) const
@@ -180,10 +181,11 @@ const std::string HTTP::genHttpOkResString(const std::string& body) const
 		+ "Content-Type: application/x-www-form-urlencoded\r\n"
 		+ "Content-Length: " + std::to_string(body.length()) + "\r\n"
 		+ "Connection: keep-alive\r\n"
-		// + "Cache-Control: no-cache\r\n"
-		// + "Pragma: no-cache\r\n"
+		+ "Cache-Control: no-cache\r\n"
+		+ "Pragma: no-cache\r\n"
 		+ "\r\n"
-		+ body + "\r\n\r\n";
+		+ body 
+		+ "\r\nCOMP\r\n\r\n";
 }
 
 void HTTP::setIPPort()
