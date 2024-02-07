@@ -36,9 +36,13 @@ public:
 	*/
 	void handle();
 
-	inline const HTTP::pointer request() const
+	inline const HTTP::pointer& request()&
 	{
 		return request_;
+	}
+	inline const HTTP::pointer&& request()&&
+	{
+		return std::move(request_);
 	}
 
 private:
