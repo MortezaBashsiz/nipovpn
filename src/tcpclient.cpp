@@ -81,12 +81,17 @@ void TCPClient::doWrite(const HTTP::HttpType& httpType,
 			socket_,
 			writeBuffer_
 		);
-		if (httpType == HTTP::HttpType::https)
-			doReadSSL();
-		else if (httpType == HTTP::HttpType::http)
-			doRead();
-		else if (httpType == HTTP::HttpType::connect)
-			doReadUntil("\r\n\r\n");
+		switch (httpType){
+			case HTTP::HttpType::https:
+				doReadSSL();
+			break;
+			case HTTP::HttpType::http:
+				doRead();
+			break;
+			case HTTP::HttpType::connect:
+				doReadUntil("\r\n\r\n");
+			break;
+		}
 	}
 	catch (std::exception& error)
 	{
@@ -154,7 +159,7 @@ void TCPClient::doReadSSL()
 		boost::asio::read(
 			socket_,
 			readBuffer_,
-			boost::asio::transfer_at_least(1),
+			boost::asio::transfer_at_least(5),
 			error
 		);
 		if (!error || error == boost::asio::error::eof)

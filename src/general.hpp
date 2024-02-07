@@ -256,11 +256,14 @@ inline std::vector<std::string> splitString(std::string str, std::string token){
 	return result;
 }
 
-inline std::string decode64(const std::string &inputStr) {
+inline std::string decode64(const std::string& inputStr) 
+{
+	using binaryFromBase64 = boost::archive::iterators::binary_from_base64<std::string::const_iterator>;
+	using transformWidth = boost::archive::iterators::transform_width<binaryFromBase64, 8, 6>;
 	return boost::algorithm::trim_right_copy_if(
 		std::string(
-			boost::archive::iterators::transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>(std::begin(inputStr)),
-			boost::archive::iterators::transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>(std::end(inputStr))
+			transformWidth(std::begin(inputStr)),
+			transformWidth(std::end(inputStr))
 		), 
 		[](char c) 
 		{
@@ -269,10 +272,13 @@ inline std::string decode64(const std::string &inputStr) {
 	);
 }
 
-inline std::string encode64(const std::string &inputStr) {
+inline std::string encode64(const std::string& inputStr) 
+{
+	using transformWidth = boost::archive::iterators::transform_width<std::string::const_iterator, 6, 8>;
+	using constIterators = boost::archive::iterators::base64_from_binary<transformWidth>;
 	auto tmp = std::string(
-		boost::archive::iterators::base64_from_binary<boost::archive::iterators::transform_width<std::string::const_iterator, 6, 8>>(std::begin(inputStr)),
-		boost::archive::iterators::base64_from_binary<boost::archive::iterators::transform_width<std::string::const_iterator, 6, 8>>(std::end(inputStr))
+		constIterators(std::begin(inputStr)),
+		constIterators(std::end(inputStr))
 	);
 	return tmp.append((3 - inputStr.size() % 3) % 3, '=');
 }
