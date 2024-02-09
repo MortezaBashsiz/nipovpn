@@ -83,7 +83,10 @@ void TCPClient::doWrite(const HTTP::HttpType& httpType,
 		);
 		switch (httpType){
 			case HTTP::HttpType::https:
-				doReadSSL();
+				if (config_->runMode() == RunMode::agent)
+					doReadUntil("\r\nCOMP\r\n\r\n");
+				else
+					doReadSSL();
 			break;
 			case HTTP::HttpType::http:
 				doRead();
@@ -156,23 +159,136 @@ void TCPClient::doReadSSL()
 	{
 		readBuffer_.consume(readBuffer_.size());
 		boost::system::error_code error;
-		boost::asio::read(
-			socket_,
-			readBuffer_,
-			boost::asio::transfer_at_least(5),
-			error
-		);
-		if (!error || error == boost::asio::error::eof)
-		{
-			log_->write("[TCPClient doReadSSL] [SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+
-				std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
-				std::to_string(readBuffer_.size())+"] ",
-				Log::Level::DEBUG);
-		} else
-		{
-			log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+		boost::asio::streambuf tempBuff;
+		unsigned short readExactly{1};
+		bool end{false};
+		bool isHandShake{false};
+		bool isChangeCipherSpec{false};
+		bool isApplicationData{false};
+		bool isApplicationDataVersion{false};
+		bool isApplicationDataSize{false};
+
+		while(!end){
+			tempBuff.consume(tempBuff.size());
+			boost::asio::read(
+				socket_,
+				tempBuff,
+				boost::asio::transfer_exactly(readExactly),
+				error
+			);
+			if (!error)
+			{
+				std::string tempBuffStr(
+					hexArrToStr(
+						reinterpret_cast<unsigned char*>(
+							const_cast<char*>(
+								streambufToString(tempBuff).c_str()
+							)
+						),
+						tempBuff.size()
+					)
+				);
+				if (tempBuffStr == "16")
+				{
+					isHandShake = true;
+					copyStreamBuff(tempBuff, readBuffer_);
+					boost::asio::streambuf newTempBuff;
+					boost::asio::read(
+						socket_,
+						newTempBuff,
+						boost::asio::transfer_exactly(2),
+						error
+					);
+					copyStreamBuff(newTempBuff, readBuffer_);
+					newTempBuff.consume(newTempBuff.size());
+					boost::asio::read(
+						socket_,
+						newTempBuff,
+						boost::asio::transfer_exactly(2),
+						error
+					);
+					std::string newTempBuffStr(
+						hexArrToStr(
+							reinterpret_cast<unsigned char*>(
+								const_cast<char*>(
+									streambufToString(newTempBuff).c_str()
+								)
+							),
+							newTempBuff.size()
+						)
+					);
+					unsigned short newReadExactly {hexToInt(newTempBuffStr)};
+					boost::asio::read(
+						socket_,
+						newTempBuff,
+						boost::asio::transfer_exactly(newReadExactly),
+						error
+					);
+					copyStreamBuff(newTempBuff, readBuffer_);
+					std::string finalTempBuffStr = hexArrToStr(
+						reinterpret_cast<unsigned char*>(
+							const_cast<char*>(
+								streambufToString(newTempBuff).c_str()
+							)
+						),
+						newTempBuff.size()
+					);
+					if (finalTempBuffStr == "00040e000000")
+						end = true;
+					continue;
+				}
+				if (tempBuffStr == "14")
+				{
+					isChangeCipherSpec = true;
+				}
+				if (tempBuffStr == "17" && !isApplicationData)
+				{
+					isApplicationData = true;
+					readExactly = 2;
+					copyStreamBuff(tempBuff, readBuffer_);
+					continue;
+				}
+				if (isApplicationData && !isApplicationDataVersion)
+				{
+					isApplicationDataVersion = true;
+					readExactly = 2;
+					copyStreamBuff(tempBuff, readBuffer_);
+					continue;
+				}
+				if (isApplicationData && isApplicationDataVersion && !isApplicationDataSize)
+				{
+					isApplicationDataSize = true;
+					readExactly = hexToInt(tempBuffStr);
+					copyStreamBuff(tempBuff, readBuffer_);
+					continue;
+				}
+				if (isApplicationData && isApplicationDataVersion && isApplicationDataSize)
+					end = true;
+				copyStreamBuff(tempBuff, readBuffer_);
+			} else if (error == boost::asio::error::eof)
+			{
+				end = true;
+			} else
+			{
+				end = true;
+				log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+			}
 		}
+		FUCK(
+			hexArrToStr(
+				reinterpret_cast<unsigned char*>(
+					const_cast<char*>(
+						streambufToString(readBuffer_).c_str()
+					)
+				),
+				readBuffer_.size()
+			)
+		);
+		log_->write("[TCPClient doReadSSL] [SRC " +
+			socket_.remote_endpoint().address().to_string() +":"+
+			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+			std::to_string(readBuffer_.size())+"] ",
+			Log::Level::DEBUG);
 	}
 	catch (std::exception& error)
 	{
