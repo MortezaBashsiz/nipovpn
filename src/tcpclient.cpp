@@ -131,6 +131,29 @@ void TCPClient::doRead()
 	}
 }
 
+void TCPClient::doRead(const unsigned short& bytes, boost::asio::streambuf& buffer)
+{
+	try
+	{
+		buffer.consume(buffer.size());
+		boost::system::error_code error;
+		boost::asio::read(
+			socket_,
+			buffer,
+			boost::asio::transfer_exactly(bytes),
+			error
+		);
+		if (error && error != boost::asio::error::eof)
+		{
+			log_->write(std::string("[TCPClient doRead bytes] ") + error.what(), Log::Level::ERROR);
+		}
+	}
+	catch (std::exception& error)
+	{
+		log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+	}
+}
+
 void TCPClient::doReadUntil(const std::string& until)
 {
 	try
@@ -167,71 +190,32 @@ void TCPClient::doReadSSL()
 		bool isApplicationDataSize{false};
 
 		while(!end){
-			tempBuff.consume(tempBuff.size());
-			boost::asio::read(
-				socket_,
-				tempBuff,
-				boost::asio::transfer_exactly(readExactly),
-				error
-			);
+			doRead(readExactly, tempBuff);
 			if (!error)
 			{
-				std::string tempBuffStr(
-					hexArrToStr(
-						reinterpret_cast<unsigned char*>(
-							const_cast<char*>(
-								streambufToString(tempBuff).c_str()
-							)
-						),
-						tempBuff.size()
-					)
-				);
+				std::string tempBuffStr{hexStreambufToStr(tempBuff)};
 				if (tempBuffStr == "16")
 				{
 					copyStreamBuff(tempBuff, readBuffer_);
-					boost::asio::streambuf newTempBuff;
-					boost::asio::read(
-						socket_,
-						newTempBuff,
-						boost::asio::transfer_exactly(2),
-						error
-					);
-					copyStreamBuff(newTempBuff, readBuffer_);
-					newTempBuff.consume(newTempBuff.size());
-					boost::asio::read(
-						socket_,
-						newTempBuff,
-						boost::asio::transfer_exactly(2),
-						error
-					);
-					std::string newTempBuffStr(
-						hexArrToStr(
-							reinterpret_cast<unsigned char*>(
-								const_cast<char*>(
-									streambufToString(newTempBuff).c_str()
-								)
-							),
-							newTempBuff.size()
-						)
-					);
-					unsigned short newReadExactly {hexToInt(newTempBuffStr)};
-					boost::asio::read(
-						socket_,
-						newTempBuff,
-						boost::asio::transfer_exactly(newReadExactly),
-						error
-					);
+					boost::asio::streambuf internalTempBuff;
+					doRead(2, internalTempBuff);
+					copyStreamBuff(internalTempBuff, readBuffer_);
+					doRead(2, internalTempBuff);
+					std::string internalTempBuffStr{hexStreambufToStr(internalTempBuff)};
+					unsigned short newReadExactly{hexToInt(internalTempBuffStr)};
+					copyStreamBuff(internalTempBuff, readBuffer_);
+					doRead(newReadExactly, internalTempBuff);
 					std::string finalTempBuffStr = hexArrToStr(
 						reinterpret_cast<unsigned char*>(
 							const_cast<char*>(
-								streambufToString(newTempBuff).c_str()
+								streambufToString(internalTempBuff).c_str()
 							)
 						),
-						newTempBuff.size()
+						internalTempBuff.size()
 					);
-					if (finalTempBuffStr == "00040e000000")
+					if (finalTempBuffStr == "0e000000")
 						end = true;
-					copyStreamBuff(newTempBuff, readBuffer_);
+					copyStreamBuff(internalTempBuff, readBuffer_);
 					continue;
 				}
 				if (tempBuffStr == "17" && !isApplicationData)

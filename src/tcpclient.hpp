@@ -54,6 +54,7 @@ public:
 	void doWrite(const HTTP::HttpType& httpType, 
 		boost::asio::streambuf& buffer);
 	void doRead();
+	void doRead(const unsigned short& bytes, boost::asio::streambuf& buffer);
 	void handleRead(const boost::system::error_code& error,
 		size_t bytes_transferred);
 	void doReadUntil(const std::string& until);
