@@ -22,18 +22,10 @@ void AgentHandler::handle()
 	std::string newReq(
 		request_->genHttpPostReqString(
 			encode64(
-				hexArrToStr(
-					reinterpret_cast<unsigned char*>(
-						const_cast<char*>(
-							streambufToString(readBuffer_).c_str()
-						)
-					),
-					readBuffer_.size()
-				)
+				hexStreambufToStr(readBuffer_)
 			)
 		)
 	);
-
 	if (request_->detectType())
 	{
 		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);

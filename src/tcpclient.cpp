@@ -214,34 +214,42 @@ void TCPClient::doReadSSL()
 						internalTempBuff.size()
 					);
 					if (finalTempBuffStr == "0e000000")
+					{
 						end = true;
+					}
+					copyStreamBuff(internalTempBuff, readBuffer_);
+					continue;
+				}
+				if (tempBuffStr == "14")
+				{
+					copyStreamBuff(tempBuff, readBuffer_);
+					boost::asio::streambuf internalTempBuff;
+					doRead(2, internalTempBuff);
+					copyStreamBuff(internalTempBuff, readBuffer_);
+					doRead(2, internalTempBuff);
+					std::string internalTempBuffStr{hexStreambufToStr(internalTempBuff)};
+					unsigned short newReadExactly{hexToInt(internalTempBuffStr)};
+					copyStreamBuff(internalTempBuff, readBuffer_);
+					doRead(newReadExactly, internalTempBuff);
 					copyStreamBuff(internalTempBuff, readBuffer_);
 					continue;
 				}
 				if (tempBuffStr == "17" && !isApplicationData)
 				{
 					isApplicationData = true;
-					readExactly = 2;
 					copyStreamBuff(tempBuff, readBuffer_);
-					continue;
-				}
-				if (isApplicationData && !isApplicationDataVersion)
-				{
-					isApplicationDataVersion = true;
-					readExactly = 2;
-					copyStreamBuff(tempBuff, readBuffer_);
-					continue;
-				}
-				if (isApplicationData && isApplicationDataVersion && !isApplicationDataSize)
-				{
-					isApplicationDataSize = true;
-					readExactly = hexToInt(tempBuffStr);
-					copyStreamBuff(tempBuff, readBuffer_);
-					continue;
-				}
-				if (isApplicationData && isApplicationDataVersion && isApplicationDataSize)
+					boost::asio::streambuf internalTempBuff;
+					doRead(2, internalTempBuff);
+					copyStreamBuff(internalTempBuff, readBuffer_);
+					doRead(2, internalTempBuff);
+					std::string internalTempBuffStr{hexStreambufToStr(internalTempBuff)};
+					unsigned short newReadExactly{hexToInt(internalTempBuffStr)};
+					copyStreamBuff(internalTempBuff, readBuffer_);
+					doRead(newReadExactly, internalTempBuff);
+					copyStreamBuff(internalTempBuff, readBuffer_);
 					end = true;
-				copyStreamBuff(tempBuff, readBuffer_);
+					continue;
+				}
 			} else if (error == boost::asio::error::eof)
 			{
 				end = true;
