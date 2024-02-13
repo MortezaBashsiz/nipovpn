@@ -183,12 +183,11 @@ void TCPClient::doReadSSL()
 		readBuffer_.consume(readBuffer_.size());
 		boost::system::error_code error;
 		boost::asio::streambuf tempBuff;
-		bool isApplicationData{false};
 
 		while(true){
 			doRead(1, tempBuff);
 			std::string tempBuffStr{hexStreambufToStr(tempBuff)};
-			if (tempBuffStr == "16" || tempBuffStr == "14")
+			if (tempBuffStr == "16" || tempBuffStr == "14" || tempBuffStr == "17")
 			{
 				moveStreamBuff(tempBuff, readBuffer_);
 				boost::asio::streambuf internalTempBuff;
@@ -200,7 +199,9 @@ void TCPClient::doReadSSL()
 				moveStreamBuff(internalTempBuff, readBuffer_);
 				doRead(newReadExactly, internalTempBuff);
 				copyStreamBuff(internalTempBuff, readBuffer_);
-				if (tempBuffStr == "16")
+				if (tempBuffStr == "17")
+					break;
+				else if (tempBuffStr == "16")
 				{
 					std::string finalTempBuffStr = hexArrToStr(
 						reinterpret_cast<unsigned char*>(
@@ -212,23 +213,8 @@ void TCPClient::doReadSSL()
 					);
 					if (finalTempBuffStr == "0e000000")
 						break;
-				}
-				continue;
-			}
-			if (tempBuffStr == "17" && !isApplicationData)
-			{
-				isApplicationData = true;
-				moveStreamBuff(tempBuff, readBuffer_);
-				boost::asio::streambuf internalTempBuff;
-				doRead(2, internalTempBuff);
-				moveStreamBuff(internalTempBuff, readBuffer_);
-				doRead(2, internalTempBuff);
-				std::string internalTempBuffStr{hexStreambufToStr(internalTempBuff)};
-				unsigned short newReadExactly{hexToInt(internalTempBuffStr)};
-				moveStreamBuff(internalTempBuff, readBuffer_);
-				doRead(newReadExactly, internalTempBuff);
-				moveStreamBuff(internalTempBuff, readBuffer_);
-				break;
+				} else
+					continue;
 			}
 		}
 		log_->write("[TCPClient doReadSSL] [SRC " +
