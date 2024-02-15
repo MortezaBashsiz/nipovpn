@@ -145,10 +145,22 @@ void TCPConnection::handleReadSSL(const boost::system::error_code& error)
 	if (!error || error == boost::asio::error::eof)
 	{
 		boost::asio::streambuf tempBuff;
+		bool isClientKeyExchange{false};
+		bool isChangeCipher{false};
+		bool isFirst{true};
+		std::string tempBuffStr{hexStreambufToStr(readBuffer_)};
+
 		while(true){
-			std::string tempBuffStr{hexStreambufToStr(readBuffer_)};
+			if (!isFirst)
+			{
+				doRead(1, tempBuff);
+				tempBuffStr = hexStreambufToStr(tempBuff);
+				if (tempBuffStr == "14" && !isChangeCipher)
+					isChangeCipher = true;
+			}
 			if (tempBuffStr == "16" || tempBuffStr == "14" || tempBuffStr == "17")
 			{
+					isFirst = false;
 				moveStreamBuff(tempBuff, readBuffer_);
 				boost::asio::streambuf internalTempBuff;
 				doRead(2, internalTempBuff);
@@ -157,10 +169,28 @@ void TCPConnection::handleReadSSL(const boost::system::error_code& error)
 				std::string internalTempBuffStr{hexStreambufToStr(internalTempBuff)};
 				unsigned short newReadExactly{hexToInt(internalTempBuffStr)};
 				moveStreamBuff(internalTempBuff, readBuffer_);
-				doRead(newReadExactly, internalTempBuff);
-				copyStreamBuff(internalTempBuff, readBuffer_);
-				if (tempBuffStr == "16" || tempBuffStr == "17")
+				doRead(1, internalTempBuff);
+				std::string finalTempBuffStr = hexArrToStr(
+					reinterpret_cast<unsigned char*>(
+						const_cast<char*>(
+							streambufToString(internalTempBuff).c_str()
+						)
+					),
+					internalTempBuff.size()
+				);
+				if (finalTempBuffStr == "10")
+					isClientKeyExchange = true;
+				moveStreamBuff(internalTempBuff, readBuffer_);
+				doRead(newReadExactly - 1, internalTempBuff);
+				moveStreamBuff(internalTempBuff, readBuffer_);
+				if (tempBuffStr == "17")
 					break;
+				else if (tempBuffStr == "16" && !isClientKeyExchange)
+					break;
+				else if (tempBuffStr == "16" && isChangeCipher)
+					break;
+				else if (tempBuffStr == "16" && isChangeCipher)
+					continue;
 				else
 					continue;
 			}
