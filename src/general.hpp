@@ -126,8 +126,6 @@ inline unsigned char charToHex(const char& c)
 
 inline std::vector<unsigned char> strTohexArr(const std::string& hexStr)
 {
-	if (hexStr.size() % 2 != 0)
-		return std::vector<unsigned char>{};
 	std::vector<unsigned char> result(hexStr.size() / 2);
 
 	for (std::size_t i = 0; i != hexStr.size() / 2; ++i)
@@ -171,15 +169,11 @@ inline std::string decode64(const std::string& inputStr)
 {
 	using binaryFromBase64 = boost::archive::iterators::binary_from_base64<std::string::const_iterator>;
 	using transformWidth = boost::archive::iterators::transform_width<binaryFromBase64, 8, 6>;
-	return boost::algorithm::trim_right_copy_if(
+	return(
 		std::string(
 			transformWidth(std::begin(inputStr)),
 			transformWidth(std::end(inputStr))
-		), 
-		[](char c) 
-		{
-			return c == '\0';
-		}
+		)
 	);
 }
 

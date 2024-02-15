@@ -29,7 +29,6 @@ void ServerHandler::handle()
 		);
 		std::string tempHexArrStr(tempHexArr.begin(), tempHexArr.end());
 		copyStringToStreambuf(tempHexArrStr, readBuffer_);
-
 		if (request_->detectType())
 		{		
 			log_->write("[ServerHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);

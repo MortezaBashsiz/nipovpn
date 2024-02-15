@@ -150,7 +150,7 @@ void TCPClient::doRead(const unsigned short& bytes, boost::asio::streambuf& buff
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPClient doRead bytes] ") + error.what(), Log::Level::ERROR);
 	}
 }
 
@@ -158,12 +158,18 @@ void TCPClient::doReadUntil(const std::string& until)
 {
 	try
 	{
+		boost::system::error_code error;
 		readBuffer_.consume(readBuffer_.size());
 		boost::asio::read_until(
 			socket_,
 			readBuffer_,
-			until
+			until,
+			error
 		);
+		if (error && error != boost::asio::error::eof)
+		{
+			log_->write(std::string("[TCPClient doReadUntil] ") + error.what(), Log::Level::ERROR);
+		}
 		log_->write("[TCPClient doReadUntil] [SRC " +
 			socket_.remote_endpoint().address().to_string() +":"+
 			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
@@ -172,7 +178,7 @@ void TCPClient::doReadUntil(const std::string& until)
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPClient doReadUntil] ") + error.what(), Log::Level::ERROR);
 	}
 }
 
