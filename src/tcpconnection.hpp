@@ -55,8 +55,7 @@ public:
 
 	void handleRead(const boost::system::error_code& error,
 		size_t bytes_transferred);
-	void handleReadSSL(const boost::system::error_code& error,
-		size_t bytes_transferred);
+	void handleReadSSL(const boost::system::error_code& error);
 
 	void doWrite();
 	

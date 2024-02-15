@@ -85,8 +85,7 @@ void TCPConnection::doReadSSL()
 		boost::asio::transfer_exactly(1),
 		boost::bind(&TCPConnection::handleReadSSL, 
 			shared_from_this(),
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred)
+			boost::asio::placeholders::error)
 		);
 	}
 	catch (std::exception& error)
@@ -141,21 +140,8 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 }
 
 
-void TCPConnection::handleReadSSL(const boost::system::error_code& error,
-	size_t bytes_transferred)
+void TCPConnection::handleReadSSL(const boost::system::error_code& error)
 {
-	try
-	{
-		log_->write("[TCPConnection handleReadSSL] [SRC " +
-			socket_.remote_endpoint().address().to_string() +":"+
-			std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
-			std::to_string(bytes_transferred)+"] ",
-			Log::Level::INFO);
-	}
-	catch (std::exception& error)
-	{
-		log_->write(std::string("[TCPConnection handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
-	}
 	if (!error || error == boost::asio::error::eof)
 	{
 		boost::asio::streambuf tempBuff;
@@ -178,6 +164,18 @@ void TCPConnection::handleReadSSL(const boost::system::error_code& error,
 				else
 					continue;
 			}
+		}
+		try
+		{
+			log_->write("[TCPConnection handleReadSSL] [SRC " +
+				socket_.remote_endpoint().address().to_string() +":"+
+				std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+				std::to_string(readBuffer_.size())+"] ",
+				Log::Level::INFO);
+		}
+		catch (std::exception& error)
+		{
+			log_->write(std::string("[TCPConnection handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
 		}
 		if (config_->runMode() == RunMode::agent)
 		{
