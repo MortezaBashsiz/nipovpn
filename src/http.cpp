@@ -13,8 +13,7 @@ HTTP::HTTP(const std::shared_ptr<Config>& config,
 		{
 			"",
 			"",
-			TlsTypes::TLSHandshake,
-			TlsSteps::ClientHello
+			TlsTypes::TLSHandshake
 		}
 {	}
 
@@ -117,7 +116,6 @@ bool HTTP::parseTls()
 		tmpStr = parsedTlsRequest_.body.substr(pos, 2);
 		if (tmpStr == "01"){
 			unsigned short tmpPos(0);
-			parsedTlsRequest_.step = TlsSteps::ClientHello;
 			pos = 86;
 			tmpStr = parsedTlsRequest_.body.substr(pos, 2);
 			tmpPos = hexToInt(tmpStr);
@@ -250,60 +248,12 @@ const std::string HTTP::tlsTypeToString() const
 	}
 }
 
-const std::string HTTP::tlsStepToString() const
-{
-	switch (parsedTlsRequest_.step){
-		case TlsSteps::ClientHello:
-			return "ClientHello";
-			break;
-		case TlsSteps::ServerHello:
-			return "ServerHello";
-			break;
-		case TlsSteps::ServerCertificate:
-			return "ServerCertificate";
-			break;
-		case TlsSteps::ServerKeyExchange:
-			return "ServerKeyExchange";
-			break;
-		case TlsSteps::ServerHelloDone:
-			return "ServerHelloDone";
-			break;
-		case TlsSteps::ClientKeyExchange:
-			return "ClientKeyExchange";
-			break;
-		case TlsSteps::ClientChangeCipherSpec:
-			return "ClientChangeCipherSpec";
-			break;
-		case TlsSteps::ClientHandshakeFinished:
-			return "ClientHandshakeFinished";
-			break;
-		case TlsSteps::ServerChangeCipherSpec:
-			return "ServerChangeCipherSpec";
-			break;
-		case TlsSteps::ServerHandshakeFinished:
-			return "ServerHandshakeFinished";
-			break;
-		case TlsSteps::ClientApplicationData:
-			return "ClientApplicationData";
-			break;
-		case TlsSteps::ServerApplicationData:
-			return "ServerApplicationData";
-			break;
-		case TlsSteps::ClientCloseNotify:
-			return "ClientCloseNotify";
-			break;
-		default:
-			return "UNKNOWN STEP";
-	}
-}
-
 const std::string HTTP::toString() const
 {
 	switch (httpType()){
 		case HTTP::HttpType::https:
 			return std::string("\n")
 							+ "TLS Type : " + tlsTypeToString() + "\n"
-							+ "TLS Step : " + tlsStepToString() + "\n"
 							+ "SNI : " + parsedTlsRequest_.sni + "\n"
 							+ "Body Size : " + boost::lexical_cast<std::string>(parsedTlsRequest_.body.size()) + "\n"
 							+ "Body : " + parsedTlsRequest_.body + "\n";
