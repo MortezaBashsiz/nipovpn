@@ -5,16 +5,16 @@ log:
   logFile: "/var/log/nipo/nipo.log"
 
 server:
-  listenIp: "127.0.0.10"
+  listenIp: "127.0.0.50"
   listenPort: 443
   webDir: "/var/lib/niposerver"
   sslKey: "/etc/niposerver/ssl.key"
   sslCert: "/etc/niposerver/ssl.cert"
 
 agent:
-  listenIp: "127.0.0.1"
+  listenIp: "127.0.0.10"
   listenPort: 8080
-  serverIp: "127.0.0.10"
+  serverIp: "127.0.0.50"
   serverPort: 443
   encryption: "no"
   token: "af445adb-2434-4975-9445-2c1b223d556e"

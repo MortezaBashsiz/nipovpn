@@ -81,12 +81,20 @@ void TCPClient::doWrite(const HTTP::HttpType& httpType,
 			socket_,
 			writeBuffer_
 		);
-		if (httpType == HTTP::HttpType::https)
-			doReadSSL();
-		else if (httpType == HTTP::HttpType::http)
-			doRead();
-		else if (httpType == HTTP::HttpType::connect)
-			doReadUntil("\r\n\r\n");
+		switch (httpType){
+			case HTTP::HttpType::https:
+				if (config_->runMode() == RunMode::agent)
+					doReadUntil("\r\nCOMP\r\n\r\n");
+				else
+					doReadSSL();
+			break;
+			case HTTP::HttpType::http:
+				doRead();
+			break;
+			case HTTP::HttpType::connect:
+				doReadUntil("\r\n\r\n");
+			break;
+		}
 	}
 	catch (std::exception& error)
 	{
@@ -123,16 +131,45 @@ void TCPClient::doRead()
 	}
 }
 
+void TCPClient::doRead(const unsigned short& bytes, boost::asio::streambuf& buffer)
+{
+	try
+	{
+		buffer.consume(buffer.size());
+		boost::system::error_code error;
+		boost::asio::read(
+			socket_,
+			buffer,
+			boost::asio::transfer_exactly(bytes),
+			error
+		);
+		if (error && error != boost::asio::error::eof)
+		{
+			log_->write(std::string("[TCPClient doRead bytes] ") + error.what(), Log::Level::ERROR);
+		}
+	}
+	catch (std::exception& error)
+	{
+		log_->write(std::string("[TCPClient doRead bytes] ") + error.what(), Log::Level::ERROR);
+	}
+}
+
 void TCPClient::doReadUntil(const std::string& until)
 {
 	try
 	{
+		boost::system::error_code error;
 		readBuffer_.consume(readBuffer_.size());
 		boost::asio::read_until(
 			socket_,
 			readBuffer_,
-			until
+			until,
+			error
 		);
+		if (error && error != boost::asio::error::eof)
+		{
+			log_->write(std::string("[TCPClient doReadUntil] ") + error.what(), Log::Level::ERROR);
+		}
 		log_->write("[TCPClient doReadUntil] [SRC " +
 			socket_.remote_endpoint().address().to_string() +":"+
 			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
@@ -141,7 +178,7 @@ void TCPClient::doReadUntil(const std::string& until)
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPClient doReadUntil] ") + error.what(), Log::Level::ERROR);
 	}
 }
 
@@ -151,23 +188,46 @@ void TCPClient::doReadSSL()
 	{
 		readBuffer_.consume(readBuffer_.size());
 		boost::system::error_code error;
-		boost::asio::read(
-			socket_,
-			readBuffer_,
-			boost::asio::transfer_at_least(1),
-			error
-		);
-		if (!error || error == boost::asio::error::eof)
-		{
-			log_->write("[TCPClient doReadSSL] [SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+
-				std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
-				std::to_string(readBuffer_.size())+"] ",
-				Log::Level::DEBUG);
-		} else
-		{
-			log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+		boost::asio::streambuf tempBuff;
+
+		while(true){
+			doRead(1, tempBuff);
+			std::string tempBuffStr{hexStreambufToStr(tempBuff)};
+			if (tempBuffStr == "16" || tempBuffStr == "14" || tempBuffStr == "17")
+			{
+				moveStreamBuff(tempBuff, readBuffer_);
+				boost::asio::streambuf internalTempBuff;
+				doRead(2, internalTempBuff);
+				moveStreamBuff(internalTempBuff, readBuffer_);
+				doRead(2, internalTempBuff);
+				std::string internalTempBuffStr{hexStreambufToStr(internalTempBuff)};
+				unsigned short newReadExactly{hexToInt(internalTempBuffStr)};
+				moveStreamBuff(internalTempBuff, readBuffer_);
+				doRead(newReadExactly, internalTempBuff);
+				copyStreamBuff(internalTempBuff, readBuffer_);
+				if (tempBuffStr == "17")
+					break;
+				else if (tempBuffStr == "16")
+				{
+					std::string finalTempBuffStr = hexArrToStr(
+						reinterpret_cast<unsigned char*>(
+							const_cast<char*>(
+								streambufToString(internalTempBuff).c_str()
+							)
+						),
+						internalTempBuff.size()
+					);
+					if (finalTempBuffStr == "0e000000")
+						break;
+				} else
+					continue;
+			}
 		}
+		log_->write("[TCPClient doReadSSL] [SRC " +
+			socket_.remote_endpoint().address().to_string() +":"+
+			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+			std::to_string(readBuffer_.size())+"] ",
+			Log::Level::DEBUG);
 	}
 	catch (std::exception& error)
 	{

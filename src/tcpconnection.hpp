@@ -47,12 +47,15 @@ public:
 
 	void start();
 
+	void doRead(const unsigned short& bytes, boost::asio::streambuf& buffer);
+
 	void doReadUntil(const std::string& until);
 
 	void doReadSSL();
 
 	void handleRead(const boost::system::error_code& error,
 		size_t bytes_transferred);
+	void handleReadSSL(const boost::system::error_code& error);
 
 	void doWrite();
 	

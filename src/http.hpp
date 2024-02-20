@@ -117,17 +117,17 @@ public:
 
 	const std::string genHttpOkResString(const std::string& body) const;
 
-	inline boost::beast::http::request<boost::beast::http::string_body> parsedHttpRequest() const
+	inline const boost::beast::http::request<boost::beast::http::string_body>& parsedHttpRequest()&
 	{
 		return parsedHttpRequest_;
 	}
 
-	inline boost::beast::http::response<boost::beast::http::string_body> parsedHttpResponse() const
+	inline const boost::beast::http::response<boost::beast::http::string_body>& parsedHttpResponse()&
 	{
 		return parsedHttpResponse_;
 	}
 
-	inline TlsRequest parsedTlsRequest() const
+	inline const TlsRequest& parsedTlsRequest()&
 	{
 		return parsedTlsRequest_;
 	}
@@ -142,14 +142,22 @@ public:
 	*/
 	const std::string tlsStepToString() const;
 
-	inline std::string dstIP() const
+	inline const std::string& dstIP()&
 	{
 		return dstIP_;
 	}
+	inline const std::string&& dstIP()&&
+	{
+		return std::move(dstIP_);
+	}
 
-	inline unsigned short dstPort() const
+	inline const unsigned short& dstPort()&
 	{
 		return dstPort_;
+	}
+	inline const unsigned short&& dstPort()&&
+	{
+		return std::move(dstPort_);
 	}
 
 	/*
