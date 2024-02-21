@@ -187,40 +187,19 @@ void TCPClient::doReadSSL()
 	try
 	{
 		readBuffer_.consume(readBuffer_.size());
-		boost::system::error_code error;
-		boost::asio::streambuf tempBuff;
-
 		while(true){
-			doRead(1, tempBuff);
-			std::string tempBuffStr{hexStreambufToStr(tempBuff)};
-			if (tempBuffStr == "16" || tempBuffStr == "14" || tempBuffStr == "17")
-			{
-				moveStreamBuff(tempBuff, readBuffer_);
-				boost::asio::streambuf internalTempBuff;
-				doRead(2, internalTempBuff);
-				moveStreamBuff(internalTempBuff, readBuffer_);
-				doRead(2, internalTempBuff);
-				std::string internalTempBuffStr{hexStreambufToStr(internalTempBuff)};
-				unsigned short newReadExactly{hexToInt(internalTempBuffStr)};
-				moveStreamBuff(internalTempBuff, readBuffer_);
-				doRead(newReadExactly, internalTempBuff);
-				copyStreamBuff(internalTempBuff, readBuffer_);
-				if (tempBuffStr == "17")
+			boost::system::error_code error;
+			boost::asio::read(
+				socket_,
+				readBuffer_,
+				boost::asio::transfer_exactly(1),
+				error
+			);
+			if (error == boost::asio::error::eof || socket_.available() == 0)
 					break;
-				else if (tempBuffStr == "16")
-				{
-					std::string finalTempBuffStr = hexArrToStr(
-						reinterpret_cast<unsigned char*>(
-							const_cast<char*>(
-								streambufToString(internalTempBuff).c_str()
-							)
-						),
-						internalTempBuff.size()
-					);
-					if (finalTempBuffStr == "0e000000")
-						break;
-				} else
-					continue;
+			else if (error)
+			{
+				log_->write(std::string("[TCPClient doReadSSL] [log] ") + error.what(), Log::Level::ERROR);
 			}
 		}
 		log_->write("[TCPClient doReadSSL] [SRC " +
