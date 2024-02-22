@@ -189,13 +189,13 @@ void TCPClient::doReadSSL()
 		readBuffer_.consume(readBuffer_.size());
 		while(true){
 			boost::system::error_code error;
-			boost::asio::read(
+			auto size = boost::asio::read(
 				socket_,
 				readBuffer_,
 				boost::asio::transfer_exactly(1),
 				error
 			);
-			if (error == boost::asio::error::eof || socket_.available() == 0)
+			if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0)
 					break;
 			else if (error)
 			{
