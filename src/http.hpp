@@ -47,24 +47,6 @@ public:
 		ApplicationData
 	};
 
-	/*
-	* To define the step of request in TLS handshake
-	*/
-	enum class TlsSteps {
-		ClientHello,
-		ServerHello,
-		ServerCertificate,
-		ServerKeyExchange,
-		ServerHelloDone,
-		ClientKeyExchange,
-		ClientChangeCipherSpec,
-		ClientHandshakeFinished,
-		ServerChangeCipherSpec,
-		ServerHandshakeFinished,
-		ClientApplicationData,
-		ServerApplicationData,
-		ClientCloseNotify
-	};
 
 	/*
 	* To define the TLS request, This struct is used while parsing a request after we detect that it is a TLS HTTP
@@ -73,7 +55,6 @@ public:
 		std::string sni;
 		std::string body;
 		TlsTypes type;
-		TlsSteps step;
 	};
 
 	/*
@@ -136,11 +117,6 @@ public:
 	* This function returns the string of parsedTlsRequest_.type
 	*/
 	const std::string tlsTypeToString() const;
-
-	/*
-	* This function returns the string of parsedTlsRequest_.step
-	*/
-	const std::string tlsStepToString() const;
 
 	inline const std::string& dstIP()&
 	{

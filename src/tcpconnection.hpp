@@ -68,6 +68,7 @@ private:
 	boost::asio::ip::tcp::socket socket_;
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
+	boost::asio::io_context& io_context_;
 	const TCPClient::pointer& client_;
 	boost::asio::streambuf readBuffer_, writeBuffer_;
 };
