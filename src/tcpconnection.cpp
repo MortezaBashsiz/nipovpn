@@ -154,7 +154,7 @@ void TCPConnection::handleReadSSL(const boost::system::error_code& error)
 				error
 			);
 			if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0 )
-					break;
+				break;
 			else if (error)
 			{
 				log_->write(std::string("[TCPConnection handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
