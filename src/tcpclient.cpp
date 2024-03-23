@@ -196,7 +196,7 @@ void TCPClient::doReadSSL()
 				error
 			);
 			if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0)
-					break;
+				break;
 			else if (error)
 			{
 				log_->write(std::string("[TCPClient doReadSSL] [log] ") + error.what(), Log::Level::ERROR);
