@@ -147,13 +147,38 @@ void TCPConnection::handleReadSSL(const boost::system::error_code& error)
 	{
 		while(true){
 			boost::system::error_code error;
+			boost::asio::read(
+				socket_,
+				readBuffer_,
+				boost::asio::transfer_exactly(2),
+				error
+			);
+			boost::asio::streambuf tempBuff;
+			boost::asio::read(
+				socket_,
+				tempBuff,
+				boost::asio::transfer_exactly(2),
+				error
+			);
+			auto bytesToRead = hexToInt(hexStreambufToStr(tempBuff));
+			moveStreamBuff(tempBuff, readBuffer_);
 			auto size = boost::asio::read(
 				socket_,
 				readBuffer_,
-				boost::asio::transfer_exactly(1),
+				boost::asio::transfer_exactly(bytesToRead),
 				error
 			);
-			if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0 )
+			if (socket_.available() != 0)
+			{
+				boost::asio::read(
+					socket_,
+					readBuffer_,
+					boost::asio::transfer_exactly(1),
+					error
+				);
+				continue;
+			} 
+			else if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0 )
 				break;
 			else if (error)
 			{
