@@ -31,16 +31,7 @@ HTTP::~HTTP()
 
 bool HTTP::detectType()
 {
-	std::string requestStr(
-		hexArrToStr(
-			reinterpret_cast<unsigned char*>(
-				const_cast<char*>(
-					streambufToString(buffer_).c_str()
-				)
-			),
-			buffer_.size()
-		)
-	);
+	std::string requestStr(hexStreambufToStr(buffer_));
 	std::string tmpStr;
 	unsigned short pos=0;
 	tmpStr = requestStr.substr(pos, 2);
