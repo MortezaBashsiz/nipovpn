@@ -185,31 +185,56 @@ void TCPClient::doReadUntil(const std::string& until)
 void TCPClient::doReadSSL()
 {
 	try
-	{
-		readBuffer_.consume(readBuffer_.size());
-		while(true){
-			boost::system::error_code error;
-			auto size = boost::asio::read(
-				socket_,
-				readBuffer_,
-				boost::asio::transfer_exactly(1),
-				error
-			);
-			if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0)
-				break;
-			else if (error)
-			{
-				log_->write(std::string("[TCPClient doReadSSL] [log] ") + error.what(), Log::Level::ERROR);
-			}
-		}
-		log_->write("[TCPClient doReadSSL] [SRC " +
-			socket_.remote_endpoint().address().to_string() +":"+
-			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
-			std::to_string(readBuffer_.size())+"] ",
-			Log::Level::DEBUG);
-	}
-	catch (std::exception& error)
-	{
-		log_->write(std::string("[TCPClient doReadSSL] ") + error.what(), Log::Level::ERROR);
-	}
+  {
+    readBuffer_.consume(readBuffer_.size());
+    boost::asio::async_read(
+    socket_,
+    readBuffer_,
+    boost::asio::transfer_exactly(1),
+    boost::bind(&TCPClient::handleReadSSL, 
+      shared_from_this(),
+      boost::asio::placeholders::error)
+    );
+  }
+  catch (std::exception& error)
+  {
+    log_->write(std::string("[TCPClient doReadSSL] ") + error.what(), Log::Level::ERROR);
+  }
+}
+
+void TCPClient::handleReadSSL(const boost::system::error_code& error)
+{
+  if (!error || error == boost::asio::error::eof)
+  {
+    while(true){
+      boost::system::error_code error;
+      auto size = boost::asio::read(
+        socket_,
+        readBuffer_,
+        boost::asio::transfer_at_least(1),
+        error
+      );
+      if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0 )
+        break;
+      else if (error)
+      {
+        log_->write(std::string("[TCPClient handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
+      }
+    }
+    try
+    {
+      log_->write("[TCPClient handleReadSSL] [SRC " +
+        socket_.remote_endpoint().address().to_string() +":"+
+        std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+        std::to_string(readBuffer_.size())+"] ",
+        Log::Level::INFO);
+    }
+    catch (std::exception& error)
+    {
+      log_->write(std::string("[TCPClient handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
+    }
+  } else
+  {
+    log_->write(std::string("[TCPClient handleReadSSL] ") + error.what(), Log::Level::ERROR);
+  }
 }

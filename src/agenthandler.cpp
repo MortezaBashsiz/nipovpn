@@ -12,10 +12,10 @@ AgentHandler::AgentHandler(boost::asio::streambuf& readBuffer,
 		readBuffer_(readBuffer),
 		writeBuffer_(writeBuffer),
 		request_(HTTP::create(config, log, readBuffer))
-{	}
+{}
 
 AgentHandler::~AgentHandler()
-{	}
+{}
 
 void AgentHandler::handle()
 {

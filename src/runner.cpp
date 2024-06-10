@@ -7,8 +7,8 @@ Runner::Runner(boost::asio::io_context& io_context, const std::shared_ptr<Config
 			io_context_(io_context)
 	{	}
 
-	Runner::~Runner()
-	{}
+Runner::~Runner()
+{}
 
 void Runner::run()
 {

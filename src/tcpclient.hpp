@@ -17,6 +17,7 @@
 * Connects to the endpoint and handles the connection
 */
 class TCPClient
+  : public boost::enable_shared_from_this<TCPClient>
 {
 public:
 	using pointer =  boost::shared_ptr<TCPClient>;
@@ -59,6 +60,7 @@ public:
 		size_t bytes_transferred);
 	void doReadUntil(const std::string& until);
 	void doReadSSL();
+  void handleReadSSL(const boost::system::error_code& error);
 
 private:
 		explicit TCPClient(boost::asio::io_context& io_context, 

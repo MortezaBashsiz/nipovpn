@@ -12,10 +12,10 @@ ServerHandler::ServerHandler(boost::asio::streambuf& readBuffer,
 		readBuffer_(readBuffer),
 		writeBuffer_(writeBuffer),
 		request_(HTTP::create(config, log, readBuffer))
-{ }
+{}
 
 ServerHandler::~ServerHandler()
-{ }
+{}
 
 void ServerHandler::handle()
 {
