@@ -39,8 +39,7 @@ int main(int argc, char const *argv[])
 	*/
 	Log::pointer log_ = Log::create(config_);
 
-	boost::asio::io_context io_context_;
-	Runner runner_(io_context_, config_, log_);
+	Runner runner_(config_, log_);
 	runner_.run();
 
 	return 0;

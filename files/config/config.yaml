@@ -5,6 +5,7 @@ log:
   logFile: "/var/log/nipo/nipo.log"
 
 server:
+  threads: 8
   listenIp: "127.0.0.50"
   listenPort: 443
   webDir: "/var/lib/niposerver"
@@ -12,6 +13,7 @@ server:
   sslCert: "/etc/niposerver/ssl.cert"
 
 agent:
+  threads: 4
   listenIp: "127.0.0.10"
   listenPort: 8080
   serverIp: "127.0.0.50"

@@ -34,6 +34,7 @@ private:
 
 	struct Server
 	{
+    unsigned short threads;
 		std::string listenIp;
 		unsigned short listenPort;
 		std::string webDir;
@@ -43,6 +44,7 @@ private:
 
 	struct Agent
 	{
+    unsigned short threads;
 		std::string listenIp;
 		unsigned short listenPort;
 		std::string serverIp;
@@ -70,6 +72,7 @@ private:
 	*/
 	const YAML::Node configYaml_;
 
+  unsigned short threads_;
 	std::string listenIp_;
 	unsigned short listenPort_;
 
@@ -133,6 +136,20 @@ public:
 	{
 		return std::move(agent_);
 	}
+  
+  inline const unsigned short& threads()&
+  {
+    return threads_;
+  }
+  inline const unsigned short&& threads()&&
+  {
+    return std::move(threads_);
+  }
+
+  inline void threads(unsigned short threads)
+  {
+    threads_ = threads;
+  }
 
 	inline const std::string& listenIp()&
 	{

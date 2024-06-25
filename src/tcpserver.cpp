@@ -27,8 +27,8 @@ void TCPServer::startAccept()
 		TCPConnection::create(io_context_, config_, log_, client_);
 	
 	acceptor_.async_accept(newConnection->socket(),
-		boost::bind(&TCPServer::handleAccept, 
-			this, 
+		boost::bind(&TCPServer::handleAccept,
+			this,
 			newConnection,
 			boost::asio::placeholders::error)
 		);

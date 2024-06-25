@@ -6,6 +6,7 @@ Config::Config(const RunMode& mode,
 		runMode_(mode),
 		filePath_(filePath),
 		configYaml_(YAML::LoadFile(filePath)),
+    threads_(0),
 		listenIp_("127.0.0.1"),
 		listenPort_(0),
 		log_
@@ -15,6 +16,7 @@ Config::Config(const RunMode& mode,
 		},
 		server_
 		{
+      configYaml_["server"]["threads"].as<unsigned short>(),
 			configYaml_["server"]["listenIp"].as<std::string>(),
 			configYaml_["server"]["listenPort"].as<unsigned short>(),
 			configYaml_["server"]["webDir"].as<std::string>(),
@@ -23,6 +25,7 @@ Config::Config(const RunMode& mode,
 		},
 		agent_
 		{
+      configYaml_["agent"]["threads"].as<unsigned short>(),
 			configYaml_["agent"]["listenIp"].as<std::string>(),
 			configYaml_["agent"]["listenPort"].as<unsigned short>(),
 			configYaml_["agent"]["serverIp"].as<std::string>(),
@@ -36,10 +39,12 @@ Config::Config(const RunMode& mode,
 {
 	switch (runMode_){
 	case RunMode::server:
+    threads_ = server_.threads;
 		listenIp_ = server_.listenIp;
 		listenPort_ = server_.listenPort;
 		break;
 	case RunMode::agent:
+    threads_ = server_.threads;
 		listenIp_ = agent_.listenIp;
 		listenPort_ = agent_.listenPort;
 		break;
