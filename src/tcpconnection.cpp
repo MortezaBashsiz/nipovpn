@@ -140,12 +140,12 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 	}
 }
 
-
 void TCPConnection::handleReadSSL(const boost::system::error_code& error)
 {
 	if (!error || error == boost::asio::error::eof)
 	{
-		while(true){
+		while(true)
+    {
 			boost::system::error_code error;
 			auto size = boost::asio::read(
 				socket_,
@@ -153,7 +153,7 @@ void TCPConnection::handleReadSSL(const boost::system::error_code& error)
 				boost::asio::transfer_at_least(1),
 				error
 			);
-			if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0 )
+			if (error == boost::asio::error::eof || size == 0)
 				break;
 			else if (error)
 			{
