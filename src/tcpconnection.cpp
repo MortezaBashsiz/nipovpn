@@ -24,7 +24,7 @@ void TCPConnection::start()
 	if (config_->runMode() == RunMode::agent)
 		doReadUntil("\r\n\r\n");
 	else if (config_->runMode() == RunMode::server)
-		doReadUntil("\r\nCOMP\r\n\r\n");
+		doReadUntil(config_->general().delimiter);
 }
 
 void TCPConnection::doReadUntil(const std::string& until)

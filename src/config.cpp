@@ -9,6 +9,10 @@ Config::Config(const RunMode& mode,
 		threads_(0),
 		listenIp_("127.0.0.1"),
 		listenPort_(0),
+		general_
+		{
+			configYaml_["general"]["delimiter"].as<std::string>()
+		},
 		log_
 		{
 			configYaml_["log"]["logLevel"].as<std::string>(),
@@ -66,6 +70,8 @@ Config::~Config()
 const std::string Config::toString() const
 {
 	return std::string("\nConfig :\n")
+	+ " General :\n"
+	+ "		delimiter: " + general_.delimiter + "\n"
 	+ "	Log :\n"
 	+ "		logLevel: " + log_.level + "\n"
 	+ "		logFile: " + log_.file + "\n"

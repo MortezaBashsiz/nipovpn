@@ -160,8 +160,8 @@ const std::string HTTP::genHttpPostReqString(const std::string& body) const
 		+ "Content-Length: " + std::to_string(body.length()) + "\r\n"
 		+ "Content-Type: application/x-www-form-urlencoded\r\n"
 		+ "\r\n"
-		+ body 
-		+ "\r\nCOMP\r\n\r\n";
+		+ body
+		+ config_->general().delimiter;
 }
 
 const std::string HTTP::genHttpOkResString(const std::string& body) const
@@ -173,8 +173,8 @@ const std::string HTTP::genHttpOkResString(const std::string& body) const
 		+ "Cache-Control: no-cache\r\n"
 		+ "Pragma: no-cache\r\n"
 		+ "\r\n"
-		+ body 
-		+ "\r\nCOMP\r\n\r\n";
+		+ body
+		+ config_->general().delimiter;
 }
 
 void HTTP::setIPPort()
