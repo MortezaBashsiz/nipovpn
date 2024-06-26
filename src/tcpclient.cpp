@@ -66,7 +66,7 @@ void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPor
 }
 
 void TCPClient::doWrite(const HTTP::HttpType& httpType, 
-  boost::asio::streambuf& buffer)
+	boost::asio::streambuf& buffer)
 {
 	try
 	{
@@ -185,26 +185,26 @@ void TCPClient::doReadUntil(const std::string& until)
 void TCPClient::doReadSSL()
 {
 	try
-  {
-    readBuffer_.consume(readBuffer_.size());
-    while(true){
-      boost::system::error_code error;
-      auto size = boost::asio::read(
-        socket_,
-        readBuffer_,
-        boost::asio::transfer_exactly(1),
-        error
-      );
-      if (error == boost::asio::error::eof || size == 0)
-        break;
-      else if (error)
-      {
-        log_->write(std::string("[TCPConnection handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
-      }
-    }
-  }
-  catch (std::exception& error)
-  {
-    log_->write(std::string("[TCPClient doReadSSL] ") + error.what(), Log::Level::ERROR);
-  }
+	{
+		readBuffer_.consume(readBuffer_.size());
+		while(true){
+			boost::system::error_code error;
+			auto size = boost::asio::read(
+				socket_,
+				readBuffer_,
+				boost::asio::transfer_exactly(1),
+				error
+			);
+			if (error == boost::asio::error::eof || size == 0)
+				break;
+			else if (error)
+			{
+				log_->write(std::string("[TCPConnection handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
+			}
+		}
+	}
+	catch (std::exception& error)
+	{
+		log_->write(std::string("[TCPClient doReadSSL] ") + error.what(), Log::Level::ERROR);
+	}
 }

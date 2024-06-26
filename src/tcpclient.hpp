@@ -17,7 +17,7 @@
 * Connects to the endpoint and handles the connection
 */
 class TCPClient
-  : public boost::enable_shared_from_this<TCPClient>
+	: public boost::enable_shared_from_this<TCPClient>
 {
 public:
 	using pointer =  boost::shared_ptr<TCPClient>;
