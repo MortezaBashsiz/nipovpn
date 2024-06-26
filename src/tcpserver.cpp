@@ -25,7 +25,7 @@ void TCPServer::startAccept()
 {
 	TCPConnection::pointer newConnection =
 		TCPConnection::create(io_context_, config_, log_, client_);
-	
+	acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
 	acceptor_.async_accept(newConnection->socket(),
 		boost::bind(&TCPServer::handleAccept,
 			this,
@@ -42,6 +42,9 @@ void TCPServer::handleAccept(TCPConnection::pointer newConnection,
 		boost::asio::socket_base::keep_alive option(true);
 		newConnection->socket().set_option(option);
 		newConnection->start();
-	}
-	startAccept();
+	} else
+  {
+    log_->write(std::string("[TCPServer handleAccept] ") + error.what(), Log::Level::ERROR);
+  }
+  startAccept();
 }

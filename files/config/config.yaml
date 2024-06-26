@@ -1,11 +1,13 @@
 ---
+general:
+  delimiter: "\r\n\r\n"
 
 log:
   logLevel: "DEBUG"
   logFile: "/var/log/nipo/nipo.log"
 
 server:
-  threads: 8
+  threads: 4
   listenIp: "127.0.0.50"
   listenPort: 443
   webDir: "/var/lib/niposerver"

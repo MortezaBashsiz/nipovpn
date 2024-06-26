@@ -26,6 +26,11 @@ class Config
 {
 private:
 
+	struct General
+	{
+		std::string delimiter;
+	};
+
 	struct Log
 	{
 		std::string level;
@@ -94,6 +99,7 @@ public:
 	* Objects for separation of configuration sections (log, agent, server)
 	* For more information see the private items
 	*/
+	const General general_;
 	const Log log_;
 	const Server server_;
 	const Agent agent_;
@@ -110,6 +116,16 @@ public:
 	/*
 	* Functions to handle private members
 	*/
+	inline const Config::General& general()&
+	{
+		return general_;
+	}
+
+	inline const Config::General&& general()&&
+	{
+		return std::move(general_);
+	}
+
 	inline const Config::Log& log()&
 	{
 		return log_;
