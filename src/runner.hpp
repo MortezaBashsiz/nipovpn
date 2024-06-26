@@ -16,7 +16,8 @@ class Runner : private Uncopyable
 {
 public:
 
-	explicit Runner(boost::asio::io_context& io_context, const std::shared_ptr<Config>& config, const std::shared_ptr<Log>& log);
+	explicit Runner(const std::shared_ptr<Config>& config, 
+		const std::shared_ptr<Log>& log);
 	~Runner();
 
 	/*
@@ -27,8 +28,7 @@ public:
 private:
 	const std::shared_ptr<Config>& config_;
 	const std::shared_ptr<Log>& log_;
-	boost::asio::io_context& io_context_;
-	
+
 };
 
 #endif /* RUNNER_HPP */

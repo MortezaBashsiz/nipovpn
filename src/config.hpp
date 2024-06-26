@@ -34,6 +34,7 @@ private:
 
 	struct Server
 	{
+		unsigned short threads;
 		std::string listenIp;
 		unsigned short listenPort;
 		std::string webDir;
@@ -43,6 +44,7 @@ private:
 
 	struct Agent
 	{
+		unsigned short threads;
 		std::string listenIp;
 		unsigned short listenPort;
 		std::string serverIp;
@@ -70,6 +72,7 @@ private:
 	*/
 	const YAML::Node configYaml_;
 
+	unsigned short threads_;
 	std::string listenIp_;
 	unsigned short listenPort_;
 
@@ -111,6 +114,7 @@ public:
 	{
 		return log_;
 	}
+
 	inline const Config::Log&& log()&&
 	{
 		return std::move(log_);
@@ -120,6 +124,7 @@ public:
 	{
 		return server_;
 	}
+
 	inline const Config::Server&& server()&&
 	{
 		return std::move(server_);
@@ -129,15 +134,32 @@ public:
 	{
 		return agent_;
 	}
+
 	inline const Config::Agent&& agent()&&
 	{
 		return std::move(agent_);
+	}
+
+	inline const unsigned short& threads()&
+	{
+		return threads_;
+	}
+
+	inline const unsigned short&& threads()&&
+	{
+		return std::move(threads_);
+	}
+
+	inline void threads(unsigned short threads)
+	{
+		threads_ = threads;
 	}
 
 	inline const std::string& listenIp()&
 	{
 		return listenIp_;
 	}
+
 	inline const std::string&& listenIp()&&
 	{
 		return std::move(listenIp_);
@@ -152,6 +174,7 @@ public:
 	{
 		return listenPort_;
 	}
+
 	inline const unsigned short&& listenPort()&&
 	{
 		return std::move(listenPort_);
@@ -166,6 +189,7 @@ public:
 	{
 		return runMode_;
 	}
+
 	inline const RunMode& runMode()&&
 	{
 		return std::move(runMode_);
@@ -175,6 +199,7 @@ public:
 	{
 		return filePath_;
 	}
+
 	inline const std::string&& filePath()&&
 	{
 		return std::move(filePath_);

@@ -71,7 +71,7 @@ void TCPConnection::doRead(const unsigned short& bytes, boost::asio::streambuf& 
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string("[TCPClient doRead] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPConnection doRead] ") + error.what(), Log::Level::ERROR);
 	}
 }
 
@@ -91,7 +91,7 @@ void TCPConnection::doReadSSL()
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string("[TCPClient doReadSSL] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPConnection doReadSSL] ") + error.what(), Log::Level::ERROR);
 	}
 }
 
@@ -147,38 +147,13 @@ void TCPConnection::handleReadSSL(const boost::system::error_code& error)
 	{
 		while(true){
 			boost::system::error_code error;
-			boost::asio::read(
-				socket_,
-				readBuffer_,
-				boost::asio::transfer_exactly(2),
-				error
-			);
-			boost::asio::streambuf tempBuff;
-			boost::asio::read(
-				socket_,
-				tempBuff,
-				boost::asio::transfer_exactly(2),
-				error
-			);
-			auto bytesToRead = hexToInt(hexStreambufToStr(tempBuff));
-			moveStreamBuff(tempBuff, readBuffer_);
 			auto size = boost::asio::read(
 				socket_,
 				readBuffer_,
-				boost::asio::transfer_exactly(bytesToRead),
+				boost::asio::transfer_at_least(1),
 				error
 			);
-			if (socket_.available() != 0)
-			{
-				boost::asio::read(
-					socket_,
-					readBuffer_,
-					boost::asio::transfer_exactly(1),
-					error
-				);
-				continue;
-			} 
-			else if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0 )
+			if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0 )
 				break;
 			else if (error)
 			{

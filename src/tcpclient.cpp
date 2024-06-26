@@ -66,7 +66,7 @@ void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPor
 }
 
 void TCPClient::doWrite(const HTTP::HttpType& httpType, 
-  boost::asio::streambuf& buffer)
+	boost::asio::streambuf& buffer)
 {
 	try
 	{
@@ -195,18 +195,13 @@ void TCPClient::doReadSSL()
 				boost::asio::transfer_exactly(1),
 				error
 			);
-			if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0)
+			if (error == boost::asio::error::eof || size == 0)
 				break;
 			else if (error)
 			{
-				log_->write(std::string("[TCPClient doReadSSL] [log] ") + error.what(), Log::Level::ERROR);
+				log_->write(std::string("[TCPConnection handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
 			}
 		}
-		log_->write("[TCPClient doReadSSL] [SRC " +
-			socket_.remote_endpoint().address().to_string() +":"+
-			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
-			std::to_string(readBuffer_.size())+"] ",
-			Log::Level::DEBUG);
 	}
 	catch (std::exception& error)
 	{
