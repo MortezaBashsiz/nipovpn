@@ -1,6 +1,6 @@
 ---
 general:
-  delimiter: "\r\n\r\n"
+  delimiter: "\r\nCOMP\r\n\r\n"
 
 log:
   logLevel: "DEBUG"

@@ -84,7 +84,7 @@ void TCPClient::doWrite(const HTTP::HttpType& httpType,
 		switch (httpType){
 			case HTTP::HttpType::https:
 				if (config_->runMode() == RunMode::agent)
-					doReadUntil("\r\nCOMP\r\n\r\n");
+					doReadUntil(config_->general().delimiter);
 				else
 					doReadSSL();
 			break;

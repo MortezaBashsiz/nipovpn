@@ -131,7 +131,7 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 					serverHandler_->request()->httpType() == HTTP::HttpType::connect)
 			{
 				readBuffer_.consume(readBuffer_.size());
-				doReadUntil("\r\nCOMP\r\n\r\n");
+				doReadUntil(config_->general().delimiter);
 			}
 		}
 	} else
@@ -191,7 +191,7 @@ void TCPConnection::handleReadSSL(const boost::system::error_code& error)
 					serverHandler_->request()->httpType() == HTTP::HttpType::connect)
 			{
 				readBuffer_.consume(readBuffer_.size());
-				doReadUntil("\r\nCOMP\r\n\r\n");
+				doReadUntil(config_->general().delimiter);
 			}
 		}
 	} else
