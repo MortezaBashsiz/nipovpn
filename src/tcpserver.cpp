@@ -42,9 +42,9 @@ void TCPServer::handleAccept(TCPConnection::pointer newConnection,
 		boost::asio::socket_base::keep_alive option(true);
 		newConnection->socket().set_option(option);
 		newConnection->start();
-    startAccept();
 	} else
   {
     log_->write(std::string("[TCPServer handleAccept] ") + error.what(), Log::Level::ERROR);
   }
+  startAccept();
 }
