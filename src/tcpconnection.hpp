@@ -55,7 +55,6 @@ public:
 
 	void handleRead(const boost::system::error_code& error,
 		size_t bytes_transferred);
-	void handleReadSSL(const boost::system::error_code& error);
 
 	void doWrite();
 	
@@ -71,6 +70,7 @@ private:
 	boost::asio::io_context& io_context_;
 	const TCPClient::pointer& client_;
 	boost::asio::streambuf readBuffer_, writeBuffer_;
+  boost::asio::deadline_timer timer_;
 };
 
 #endif /* TCPCONNECTION_HPP */

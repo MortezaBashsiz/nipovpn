@@ -61,8 +61,6 @@ public:
 	void doReadUntil(const std::string& until);
 	void doReadSSL();
 
-  void handleReadSSL(const boost::system::error_code& error);
-
 private:
 		explicit TCPClient(boost::asio::io_context& io_context, 
 			const std::shared_ptr<Config>& config, 
@@ -74,6 +72,7 @@ private:
 	boost::asio::ip::tcp::socket socket_;
 	boost::asio::streambuf writeBuffer_, readBuffer_;
 	boost::asio::ip::tcp::resolver resolver_;
+  boost::asio::deadline_timer timer_;
 };
 
 #endif /* TCPCLIENT_HPP */

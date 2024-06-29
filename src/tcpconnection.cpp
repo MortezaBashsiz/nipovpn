@@ -11,7 +11,8 @@ TCPConnection::TCPConnection(boost::asio::io_context& io_context,
 		config_(config),
 		log_(log),
 		io_context_(io_context),
-		client_(client)
+		client_(client),
+		timer_(io_context)
 { }
 
 boost::asio::ip::tcp::socket& TCPConnection::socket()
@@ -80,14 +81,77 @@ void TCPConnection::doReadSSL()
 	try
 	{
 		readBuffer_.consume(readBuffer_.size());
-		boost::asio::async_read(
-		socket_,
-		readBuffer_,
-		boost::asio::transfer_exactly(1),
-		boost::bind(&TCPConnection::handleReadSSL, 
-			shared_from_this(),
-			boost::asio::placeholders::error)
-		);
+		boost::system::error_code error;
+		if (socket_.available() > 0)
+		{
+			boost::asio::read(
+					socket_,
+					readBuffer_,
+					boost::asio::transfer_at_least(1),
+					error
+				);
+		}
+		if (socket_.available() > 0)
+		{
+			while(true)
+			{
+				if (socket_.available() == 0)
+					break;
+				auto size = boost::asio::read(
+					socket_,
+					readBuffer_,
+					boost::asio::transfer_at_least(1),
+					error
+				);
+				timer_.expires_from_now(boost::posix_time::milliseconds(1));
+				timer_.wait();
+				if (error == boost::asio::error::eof || size == 0)
+					break;
+				else if (error)
+				{
+					log_->write(std::string("[TCPConnection doReadSSL] [log] ") + error.what(), Log::Level::ERROR);
+				}
+			}
+		}
+		if (readBuffer_.size() > 0)
+		{
+			try
+			{
+				log_->write("[TCPConnection doReadSSL] [SRC " +
+					socket_.remote_endpoint().address().to_string() +":"+
+					std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+					std::to_string(readBuffer_.size())+"] ",
+					Log::Level::INFO);
+			}
+			catch (std::exception& error)
+			{
+				log_->write(std::string("[TCPConnection doReadSSL] [log] ") + error.what(), Log::Level::ERROR);
+			}
+			if (config_->runMode() == RunMode::agent)
+			{
+				AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
+				agentHandler_->handle();
+				doWrite();
+				if (agentHandler_->request()->httpType() == HTTP::HttpType::https || 
+						agentHandler_->request()->httpType() == HTTP::HttpType::connect)
+				{
+					doReadSSL();
+				}
+			} else if (config_->runMode() == RunMode::server)
+			{
+				ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
+				serverHandler_->handle();
+				doWrite();
+				if (serverHandler_->request()->httpType() == HTTP::HttpType::https || 
+						serverHandler_->request()->httpType() == HTTP::HttpType::connect)
+				{
+					readBuffer_.consume(readBuffer_.size());
+					doReadUntil(config_->general().delimiter);
+				}
+			}
+		} else {
+			doReadSSL();
+		}
 	}
 	catch (std::exception& error)
 	{
@@ -137,66 +201,6 @@ void TCPConnection::handleRead(const boost::system::error_code& error,
 	} else
 	{
 		log_->write(std::string("[TCPConnection handleRead] ") + error.what(), Log::Level::ERROR);
-	}
-}
-
-void TCPConnection::handleReadSSL(const boost::system::error_code& error)
-{
-	if (!error || error == boost::asio::error::eof)
-	{
-		while(true)
-    {
-			boost::system::error_code error;
-			auto size = boost::asio::read(
-				socket_,
-				readBuffer_,
-				boost::asio::transfer_at_least(1),
-				error
-			);
-			if (error == boost::asio::error::eof || size == 0)
-				break;
-			else if (error)
-			{
-				log_->write(std::string("[TCPConnection handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
-			}
-		}
-		try
-		{
-			log_->write("[TCPConnection handleReadSSL] [SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+
-				std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
-				std::to_string(readBuffer_.size())+"] ",
-				Log::Level::INFO);
-		}
-		catch (std::exception& error)
-		{
-			log_->write(std::string("[TCPConnection handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
-		}
-		if (config_->runMode() == RunMode::agent)
-		{
-			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
-			agentHandler_->handle();
-			doWrite();
-			if (agentHandler_->request()->httpType() == HTTP::HttpType::https || 
-					agentHandler_->request()->httpType() == HTTP::HttpType::connect)
-			{
-				doReadSSL();
-			}
-		} else if (config_->runMode() == RunMode::server)
-		{
-			ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
-			serverHandler_->handle();
-			doWrite();
-			if (serverHandler_->request()->httpType() == HTTP::HttpType::https || 
-					serverHandler_->request()->httpType() == HTTP::HttpType::connect)
-			{
-				readBuffer_.consume(readBuffer_.size());
-				doReadUntil(config_->general().delimiter);
-			}
-		}
-	} else
-	{
-		log_->write(std::string("[TCPConnection handleReadSSL] ") + error.what(), Log::Level::ERROR);
 	}
 }
 
