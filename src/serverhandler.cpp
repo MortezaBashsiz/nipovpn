@@ -54,7 +54,7 @@ void ServerHandler::handle()
 					{
 						if (!client_->socket().is_open())
 							client_->doConnect(request_->dstIP(), request_->dstPort());
-						client_->doWrite(request_->httpType(), readBuffer_);
+						client_->doWrite(readBuffer_);
 						std::string newRes(
 							request_->genHttpOkResString(
 								encode64(
@@ -70,7 +70,7 @@ void ServerHandler::handle()
 					{
 						if (!client_->socket().is_open())
 							client_->doConnect(request_->dstIP(), request_->dstPort());
-						client_->doWrite(request_->httpType(), readBuffer_);
+						client_->doWrite(readBuffer_);
 						std::string newRes(
 							request_->genHttpOkResString(
 								encode64(

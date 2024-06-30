@@ -50,18 +50,9 @@ public:
 		return std::move(readBuffer_);
 	}
 
-	void doConnect();
 	void doConnect(const std::string& dstIP, const unsigned short& dstPort);
-	void doWrite(const HTTP::HttpType& httpType, 
-		boost::asio::streambuf& buffer);
+	void doWrite(boost::asio::streambuf& buffer);
 	void doRead();
-	void doRead(const unsigned short& bytes, boost::asio::streambuf& buffer);
-	void handleRead(const boost::system::error_code& error,
-		size_t bytes_transferred);
-	void doReadUntil(const std::string& until);
-	void doReadSSL();
-
-  void handleReadSSL(const boost::system::error_code& error);
 
 private:
 		explicit TCPClient(boost::asio::io_context& io_context, 

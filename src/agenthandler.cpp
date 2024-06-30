@@ -30,10 +30,10 @@ void AgentHandler::handle()
 	{
 		log_->write("[AgentHandler handle] [Request] : "+request_->toString(), Log::Level::DEBUG);
 		if (! client_->socket().is_open() || request_->httpType() == HTTP::HttpType::http || request_->httpType() == HTTP::HttpType::connect)
-			client_->doConnect();
+			client_->doConnect(config_->agent().serverIp, config_->agent().serverPort);
 		copyStringToStreambuf(newReq, readBuffer_);
 		log_->write("[AgentHandler handle] [Request To Server] : \n"+newReq, Log::Level::DEBUG);
-		client_->doWrite(request_->httpType(), readBuffer_);
+		client_->doWrite(readBuffer_);
 		if (request_->httpType() != HTTP::HttpType::connect)
 		{
 			HTTP::pointer response = HTTP::create(config_, log_, client_->readBuffer());
