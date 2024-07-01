@@ -46,8 +46,8 @@ void TCPConnection::doRead()
 }
 
 void TCPConnection::handleRead(
-	const boost::system::error_code& error,
-	size_t bytes_transferred)
+	const boost::system::error_code&,
+	size_t)
 {
 	try
 	{
