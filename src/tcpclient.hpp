@@ -53,6 +53,8 @@ public:
 	void doConnect(const std::string& dstIP, const unsigned short& dstPort);
 	void doWrite(boost::asio::streambuf& buffer);
 	void doRead();
+  void handleRead(const boost::system::error_code& error,
+    size_t bytes_transferred);
 
 private:
 		explicit TCPClient(boost::asio::io_context& io_context, 

@@ -110,3 +110,52 @@ void TCPClient::doRead()
     log_->write(std::string("[TCPClient doRead] [catch] ") + error.what(), Log::Level::ERROR);
   }
 }
+
+void TCPClient::handleRead(
+  const boost::system::error_code& error,
+  size_t bytes_transferred)
+{
+  try
+  {
+    boost::system::error_code error;
+    if (socket_.available() > 0)
+    {
+      while(true)
+      {
+        if (socket_.available() == 0)
+          break;
+        auto size = boost::asio::read(
+          socket_,
+          readBuffer_,
+          boost::asio::transfer_at_least(1),
+          error
+        );
+        if (error == boost::asio::error::eof || size == 0)
+          break;
+        else if (error)
+        {
+          log_->write(std::string("[TCPClient handleRead] [error] ") + error.what(), Log::Level::ERROR);
+        }
+      }
+    }
+    if (readBuffer_.size() > 0)
+    {
+      try
+      {
+        log_->write("[TCPClient handleRead] [SRC " +
+          socket_.remote_endpoint().address().to_string() +":"+
+          std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+          std::to_string(readBuffer_.size())+"] ",
+          Log::Level::INFO);
+      }
+      catch (std::exception& error)
+      {
+        log_->write(std::string("[TCPClient handleRead] [catch] ") + error.what(), Log::Level::ERROR);
+      }
+    }
+  }
+  catch (std::exception& error)
+  {
+    log_->write(std::string("[TCPClient handleRead] [catch] ") + error.what(), Log::Level::ERROR);
+  }
+}

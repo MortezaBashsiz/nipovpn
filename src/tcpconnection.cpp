@@ -29,13 +29,29 @@ void TCPConnection::doRead()
 	try
 	{
 		readBuffer_.consume(readBuffer_.size());
+		boost::asio::async_read(
+		socket_,
+		readBuffer_,
+		boost::asio::transfer_at_least(1),
+		boost::bind(&TCPConnection::handleRead,
+			shared_from_this(),
+			boost::asio::placeholders::error,
+			boost::asio::placeholders::bytes_transferred)
+		);
+	}
+	catch (std::exception& error)
+	{
+		log_->write(std::string("[TCPConnection doRead] [catch] ") + error.what(), Log::Level::ERROR);
+	}
+}
+
+void TCPConnection::handleRead(
+	const boost::system::error_code& error,
+	size_t bytes_transferred)
+{
+	try
+	{
 		boost::system::error_code error;
-		boost::asio::read(
-				socket_,
-				readBuffer_,
-				boost::asio::transfer_at_least(1),
-				error
-			);
 		if (socket_.available() > 0)
 		{
 			while(true)
@@ -52,7 +68,7 @@ void TCPConnection::doRead()
 					break;
 				else if (error)
 				{
-					log_->write(std::string("[TCPConnection doRead] [error] ") + error.what(), Log::Level::ERROR);
+					log_->write(std::string("[TCPConnection handleRead] [error] ") + error.what(), Log::Level::ERROR);
 				}
 			}
 		}
@@ -60,7 +76,7 @@ void TCPConnection::doRead()
 		{
 			try
 			{
-				log_->write("[TCPConnection doRead] [SRC " +
+				log_->write("[TCPConnection handleRead] [SRC " +
 					socket_.remote_endpoint().address().to_string() +":"+
 					std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
 					std::to_string(readBuffer_.size())+"] ",
@@ -68,7 +84,7 @@ void TCPConnection::doRead()
 			}
 			catch (std::exception& error)
 			{
-				log_->write(std::string("[TCPConnection doRead] [catch] ") + error.what(), Log::Level::ERROR);
+				log_->write(std::string("[TCPConnection handleRead] [catch] ") + error.what(), Log::Level::ERROR);
 			}
 			if (config_->runMode() == RunMode::agent)
 			{
@@ -86,7 +102,7 @@ void TCPConnection::doRead()
 	}
 	catch (std::exception& error)
 	{
-		log_->write(std::string("[TCPConnection doRead] [catch] ") + error.what(), Log::Level::ERROR);
+		log_->write(std::string("[TCPConnection handleRead] [catch] ") + error.what(), Log::Level::ERROR);
 	}
 }
 
@@ -106,9 +122,9 @@ void TCPConnection::doWrite()
 			error
 		);
 		if (error)
-    {
-      log_->write(std::string("[TCPConnection doWrite] [error] ") + error.what(), Log::Level::ERROR);
-    }
+		{
+			log_->write(std::string("[TCPConnection doWrite] [error] ") + error.what(), Log::Level::ERROR);
+		}
 	}
 	catch (std::exception& error)
 	{

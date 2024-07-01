@@ -51,21 +51,6 @@ void ServerHandler::handle()
 					}
 					break;
 				case HTTP::HttpType::http:
-					{
-						if (!client_->socket().is_open())
-							client_->doConnect(request_->dstIP(), request_->dstPort());
-						client_->doWrite(readBuffer_);
-						std::string newRes(
-							request_->genHttpOkResString(
-								encode64(
-									streambufToString(client_->readBuffer())
-								)
-							)
-						);
-						copyStringToStreambuf(newRes, writeBuffer_);
-						client_->socket().close();
-					}
-					break;	
 				case HTTP::HttpType::https:
 					{
 						if (!client_->socket().is_open())
@@ -79,6 +64,8 @@ void ServerHandler::handle()
 							)
 						);
 						copyStringToStreambuf(newRes, writeBuffer_);
+						if (request_->httpType() == HTTP::HttpType::http)
+							client_->socket().close();
 					}
 					break;
 			}
