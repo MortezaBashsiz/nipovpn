@@ -16,18 +16,18 @@ class Runner : private Uncopyable
 {
 public:
 
-	explicit Runner(const std::shared_ptr<Config>& config, 
-		const std::shared_ptr<Log>& log);
-	~Runner();
+  explicit Runner(const std::shared_ptr<Config>& config, 
+    const std::shared_ptr<Log>& log);
+  ~Runner();
 
-	/*
-	* It is called in main function(see main.cpp) and will run the io_context
-	*/
-	void run();
+  /*
+  * It is called in main function(see main.cpp) and will run the io_context
+  */
+  void run();
 
 private:
-	const std::shared_ptr<Config>& config_;
-	const std::shared_ptr<Log>& log_;
+  const std::shared_ptr<Config>& config_;
+  const std::shared_ptr<Log>& log_;
 
 };
 
