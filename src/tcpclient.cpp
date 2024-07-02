@@ -65,7 +65,6 @@ void TCPClient::doWrite(boost::asio::streambuf& buffer)
     if (error){
       log_->write(std::string("[TCPClient doWrite] [error] ") + error.what(), Log::Level::ERROR);
     }
-    doRead();
   }
   catch (std::exception& error)
   {
@@ -85,10 +84,15 @@ void TCPClient::doRead()
         boost::asio::transfer_at_least(1),
         error
       );
+    bool deadLine{false};
+    timer_.expires_from_now(boost::posix_time::milliseconds(1000));
+    timer_.async_wait([&deadLine] (const boost::system::error_code&) { deadLine = true; });
     if (socket_.available() > 0)
     {
       while(true)
       {
+        if (deadLine)
+          break;
         if (socket_.available() == 0)
           break;
         auto size = boost::asio::read(
@@ -103,8 +107,6 @@ void TCPClient::doRead()
         {
           log_->write(std::string("[TCPClient doRead] [error] ") + error.what(), Log::Level::ERROR);
         }
-        timer_.expires_from_now(boost::posix_time::milliseconds(10));
-        timer_.wait();
       }
     }
   }

@@ -34,6 +34,7 @@ void AgentHandler::handle()
     copyStringToStreambuf(newReq, readBuffer_);
     log_->write("[AgentHandler handle] [Request To Server] : \n"+newReq, Log::Level::DEBUG);
     client_->doWrite(readBuffer_);
+    client_->doRead();
     if (request_->httpType() != HTTP::HttpType::connect)
     {
       HTTP::pointer response = HTTP::create(config_, log_, client_->readBuffer());

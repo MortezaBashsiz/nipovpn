@@ -55,8 +55,13 @@ void TCPConnection::handleRead(
     boost::system::error_code error;
     if (socket_.available() > 0)
     {
+      bool deadLine{false};
+      timer_.expires_from_now(boost::posix_time::milliseconds(1000));
+      timer_.async_wait([&deadLine] (const boost::system::error_code&) { deadLine = true; });
       while(true)
       {
+        if (deadLine)
+          break;
         if (socket_.available() == 0)
           break;
         auto size = boost::asio::read(
@@ -75,31 +80,28 @@ void TCPConnection::handleRead(
       timer_.expires_from_now(boost::posix_time::milliseconds(10));
       timer_.wait();
     }
-    if (readBuffer_.size() > 0)
+    try
     {
-      try
-      {
-        log_->write("[TCPConnection handleRead] [SRC " +
-          socket_.remote_endpoint().address().to_string() +":"+
-          std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
-          std::to_string(readBuffer_.size())+"] ",
-          Log::Level::INFO);
-      }
-      catch (std::exception& error)
-      {
-        log_->write(std::string("[TCPConnection handleRead] [catch] ") + error.what(), Log::Level::ERROR);
-      }
-      if (config_->runMode() == RunMode::agent)
-      {
-        AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
-        agentHandler_->handle();
-        doWrite();
-      } else if (config_->runMode() == RunMode::server)
-      {
-        ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
-        serverHandler_->handle();
-        doWrite();
-      }
+      log_->write("[TCPConnection handleRead] [SRC " +
+        socket_.remote_endpoint().address().to_string() +":"+
+        std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+        std::to_string(readBuffer_.size())+"] ",
+        Log::Level::INFO);
+    }
+    catch (std::exception& error)
+    {
+      log_->write(std::string("[TCPConnection handleRead] [catch] ") + error.what(), Log::Level::ERROR);
+    }
+    if (config_->runMode() == RunMode::agent)
+    {
+      AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
+      agentHandler_->handle();
+      doWrite();
+    } else if (config_->runMode() == RunMode::server)
+    {
+      ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
+      serverHandler_->handle();
+      doWrite();
     }
   }
   catch (std::exception& error)
