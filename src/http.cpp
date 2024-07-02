@@ -152,8 +152,8 @@ bool HTTP::parseTls()
 
 const std::string HTTP::genHttpPostReqString(const std::string& body) const
 {
-  return std::string("POST http://google.com/seite2.php HTTP/1.1\r\n")
-    + "Host: google.com\r\n"
+  return std::string("POST "+ config_->general().fakeUrl +" HTTP/1.1\r\n")
+    + "Host: "+ config_->general().fakeUrl +"\r\n"
     + "User-Agent: Mozilla/5.0\r\n"
     + "Accept: */*\r\n"
     + "Connection: keep-alive\r\n"

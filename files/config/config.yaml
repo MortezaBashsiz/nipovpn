@@ -1,6 +1,7 @@
 ---
 general:
-  delimiter: "\r\nCOMP\r\n\r\n"
+  delimiter: ''
+  fakeUrl: "http://mori.net"
 
 log:
   logLevel: "DEBUG"
