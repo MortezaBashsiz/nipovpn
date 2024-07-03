@@ -28,8 +28,8 @@ private:
 
   struct General
   {
-    std::string delimiter;
     std::string fakeUrl;
+    std::string method;
   };
 
   struct Log

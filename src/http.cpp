@@ -152,7 +152,7 @@ bool HTTP::parseTls()
 
 const std::string HTTP::genHttpPostReqString(const std::string& body) const
 {
-  return std::string("POST "+ config_->general().fakeUrl +" HTTP/1.1\r\n")
+  return std::string(config_->general().method + " " + config_->general().fakeUrl + " HTTP/1.1\r\n")
     + "Host: "+ config_->general().fakeUrl +"\r\n"
     + "User-Agent: Mozilla/5.0\r\n"
     + "Accept: */*\r\n"
@@ -160,8 +160,7 @@ const std::string HTTP::genHttpPostReqString(const std::string& body) const
     + "Content-Length: " + std::to_string(body.length()) + "\r\n"
     + "Content-Type: application/x-www-form-urlencoded\r\n"
     + "\r\n"
-    + body
-    + config_->general().delimiter;
+    + body;
 }
 
 const std::string HTTP::genHttpOkResString(const std::string& body) const
@@ -173,8 +172,7 @@ const std::string HTTP::genHttpOkResString(const std::string& body) const
     + "Cache-Control: no-cache\r\n"
     + "Pragma: no-cache\r\n"
     + "\r\n"
-    + body
-    + config_->general().delimiter;
+    + body;
 }
 
 void HTTP::setIPPort()

@@ -11,8 +11,8 @@ Config::Config(const RunMode& mode,
     listenPort_(0),
     general_
     {
-      configYaml_["general"]["delimiter"].as<std::string>(),
-      configYaml_["general"]["fakeUrl"].as<std::string>()
+      configYaml_["general"]["fakeUrl"].as<std::string>(),
+      configYaml_["general"]["method"].as<std::string>()
     },
     log_
     {
@@ -72,8 +72,8 @@ const std::string Config::toString() const
 {
   return std::string("\nConfig :\n")
   + " General :\n"
-  + "   delimiter: " + general_.delimiter + "\n"
   + "   fakeUrl: " + general_.fakeUrl + "\n"
+  + "   method: " + general_.method + "\n"
   + " Log :\n"
   + "   logLevel: " + log_.level + "\n"
   + "   logFile: " + log_.file + "\n"

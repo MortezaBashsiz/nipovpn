@@ -2,6 +2,7 @@
 general:
   delimiter: ''
   fakeUrl: "http://mori.net"
+  method: "GET"
 
 log:
   logLevel: "DEBUG"
