@@ -152,9 +152,9 @@ bool HTTP::parseTls()
 
 const std::string HTTP::genHttpPostReqString(const std::string& body) const
 {
-  return std::string(config_->general().method + " " + config_->general().fakeUrl + " HTTP/1.1\r\n")
+  return std::string(config_->general().method + " " + config_->general().fakeUrl + " HTTP/"+ config_->agent().httpVersion +"\r\n")
     + "Host: "+ config_->general().fakeUrl +"\r\n"
-    + "User-Agent: Mozilla/5.0\r\n"
+    + "User-Agent: "+ config_->agent().userAgent +"\r\n"
     + "Accept: */*\r\n"
     + "Connection: keep-alive\r\n"
     + "Content-Length: " + std::to_string(body.length()) + "\r\n"

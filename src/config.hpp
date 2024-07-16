@@ -57,7 +57,6 @@ private:
     unsigned short serverPort;
     std::string encryption;
     std::string token;
-    std::string endPoint;
     std::string httpVersion;
     std::string userAgent;
   };
