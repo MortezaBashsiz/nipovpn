@@ -104,6 +104,18 @@ void TCPClient::doRead()
         }
       }
     }
+    try
+    {
+      log_->write("[TCPClient doRead] [SRC " +
+        socket_.remote_endpoint().address().to_string() +":"+
+        std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+        std::to_string(readBuffer_.size())+"] ",
+        Log::Level::INFO);
+    }
+    catch (std::exception& error)
+    {
+      log_->write(std::string("[TCPClient doRead] [catch] ") + error.what(), Log::Level::ERROR);
+    }
   }
   catch (std::exception& error)
   {
