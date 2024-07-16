@@ -1,7 +1,7 @@
 ---
 general:
   delimiter: ''
-  fakeUrl: "http://mori.net"
+  fakeUrl: "http://www.sudoer.net/api01"
   method: "GET"
 
 log:

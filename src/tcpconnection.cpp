@@ -33,7 +33,7 @@ void TCPConnection::doRead()
     boost::asio::async_read(
     socket_,
     readBuffer_,
-    boost::asio::transfer_at_least(1),
+    boost::asio::transfer_exactly(1),
     boost::bind(&TCPConnection::handleRead,
       shared_from_this(),
       boost::asio::placeholders::error,
@@ -55,30 +55,23 @@ void TCPConnection::handleRead(
     boost::system::error_code error;
     if (socket_.available() > 0)
     {
-      bool deadLine{false};
-      timer_.expires_from_now(boost::posix_time::milliseconds(1000));
-      timer_.async_wait([&deadLine] (const boost::system::error_code&) { deadLine = true; });
       while(true)
       {
-        if (deadLine)
-          break;
         if (socket_.available() == 0)
           break;
-        auto size = boost::asio::read(
+        boost::asio::read(
           socket_,
           readBuffer_,
-          boost::asio::transfer_at_least(1),
+          boost::asio::transfer_exactly(1),
           error
         );
-        if (error == boost::asio::error::eof || size == 0)
+        if (error == boost::asio::error::eof)
           break;
         else if (error)
         {
           log_->write(std::string("[TCPConnection handleRead] [error] ") + error.what(), Log::Level::ERROR);
         }
       }
-      timer_.expires_from_now(boost::posix_time::milliseconds(10));
-      timer_.wait();
     }
     try
     {
@@ -96,13 +89,12 @@ void TCPConnection::handleRead(
     {
       AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
       agentHandler_->handle();
-      doWrite();
     } else if (config_->runMode() == RunMode::server)
     {
       ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
       serverHandler_->handle();
-      doWrite();
     }
+    doWrite();
   }
   catch (std::exception& error)
   {

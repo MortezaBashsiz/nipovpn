@@ -81,27 +81,22 @@ void TCPClient::doRead()
     boost::asio::read(
         socket_,
         readBuffer_,
-        boost::asio::transfer_at_least(1),
+        boost::asio::transfer_exactly(1),
         error
       );
-    bool deadLine{false};
-    timer_.expires_from_now(boost::posix_time::milliseconds(1000));
-    timer_.async_wait([&deadLine] (const boost::system::error_code&) { deadLine = true; });
     if (socket_.available() > 0)
     {
       while(true)
       {
-        if (deadLine)
-          break;
         if (socket_.available() == 0)
           break;
-        auto size = boost::asio::read(
+        boost::asio::read(
           socket_,
           readBuffer_,
-          boost::asio::transfer_at_least(1),
+          boost::asio::transfer_exactly(1),
           error
         );
-        if (error == boost::asio::error::eof || size == 0)
+        if (error == boost::asio::error::eof)
           break;
         else if (error)
         {
