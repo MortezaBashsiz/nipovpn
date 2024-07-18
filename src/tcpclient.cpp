@@ -86,21 +86,24 @@ void TCPClient::doRead()
       );
     if (socket_.available() > 0)
     {
-      while(true)
+      for (auto i=0; i<5; i++)
       {
-        if (socket_.available() == 0)
-          break;
-        boost::asio::read(
-          socket_,
-          readBuffer_,
-          boost::asio::transfer_exactly(1),
-          error
-        );
-        if (error == boost::asio::error::eof)
-          break;
-        else if (error)
+        while(true)
         {
-          log_->write(std::string("[TCPClient doRead] [error] ") + error.what(), Log::Level::ERROR);
+          if (socket_.available() == 0)
+            break;
+          boost::asio::read(
+            socket_,
+            readBuffer_,
+            boost::asio::transfer_exactly(1),
+            error
+          );
+          if (error == boost::asio::error::eof)
+            break;
+          else if (error)
+          {
+            log_->write(std::string("[TCPClient doRead] [error] ") + error.what(), Log::Level::ERROR);
+          }
         }
       }
     }
