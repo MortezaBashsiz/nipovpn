@@ -12,7 +12,9 @@ Config::Config(const RunMode& mode,
     general_
     {
       configYaml_["general"]["fakeUrl"].as<std::string>(),
-      configYaml_["general"]["method"].as<std::string>()
+      configYaml_["general"]["method"].as<std::string>(),
+      configYaml_["general"]["timeWait"].as<unsigned int>(),
+      configYaml_["general"]["repeatWait"].as<unsigned short>()
     },
     log_
     {
@@ -59,6 +61,7 @@ Config::Config(const Config::pointer& config)
   :
     runMode_(config->runMode()),
     configYaml_(YAML::LoadFile(config->filePath())),
+    general_(config->general()),
     log_(config->log()),
     server_(config->server()),
     agent_(config->agent())
@@ -73,6 +76,8 @@ const std::string Config::toString() const
   + " General :\n"
   + "   fakeUrl: " + general_.fakeUrl + "\n"
   + "   method: " + general_.method + "\n"
+  + "   timeWait: " + std::to_string(general_.timeWait) + "\n"
+  + "   repeatWait: " + std::to_string(general_.repeatWait) + "\n"
   + " Log :\n"
   + "   logLevel: " + log_.level + "\n"
   + "   logFile: " + log_.file + "\n"

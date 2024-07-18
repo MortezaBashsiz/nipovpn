@@ -1,8 +1,10 @@
 ---
 general:
   delimiter: ''
-  fakeUrl: "http://www.sudoer.net/api01"
+  fakeUrl: "http://www.adas.com/api01"
   method: "GET"
+  timeWait: 0
+  repeatWait: 25
 
 log:
   logLevel: "DEBUG"

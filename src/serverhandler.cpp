@@ -57,16 +57,21 @@ void ServerHandler::handle()
               client_->doConnect(request_->dstIP(), request_->dstPort());
             client_->doWrite(readBuffer_);
             client_->doRead();
-            std::string newRes(
-              request_->genHttpOkResString(
-                encode64(
-                  streambufToString(client_->readBuffer())
+            if (client_->readBuffer().size() > 0)
+            {
+              std::string newRes(
+                request_->genHttpOkResString(
+                  encode64(
+                    streambufToString(client_->readBuffer())
+                  )
                 )
-              )
-            );
-            copyStringToStreambuf(newRes, writeBuffer_);
-            if (request_->httpType() == HTTP::HttpType::http)
+              );
+              copyStringToStreambuf(newRes, writeBuffer_);
+              if (request_->httpType() == HTTP::HttpType::http)
+                client_->socket().close();
+            } else {
               client_->socket().close();
+            }
           }
           break;
       }

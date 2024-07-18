@@ -55,7 +55,7 @@ void TCPConnection::handleRead(
     boost::system::error_code error;
     if (socket_.available() > 0)
     {
-      for (auto i=0; i<5; i++)
+      for (auto i=0; i<=config_->general().repeatWait; i++)
       {
         while(true)
         {
@@ -74,6 +74,8 @@ void TCPConnection::handleRead(
             log_->write(std::string("[TCPConnection handleRead] [error] ") + error.what(), Log::Level::ERROR);
           }
         }
+        timer_.expires_from_now(boost::posix_time::milliseconds(config_->general().timeWait));
+        timer_.wait();
       }
     }
     try
@@ -97,7 +99,10 @@ void TCPConnection::handleRead(
       ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
       serverHandler_->handle();
     }
-    doWrite();
+    if (writeBuffer_.size() > 0)
+      doWrite();
+    else
+      socket_.close();
   }
   catch (std::exception& error)
   {

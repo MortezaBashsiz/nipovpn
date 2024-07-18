@@ -86,7 +86,7 @@ void TCPClient::doRead()
       );
     if (socket_.available() > 0)
     {
-      for (auto i=0; i<5; i++)
+      for (auto i=0; i<=config_->general().repeatWait; i++)
       {
         while(true)
         {
@@ -105,19 +105,24 @@ void TCPClient::doRead()
             log_->write(std::string("[TCPClient doRead] [error] ") + error.what(), Log::Level::ERROR);
           }
         }
+        timer_.expires_from_now(boost::posix_time::milliseconds(config_->general().timeWait));
+        timer_.wait();
       }
     }
-    try
+    if (readBuffer_.size() > 0)
     {
-      log_->write("[TCPClient doRead] [SRC " +
-        socket_.remote_endpoint().address().to_string() +":"+
-        std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
-        std::to_string(readBuffer_.size())+"] ",
-        Log::Level::INFO);
-    }
-    catch (std::exception& error)
-    {
-      log_->write(std::string("[TCPClient doRead] [catch] ") + error.what(), Log::Level::ERROR);
+      try
+      {
+        log_->write("[TCPClient doRead] [SRC " +
+          socket_.remote_endpoint().address().to_string() +":"+
+          std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+          std::to_string(readBuffer_.size())+"] ",
+          Log::Level::INFO);
+      }
+      catch (std::exception& error)
+      {
+        log_->write(std::string("[TCPClient doRead] [catch] ") + error.what(), Log::Level::ERROR);
+      }
     }
   }
   catch (std::exception& error)
