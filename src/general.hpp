@@ -167,25 +167,45 @@ inline std::vector<std::string> splitString(const std::string& str, const std::s
 
 inline std::string decode64(const std::string& inputStr) 
 {
-  using binaryFromBase64 = boost::archive::iterators::binary_from_base64<std::string::const_iterator>;
-  using transformWidth = boost::archive::iterators::transform_width<binaryFromBase64, 8, 6>;
-  return(
-    std::string(
-      transformWidth(std::begin(inputStr)),
-      transformWidth(std::end(inputStr))
-    )
-  );
+    using namespace boost::archive::iterators;
+
+    // Remove padding characters if present
+    std::string temp = inputStr;
+    boost::algorithm::trim_right_if(temp, boost::is_any_of("="));
+
+    try {
+        using binaryFromBase64 = binary_from_base64<std::string::const_iterator>;
+        using transformWidth = transform_width<binaryFromBase64, 8, 6>;
+
+        std::string decoded(
+            transformWidth(temp.begin()),
+            transformWidth(temp.end())
+        );
+
+        return decoded;
+    }
+    catch (std::exception& e) {
+        throw std::runtime_error("Invalid Base64 encoding");
+    }
 }
 
 inline std::string encode64(const std::string& inputStr) 
 {
-  using transformWidth = boost::archive::iterators::transform_width<std::string::const_iterator, 6, 8>;
-  using constIterators = boost::archive::iterators::base64_from_binary<transformWidth>;
-  auto tmp = std::string(
-    constIterators(std::begin(inputStr)),
-    constIterators(std::end(inputStr))
-  );
-  return tmp.append((3 - inputStr.size() % 3) % 3, '=');
+    using namespace boost::archive::iterators;
+
+    using transformWidth = transform_width<std::string::const_iterator, 6, 8>;
+    using base64Enc = base64_from_binary<transformWidth>;
+
+    std::string encoded(
+        base64Enc(inputStr.begin()),
+        base64Enc(inputStr.end())
+    );
+
+    // Add padding characters to the encoded string
+    std::size_t numPadChars = (3 - inputStr.size() % 3) % 3;
+    encoded.append(numPadChars, '=');
+
+    return encoded;
 }
 
 /*
