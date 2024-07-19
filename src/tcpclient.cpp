@@ -28,10 +28,15 @@ void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPor
 {
   try
   {
-    log_->write("[TCPClient doConnect] [DST] " +
+    log_->write("[TCPClient doConnect] [DST " +
       dstIP +":"+
-      std::to_string(dstPort)+" ",
+      std::to_string(dstPort)+" ]",
       Log::Level::DEBUG);
+
+    log_->write("[Connect to] [DST " +
+      dstIP +":"+
+      std::to_string(dstPort)+" ]",
+      Log::Level::INFO);
   
     boost::asio::ip::tcp::resolver resolver(io_context_);
     auto endpoint = resolver.resolve(dstIP.c_str(), std::to_string(dstPort).c_str());
@@ -41,7 +46,7 @@ void TCPClient::doConnect(const std::string& dstIP, const unsigned short& dstPor
   }
   catch (std::exception& error)
   {
-    log_->write(std::string("[TCPClient doConnect Custom] ") + error.what(), Log::Level::ERROR);
+    log_->write(std::string("[TCPClient doConnect] ") + error.what(), Log::Level::ERROR);
   }
 }
 
@@ -56,6 +61,12 @@ void TCPClient::doWrite(boost::asio::streambuf& buffer)
       "[Bytes " +
       std::to_string(writeBuffer_.size())+"] ",
       Log::Level::DEBUG);
+    log_->write("[Write to] [DST " +
+      socket_.remote_endpoint().address().to_string() +":"+
+      std::to_string(socket_.remote_endpoint().port())+"] "+
+      "[Bytes " +
+      std::to_string(writeBuffer_.size())+"] ",
+      Log::Level::INFO);
     boost::system::error_code error;
     boost::asio::write(
       socket_,
@@ -117,7 +128,7 @@ void TCPClient::doRead()
           socket_.remote_endpoint().address().to_string() +":"+
           std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
           std::to_string(readBuffer_.size())+"] ",
-          Log::Level::INFO);
+          Log::Level::DEBUG);
       }
       catch (std::exception& error)
       {

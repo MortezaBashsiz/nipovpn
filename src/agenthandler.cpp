@@ -35,22 +35,28 @@ void AgentHandler::handle()
     log_->write("[AgentHandler handle] [Request To Server] : \n"+newReq, Log::Level::DEBUG);
     client_->doWrite(readBuffer_);
     client_->doRead();
-    if (request_->httpType() != HTTP::HttpType::connect)
+    if (client_->readBuffer().size() > 0)
     {
-      HTTP::pointer response = HTTP::create(config_, log_, client_->readBuffer());
-      if (response->parseHttpResp())
+      if (request_->httpType() != HTTP::HttpType::connect)
       {
-        log_->write("[AgentHandler handle] [Response] : "+response->restoString(), Log::Level::DEBUG);
-        copyStringToStreambuf(decode64(boost::lexical_cast<std::string>(response->parsedHttpResponse().body())), writeBuffer_);
-      }
-      else
+        HTTP::pointer response = HTTP::create(config_, log_, client_->readBuffer());
+        if (response->parseHttpResp())
+        {
+          log_->write("[AgentHandler handle] [Response] : "+response->restoString(), Log::Level::DEBUG);
+          copyStringToStreambuf(decode64(boost::lexical_cast<std::string>(response->parsedHttpResponse().body())), writeBuffer_);
+        }
+        else
+        {
+          log_->write("[AgentHandler handle] [NOT HTTP Response] [Response] : "+ streambufToString(client_->readBuffer()), Log::Level::ERROR);
+        }
+      } else
       {
-        log_->write("[AgentHandler handle] [NOT HTTP Response] [Response] : "+ streambufToString(client_->readBuffer()), Log::Level::ERROR);
+        log_->write("[AgentHandler handle] [Response to connect] : \n"+streambufToString(client_->readBuffer()), Log::Level::DEBUG);
+        moveStreamBuff(client_->readBuffer(), writeBuffer_);
       }
-    } else
+    } else 
     {
-      log_->write("[AgentHandler handle] [Response to connect] : \n"+streambufToString(client_->readBuffer()), Log::Level::DEBUG);
-      moveStreamBuff(client_->readBuffer(), writeBuffer_);
+      client_->socket().close();
     }
   } else
   {

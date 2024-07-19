@@ -84,11 +84,16 @@ void TCPConnection::handleRead(
         socket_.remote_endpoint().address().to_string() +":"+
         std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
         std::to_string(readBuffer_.size())+"] ",
+        Log::Level::DEBUG);
+      log_->write("[Read from] [SRC " +
+        socket_.remote_endpoint().address().to_string() +":"+
+        std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+        std::to_string(readBuffer_.size())+"] ",
         Log::Level::INFO);
     }
     catch (std::exception& error)
     {
-      log_->write(std::string("[TCPConnection handleRead] [catch] ") + error.what(), Log::Level::ERROR);
+      log_->write(std::string("[TCPConnection handleRead] [catch in] ") + error.what(), Log::Level::ERROR);
     }
     if (config_->runMode() == RunMode::agent)
     {
@@ -106,7 +111,7 @@ void TCPConnection::handleRead(
   }
   catch (std::exception& error)
   {
-    log_->write(std::string("[TCPConnection handleRead] [catch] ") + error.what(), Log::Level::ERROR);
+    log_->write(std::string("[TCPConnection handleRead] [catch out] ") + error.what(), Log::Level::ERROR);
   }
 }
 
@@ -119,6 +124,11 @@ void TCPConnection::doWrite()
       std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
       std::to_string(writeBuffer_.size())+"] ", 
       Log::Level::DEBUG);
+    log_->write("[Write to] [DST " + 
+      socket_.remote_endpoint().address().to_string() +":"+ 
+      std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+      std::to_string(writeBuffer_.size())+"] ", 
+      Log::Level::INFO);
     boost::system::error_code error;
     boost::asio::write(
       socket_,

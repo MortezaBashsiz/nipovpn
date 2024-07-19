@@ -16,7 +16,7 @@ void Runner::run()
   {
     boost::asio::io_context io_context_{config_->threads()};
     log_->write("Config initialized in " + config_->modeToString() + " mode ", Log::Level::INFO);
-    log_->write(config_->toString(), Log::Level::DEBUG);
+    log_->write(config_->toString(), Log::Level::INFO);
     TCPServer::pointer tcpServer_ = TCPServer::create(io_context_, config_, log_);
     std::vector<std::thread> vectorThreads_;
     vectorThreads_.reserve(config_->threads() - 1);
