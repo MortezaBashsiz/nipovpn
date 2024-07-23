@@ -77,10 +77,10 @@ void ServerHandler::handle()
       }
     }else
     {
-      log_->write("[ServerHandler handle] [NOT HTTP Request] [Request] : "+ streambufToString(readBuffer_), Log::Level::ERROR);
+      log_->write("[ServerHandler handle] [NOT HTTP Request] [Request] : "+ streambufToString(readBuffer_), Log::Level::DEBUG);
     }
   } else
   {
-    log_->write("[ServerHandler handle] [NOT HTTP Request From Agent] [Request] : "+ streambufToString(readBuffer_), Log::Level::ERROR);
+    log_->write("[ServerHandler handle] [NOT HTTP Request From Agent] [Request] : "+ streambufToString(readBuffer_), Log::Level::DEBUG);
   }
 }

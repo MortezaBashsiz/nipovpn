@@ -208,7 +208,7 @@ void HTTP::setIPPort()
           dstPort_ = 80;
       }else
       {
-        log_->write("[HTTP setIPPort] wrong request", Log::Level::ERROR);
+        log_->write("[HTTP setIPPort] wrong request", Log::Level::DEBUG);
       }
     break;
     case HTTP::HttpType::connect:

@@ -3,8 +3,8 @@ general:
   delimiter: ''
   fakeUrl: "http://www.adas.com/api01"
   method: "GET"
-  timeWait: 0
-  repeatWait: 25
+  timeWait: 1
+  repeatWait: 5
 
 log:
   logLevel: "INFO"

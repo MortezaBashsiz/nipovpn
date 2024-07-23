@@ -47,7 +47,7 @@ void AgentHandler::handle()
         }
         else
         {
-          log_->write("[AgentHandler handle] [NOT HTTP Response] [Response] : "+ streambufToString(client_->readBuffer()), Log::Level::ERROR);
+          log_->write("[AgentHandler handle] [NOT HTTP Response] [Response] : "+ streambufToString(client_->readBuffer()), Log::Level::DEBUG);
         }
       } else
       {
@@ -60,6 +60,6 @@ void AgentHandler::handle()
     }
   } else
   {
-    log_->write("[AgentHandler handle] [NOT HTTP Request] [Request] : "+ streambufToString(readBuffer_), Log::Level::ERROR);
+    log_->write("[AgentHandler handle] [NOT HTTP Request] [Request] : "+ streambufToString(readBuffer_), Log::Level::DEBUG);
   }
 }
