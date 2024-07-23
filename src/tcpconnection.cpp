@@ -93,7 +93,7 @@ void TCPConnection::handleRead(
     }
     catch (std::exception& error)
     {
-      log_->write(std::string("[TCPConnection handleRead] [catch in] ") + error.what(), Log::Level::ERROR);
+      log_->write(std::string("[TCPConnection handleRead] [catch in] ") + error.what(), Log::Level::DEBUG);
     }
     if (config_->runMode() == RunMode::agent)
     {
