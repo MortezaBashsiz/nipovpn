@@ -66,7 +66,7 @@ void TCPClient::doWrite(boost::asio::streambuf& buffer)
       std::to_string(socket_.remote_endpoint().port())+"] "+
       "[Bytes " +
       std::to_string(writeBuffer_.size())+"] ",
-      Log::Level::INFO);
+      Log::Level::TRACE);
     boost::system::error_code error;
     boost::asio::write(
       socket_,

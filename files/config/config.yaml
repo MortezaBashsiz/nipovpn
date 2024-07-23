@@ -7,7 +7,7 @@ general:
   repeatWait: 5
 
 log:
-  logLevel: "INFO"
+  logLevel: "TRACE"
   logFile: "/var/log/nipo/nipo.log"
 
 server:

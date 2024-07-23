@@ -15,6 +15,7 @@ public:
   enum class Level
   {
     INFO,
+    TRACE,
     ERROR,
     DEBUG
   };
@@ -66,6 +67,9 @@ public:
     switch (level){
       case Level::INFO:
         result = "INFO";
+        break;
+      case Level::TRACE:
+        result = "TRACE";
         break;
       case Level::ERROR:
         result = "ERROR";

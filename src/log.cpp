@@ -16,10 +16,12 @@ Log::Log(const std::shared_ptr<Config>& config)
   */
   if (config_->log().level == std::string("INFO"))
     level_ = Level::INFO;
+  else if (config_->log().level == std::string("TRACE"))
+    level_ = Level::TRACE;
   else if (config_->log().level == std::string("DEBUG"))
     level_ = Level::DEBUG;
   else
-    std::cerr << "Invalid log level : " << config_->log().level  << ", It should be one of [INFO|DEBUG] " << "\n";
+    std::cerr << "Invalid log level : " << config_->log().level  << ", It should be one of [INFO|TRACE|DEBUG] " << "\n";
   logFile_.close();
 }
 

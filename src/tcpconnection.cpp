@@ -89,7 +89,7 @@ void TCPConnection::handleRead(
         socket_.remote_endpoint().address().to_string() +":"+
         std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
         std::to_string(readBuffer_.size())+"] ",
-        Log::Level::INFO);
+        Log::Level::TRACE);
     }
     catch (std::exception& error)
     {
@@ -128,7 +128,7 @@ void TCPConnection::doWrite()
       socket_.remote_endpoint().address().to_string() +":"+ 
       std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
       std::to_string(writeBuffer_.size())+"] ", 
-      Log::Level::INFO);
+      Log::Level::TRACE);
     boost::system::error_code error;
     boost::asio::write(
       socket_,
