@@ -134,7 +134,8 @@ void TCPClient::doRead()
       {
         log_->write(std::string("[TCPClient doRead] [catch] ") + error.what(), Log::Level::ERROR);
       }
-    }
+    } else
+      socket_.close();
   }
   catch (std::exception& error)
   {

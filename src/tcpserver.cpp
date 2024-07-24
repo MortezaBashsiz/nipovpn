@@ -23,25 +23,25 @@ TCPServer::TCPServer(boost::asio::io_context& io_context,
 
 void TCPServer::startAccept()
 {
-  TCPConnection::pointer newConnection =
+  TCPConnection::pointer connection =
     TCPConnection::create(io_context_, config_, log_, client_);
   acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
-  acceptor_.async_accept(newConnection->socket(),
+  acceptor_.async_accept(connection->socket(),
     boost::bind(&TCPServer::handleAccept,
       this,
-      newConnection,
+      connection,
       boost::asio::placeholders::error)
     );
 }
 
-void TCPServer::handleAccept(TCPConnection::pointer newConnection,
+void TCPServer::handleAccept(TCPConnection::pointer connection,
   const boost::system::error_code& error)
 {
   if (!error)
   {
     boost::asio::socket_base::keep_alive option(true);
-    newConnection->socket().set_option(option);
-    newConnection->start();
+    connection->socket().set_option(option);
+    connection->start();
   } else
   {
     log_->write(std::string("[TCPServer handleAccept] ") + error.what(), Log::Level::ERROR);

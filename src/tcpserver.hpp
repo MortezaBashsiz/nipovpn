@@ -35,7 +35,7 @@ private:
 
   void startAccept();
 
-  void handleAccept(TCPConnection::pointer newConnection,
+  void handleAccept(TCPConnection::pointer connection,
     const boost::system::error_code& error);
 
   const std::shared_ptr<Config>& config_;

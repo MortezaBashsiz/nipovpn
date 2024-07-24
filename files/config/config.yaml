@@ -1,16 +1,32 @@
 ---
+# This block contains general and global configucration which is in both modes
 general:
-  delimiter: ''
   fakeUrl: "http://www.adas.com/api01"
-  method: "GET"
-  timeWait: 1
-  repeatWait: 5
+  # method: "HEAD|GET|POST|PUT|DELETE"
+  # Defines with which method
+  #   you like to send requests from agent to server
+  method: "HEAD"
+  # timeWait: unsigned int(0-4,294,967,295)
+  # Defines the time wait between each reapeat to read from socket.
+  #   This directive will be usefull when you expect to read very long stream from socket
+  timeWait: 0
+  # repeatWait: unsigned short(1-65,635)
+  # Defines the loop count which will try to repeat read from socket.
+  #   Same as timeWait
+  repeatWait: 1
+  keepAlive: 5
 
+# This block is to define log directives
 log:
-  logLevel: "TRACE"
+  # logLevel: "INFO|TRACE|DEBUG"
+  logLevel: "DEBUG"
+  # logFile: "/var/log/nipo/nipo.log"
+  #   Path of log file
   logFile: "/var/log/nipo/nipo.log"
 
+# This block is to define server directives
 server:
+  # threads: number of threads in server
   threads: 4
   listenIp: "127.0.0.50"
   listenPort: 443
@@ -18,6 +34,7 @@ server:
   sslKey: "/etc/niposerver/ssl.key"
   sslCert: "/etc/niposerver/ssl.cert"
 
+# This block is to define agent directives
 agent:
   threads: 4
   listenIp: "127.0.0.10"
