@@ -97,6 +97,7 @@ void TCPClient::doRead()
       );
     if (socket_.available() > 0)
     {
+      boost::asio::deadline_timer timer{io_context_};
       for (auto i=0; i<=config_->general().repeatWait; i++)
       {
         while(true)
@@ -116,8 +117,8 @@ void TCPClient::doRead()
             log_->write(std::string("[TCPClient doRead] [error] ") + error.what(), Log::Level::ERROR);
           }
         }
-        timer_.expires_from_now(boost::posix_time::milliseconds(config_->general().timeWait));
-        timer_.wait();
+        timer.expires_from_now(boost::posix_time::milliseconds(config_->general().timeWait));
+        timer.wait();
       }
     }
     if (readBuffer_.size() > 0)

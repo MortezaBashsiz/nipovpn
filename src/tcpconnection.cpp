@@ -55,6 +55,7 @@ void TCPConnection::handleRead(
     boost::system::error_code error;
     if (socket_.available() > 0)
     {
+      boost::asio::deadline_timer timer{io_context_};
       for (auto i=0; i<=config_->general().repeatWait; i++)
       {
         while(true)
@@ -74,8 +75,8 @@ void TCPConnection::handleRead(
             log_->write(std::string("[TCPConnection handleRead] [error] ") + error.what(), Log::Level::ERROR);
           }
         }
-        timer_.expires_from_now(boost::posix_time::milliseconds(config_->general().timeWait));
-        timer_.wait();
+        timer.expires_from_now(boost::posix_time::milliseconds(config_->general().timeWait));
+        timer.wait();
       }
     }
     try
