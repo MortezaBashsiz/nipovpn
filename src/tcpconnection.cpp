@@ -4,218 +4,146 @@
 * TCPConnection
 */
 TCPConnection::TCPConnection(boost::asio::io_context& io_context, 
-	const std::shared_ptr<Config>& config, 
-	const std::shared_ptr<Log>& log,
-	const TCPClient::pointer& client)
-	: socket_(io_context),
-		config_(config),
-		log_(log),
-		io_context_(io_context),
-		client_(client)
+  const std::shared_ptr<Config>& config, 
+  const std::shared_ptr<Log>& log,
+  const TCPClient::pointer& client)
+  : socket_(io_context),
+    config_(config),
+    log_(log),
+    io_context_(io_context),
+    client_(client),
+    timer_(io_context)
 { }
 
 boost::asio::ip::tcp::socket& TCPConnection::socket()
 {
-	return socket_;
+  return socket_;
 }
 
 void TCPConnection::start()
 {
-	if (config_->runMode() == RunMode::agent)
-		doReadUntil("\r\n\r\n");
-	else if (config_->runMode() == RunMode::server)
-		doReadUntil(config_->general().delimiter);
+  doRead();
 }
 
-void TCPConnection::doReadUntil(const std::string& until)
+void TCPConnection::doRead()
 {
-	try
-	{
-		log_->write("[TCPConnection doReadUntil] [SRC " +
-			socket_.remote_endpoint().address().to_string() +":"+
-			std::to_string(socket_.remote_endpoint().port())+"]",
-			Log::Level::DEBUG);
-	}
-	catch (std::exception& error)
-	{
-		log_->write(std::string("[TCPConnection doReadUntil] [log] ") + error.what(), Log::Level::ERROR);
-	}
-
-	boost::asio::async_read_until(
-		socket_,
-		readBuffer_,
-		until,
-		boost::bind(&TCPConnection::handleRead, 
-			shared_from_this(),
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred)
-	);
+  try
+  {
+    readBuffer_.consume(readBuffer_.size());
+    boost::asio::async_read(
+    socket_,
+    readBuffer_,
+    boost::asio::transfer_exactly(1),
+    boost::bind(&TCPConnection::handleRead,
+      shared_from_this(),
+      boost::asio::placeholders::error,
+      boost::asio::placeholders::bytes_transferred)
+    );
+  }
+  catch (std::exception& error)
+  {
+    log_->write(std::string("[TCPConnection doRead] [catch] ") + error.what(), Log::Level::ERROR);
+  }
 }
 
-void TCPConnection::doRead(const unsigned short& bytes, boost::asio::streambuf& buffer)
+void TCPConnection::handleRead(
+  const boost::system::error_code&,
+  size_t)
 {
-	try
-	{
-		buffer.consume(buffer.size());
-		boost::system::error_code error;
-		boost::asio::read(
-			socket_,
-			buffer,
-			boost::asio::transfer_exactly(bytes),
-			error
-		);
-		if (error && error != boost::asio::error::eof)
-		{
-			log_->write(std::string("[TCPConnection doRead bytes] ") + error.what(), Log::Level::ERROR);
-		}
-	}
-	catch (std::exception& error)
-	{
-		log_->write(std::string("[TCPConnection doRead] ") + error.what(), Log::Level::ERROR);
-	}
-}
-
-void TCPConnection::doReadSSL()
-{
-	try
-	{
-		readBuffer_.consume(readBuffer_.size());
-		boost::asio::async_read(
-		socket_,
-		readBuffer_,
-		boost::asio::transfer_exactly(1),
-		boost::bind(&TCPConnection::handleReadSSL, 
-			shared_from_this(),
-			boost::asio::placeholders::error)
-		);
-	}
-	catch (std::exception& error)
-	{
-		log_->write(std::string("[TCPConnection doReadSSL] ") + error.what(), Log::Level::ERROR);
-	}
-}
-
-void TCPConnection::handleRead(const boost::system::error_code& error,
-	size_t bytes_transferred)
-{
-	try
-	{
-		log_->write("[TCPConnection handleRead] [SRC " +
-			socket_.remote_endpoint().address().to_string() +":"+
-			std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
-			std::to_string(bytes_transferred)+"] ",
-			Log::Level::INFO);
-	}
-	catch (std::exception& error)
-	{
-		log_->write(std::string("[TCPConnection handleRead] [log] ") + error.what(), Log::Level::ERROR);
-	}
-	if (!error || error == boost::asio::error::eof)
-	{
-		if (config_->runMode() == RunMode::agent)
-		{
-			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
-			agentHandler_->handle();
-			doWrite();
-			if (agentHandler_->request()->httpType() == HTTP::HttpType::https || 
-					agentHandler_->request()->httpType() == HTTP::HttpType::connect)
-			{
-				doReadSSL();
-			}
-		} else if (config_->runMode() == RunMode::server)
-		{
-			ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
-			serverHandler_->handle();
-			doWrite();
-			if (serverHandler_->request()->httpType() == HTTP::HttpType::https || 
-					serverHandler_->request()->httpType() == HTTP::HttpType::connect)
-			{
-				readBuffer_.consume(readBuffer_.size());
-				doReadUntil("\r\nCOMP\r\n\r\n");
-			}
-		}
-	} else
-	{
-		log_->write(std::string("[TCPConnection handleRead] ") + error.what(), Log::Level::ERROR);
-	}
-}
-
-
-void TCPConnection::handleReadSSL(const boost::system::error_code& error)
-{
-	if (!error || error == boost::asio::error::eof)
-	{
-		while(true){
-			boost::system::error_code error;
-			auto size = boost::asio::read(
-				socket_,
-				readBuffer_,
-				boost::asio::transfer_at_least(1),
-				error
-			);
-			if (error == boost::asio::error::eof || size == 0 || socket_.available() == 0 )
-				break;
-			else if (error)
-			{
-				log_->write(std::string("[TCPConnection handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
-			}
-		}
-		try
-		{
-			log_->write("[TCPConnection handleReadSSL] [SRC " +
-				socket_.remote_endpoint().address().to_string() +":"+
-				std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
-				std::to_string(readBuffer_.size())+"] ",
-				Log::Level::INFO);
-		}
-		catch (std::exception& error)
-		{
-			log_->write(std::string("[TCPConnection handleReadSSL] [log] ") + error.what(), Log::Level::ERROR);
-		}
-		if (config_->runMode() == RunMode::agent)
-		{
-			AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
-			agentHandler_->handle();
-			doWrite();
-			if (agentHandler_->request()->httpType() == HTTP::HttpType::https || 
-					agentHandler_->request()->httpType() == HTTP::HttpType::connect)
-			{
-				doReadSSL();
-			}
-		} else if (config_->runMode() == RunMode::server)
-		{
-			ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
-			serverHandler_->handle();
-			doWrite();
-			if (serverHandler_->request()->httpType() == HTTP::HttpType::https || 
-					serverHandler_->request()->httpType() == HTTP::HttpType::connect)
-			{
-				readBuffer_.consume(readBuffer_.size());
-				doReadUntil("\r\nCOMP\r\n\r\n");
-			}
-		}
-	} else
-	{
-		log_->write(std::string("[TCPConnection handleReadSSL] ") + error.what(), Log::Level::ERROR);
-	}
+  try
+  {
+    boost::system::error_code error;
+    if (socket_.available() > 0)
+    {
+      boost::asio::deadline_timer timer{io_context_};
+      for (auto i=0; i<=config_->general().repeatWait; i++)
+      {
+        while(true)
+        {
+          if (socket_.available() == 0)
+            break;
+          boost::asio::read(
+            socket_,
+            readBuffer_,
+            boost::asio::transfer_exactly(1),
+            error
+          );
+          if (error == boost::asio::error::eof)
+            break;
+          else if (error)
+          {
+            log_->write(std::string("[TCPConnection handleRead] [error] ") + error.what(), Log::Level::ERROR);
+          }
+        }
+        timer.expires_from_now(boost::posix_time::milliseconds(config_->general().timeWait));
+        timer.wait();
+      }
+    }
+    try
+    {
+      log_->write("[TCPConnection handleRead] [SRC " +
+        socket_.remote_endpoint().address().to_string() +":"+
+        std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+        std::to_string(readBuffer_.size())+"] ",
+        Log::Level::DEBUG);
+      log_->write("[Read from] [SRC " +
+        socket_.remote_endpoint().address().to_string() +":"+
+        std::to_string(socket_.remote_endpoint().port())+"] [Bytes "+
+        std::to_string(readBuffer_.size())+"] ",
+        Log::Level::TRACE);
+    }
+    catch (std::exception& error)
+    {
+      log_->write(std::string("[TCPConnection handleRead] [catch in] ") + error.what(), Log::Level::DEBUG);
+    }
+    if (config_->runMode() == RunMode::agent)
+    {
+      AgentHandler::pointer agentHandler_ = AgentHandler::create(readBuffer_, writeBuffer_, config_, log_, client_);
+      agentHandler_->handle();
+    } else if (config_->runMode() == RunMode::server)
+    {
+      ServerHandler::pointer serverHandler_ = ServerHandler::create(readBuffer_, writeBuffer_, config_, log_,  client_);
+      serverHandler_->handle();
+    }
+    if (writeBuffer_.size() > 0)
+      doWrite();
+    else
+      socket_.close();
+  }
+  catch (std::exception& error)
+  {
+    log_->write(std::string("[TCPConnection handleRead] [catch out] ") + error.what(), Log::Level::ERROR);
+  }
 }
 
 void TCPConnection::doWrite()
 {
-	try
-	{
-		log_->write("[TCPConnection doWrite] [DST " + 
-			socket_.remote_endpoint().address().to_string() +":"+ 
-			std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
-			std::to_string(writeBuffer_.size())+"] ", 
-			Log::Level::DEBUG);
-		boost::asio::write(
-			socket_,
-			writeBuffer_
-		);
-	}
-	catch (std::exception& error)
-	{
-		log_->write(std::string("[TCPConnection doWrite] ") + error.what(), Log::Level::ERROR);
-	}
+  try
+  {
+    log_->write("[TCPConnection doWrite] [DST " + 
+      socket_.remote_endpoint().address().to_string() +":"+ 
+      std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+      std::to_string(writeBuffer_.size())+"] ", 
+      Log::Level::DEBUG);
+    log_->write("[Write to] [DST " + 
+      socket_.remote_endpoint().address().to_string() +":"+ 
+      std::to_string(socket_.remote_endpoint().port())+"] [Bytes " +
+      std::to_string(writeBuffer_.size())+"] ", 
+      Log::Level::TRACE);
+    boost::system::error_code error;
+    boost::asio::write(
+      socket_,
+      writeBuffer_,
+      error
+    );
+    if (error)
+    {
+      log_->write(std::string("[TCPConnection doWrite] [error] ") + error.what(), Log::Level::ERROR);
+    }
+    doRead();
+  }
+  catch (std::exception& error)
+  {
+    log_->write(std::string("[TCPConnection doWrite] [catch] ") + error.what(), Log::Level::ERROR);
+  }
 }
