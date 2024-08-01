@@ -19,10 +19,12 @@ AgentHandler::~AgentHandler()
 
 void AgentHandler::handle()
 {
+  // ENCRYPTION
+  std::string encrypted = aes256Encrypt(hexStreambufToStr(readBuffer_), config_->agent().token);
   std::string newReq(
     request_->genHttpPostReqString(
       encode64(
-        hexStreambufToStr(readBuffer_)
+        encrypted
       )
     )
   );
@@ -35,6 +37,7 @@ void AgentHandler::handle()
     log_->write("[AgentHandler handle] [Request To Server] : \n"+newReq, Log::Level::DEBUG);
     client_->doWrite(readBuffer_);
     client_->doRead();
+    // DECRYPTION
     if (client_->readBuffer().size() > 0)
     {
       if (request_->httpType() != HTTP::HttpType::connect)

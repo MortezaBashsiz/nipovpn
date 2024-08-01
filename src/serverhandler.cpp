@@ -21,11 +21,15 @@ void ServerHandler::handle()
 {
   if (request_->detectType())
   {
-    log_->write("[ServerHandler handle] [Request From Agent] : "+request_->toString(), Log::Level::DEBUG);    
-    auto tempHexArr = strTohexArr(
+    log_->write("[ServerHandler handle] [Request From Agent] : "+request_->toString(), Log::Level::DEBUG);
+    std::string decrypted = aes256Decrypt(
       decode64(
         boost::lexical_cast<std::string>(request_->parsedHttpRequest().body())
-      )
+      ), 
+      config_->agent().token);
+    FUCK(decrypted);
+    auto tempHexArr = strTohexArr(
+      decrypted
     );
     std::string tempHexArrStr(tempHexArr.begin(), tempHexArr.end());
     copyStringToStreambuf(tempHexArrStr, readBuffer_);
@@ -59,6 +63,7 @@ void ServerHandler::handle()
             client_->doRead();
             if (client_->readBuffer().size() > 0)
             {
+              // ENCRYPTION
               std::string newRes(
                 request_->genHttpOkResString(
                   encode64(

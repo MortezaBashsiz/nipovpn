@@ -12,7 +12,7 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
-// #include <cstring>
+#include <cstring>
 
 #include <yaml-cpp/yaml.h>
 
@@ -223,13 +223,16 @@ inline std::string aes256Encrypt(const std::string& plaintext, const std::string
     EVP_CIPHER_CTX* ctx;
     int len;
     int ciphertext_len;
-    unsigned char iv[16]; // Initialization Vector
-    unsigned char ciphertext[128];
 
-    // Generate a random IV
+    // Buffer for IV
+    unsigned char iv[EVP_MAX_IV_LENGTH];
     if (!RAND_bytes(iv, sizeof(iv))) {
         handleErrors();
     }
+
+    // Buffer for ciphertext
+    int max_ciphertext_len = plaintext.size() + EVP_CIPHER_block_size(EVP_aes_256_cbc());
+    unsigned char* ciphertext = new unsigned char[max_ciphertext_len];
 
     // Create and initialize the context
     if (!(ctx = EVP_CIPHER_CTX_new())) {
@@ -242,7 +245,7 @@ inline std::string aes256Encrypt(const std::string& plaintext, const std::string
     }
 
     // Provide the message to be encrypted, and obtain the encrypted output
-    if (1 != EVP_EncryptUpdate(ctx, ciphertext, &len, reinterpret_cast<const unsigned char*>(plaintext.c_str()), plaintext.length())) {
+    if (1 != EVP_EncryptUpdate(ctx, ciphertext, &len, reinterpret_cast<const unsigned char*>(plaintext.c_str()), plaintext.size())) {
         handleErrors();
     }
     ciphertext_len = len;
@@ -256,25 +259,32 @@ inline std::string aes256Encrypt(const std::string& plaintext, const std::string
     // Clean up
     EVP_CIPHER_CTX_free(ctx);
 
-    // Return the IV followed by the ciphertext (we need to send the IV along with the ciphertext for decryption)
+    // Combine IV and ciphertext into the final result
     std::string result(reinterpret_cast<char*>(iv), sizeof(iv));
     result.append(reinterpret_cast<char*>(ciphertext), ciphertext_len);
+
+    // Clean up the dynamically allocated memory
+    delete[] ciphertext;
 
     return result;
 }
 
+// AES-256-CBC decryption
 inline std::string aes256Decrypt(const std::string& ciphertext_with_iv, const std::string& key) {
     EVP_CIPHER_CTX* ctx;
     int len;
     int plaintext_len;
-    unsigned char plaintext[128];
 
     // Extract the IV from the beginning of the ciphertext
-    unsigned char iv[16];
-    std::memcpy(iv, ciphertext_with_iv.c_str(), 16);
+    unsigned char iv[EVP_MAX_IV_LENGTH];
+    std::memcpy(iv, ciphertext_with_iv.c_str(), EVP_CIPHER_iv_length(EVP_aes_256_cbc()));
 
     // Extract the actual ciphertext
-    std::string ciphertext = ciphertext_with_iv.substr(16);
+    std::string ciphertext = ciphertext_with_iv.substr(EVP_CIPHER_iv_length(EVP_aes_256_cbc()));
+
+    // Buffer for decrypted text
+    int max_plaintext_len = ciphertext.size(); // Decrypted text won't be larger than ciphertext
+    unsigned char* plaintext = new unsigned char[max_plaintext_len];
 
     // Create and initialize the context
     if (!(ctx = EVP_CIPHER_CTX_new())) {
@@ -287,7 +297,7 @@ inline std::string aes256Decrypt(const std::string& ciphertext_with_iv, const st
     }
 
     // Provide the message to be decrypted, and obtain the plaintext output
-    if (1 != EVP_DecryptUpdate(ctx, plaintext, &len, reinterpret_cast<const unsigned char*>(ciphertext.c_str()), ciphertext.length())) {
+    if (1 != EVP_DecryptUpdate(ctx, plaintext, &len, reinterpret_cast<const unsigned char*>(ciphertext.c_str()), ciphertext.size())) {
         handleErrors();
     }
     plaintext_len = len;
@@ -301,7 +311,13 @@ inline std::string aes256Decrypt(const std::string& ciphertext_with_iv, const st
     // Clean up
     EVP_CIPHER_CTX_free(ctx);
 
-    return std::string(reinterpret_cast<char*>(plaintext), plaintext_len);
+    // Return the plaintext as a string
+    std::string result(reinterpret_cast<char*>(plaintext), plaintext_len);
+
+    // Clean up the dynamically allocated memory
+    delete[] plaintext;
+
+    return result;
 }
 
 /*

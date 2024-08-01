@@ -15,7 +15,7 @@ BUILD := build
 
 # Library search directories and flags
 EXT_LIB :=
-LDFLAGS := -lyaml-cpp -lcrypto
+LDFLAGS := -lyaml-cpp -lssl -lcrypto
 LDPATHS := $(addprefix -L,$(LIB) $(EXT_LIB))
 
 # Include directories

@@ -19,7 +19,7 @@ general:
 # This block is to define log directives
 log:
   # logLevel: "INFO|TRACE|DEBUG"
-  logLevel: "INFO"
+  logLevel: "DEBUG"
   # logFile: "/var/log/nipo/nipo.log"
   #   Path of log file
   logFile: "/var/log/nipovpn/nipovpn.log"
@@ -39,6 +39,6 @@ agent:
   serverIp: "127.0.0.1"
   serverPort: 443
   encryption: "no"
-  token: "af445adb-2434-4975-9445-2c1b223"
+  token: "af445adb-2434-4975-9445-2c1b2231"
   httpVersion: "1.1"
   userAgent : "NipoAgent
