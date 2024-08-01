@@ -19,7 +19,7 @@ general:
 # This block is to define log directives
 log:
   # logLevel: "INFO|TRACE|DEBUG"
-  logLevel: "DEBUG"
+  logLevel: "INFO"
   # logFile: "/var/log/nipo/nipo.log"
   #   Path of log file
   logFile: "/var/log/nipo/nipo.log"

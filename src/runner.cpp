@@ -21,11 +21,11 @@ void Runner::run()
     std::vector<std::thread> vectorThreads_;
     vectorThreads_.reserve(config_->threads() - 1);
     for(auto i = config_->threads() - 1; i > 0; --i)
-        vectorThreads_.emplace_back(
-        [&io_context_]
-        {
-            io_context_.run();
-        });
+      vectorThreads_.emplace_back(
+      [&io_context_]
+      {
+        io_context_.run();
+      });
     io_context_.run();
   }
   catch (std::exception& error)
