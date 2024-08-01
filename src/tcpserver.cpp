@@ -39,8 +39,6 @@ void TCPServer::handleAccept(TCPConnection::pointer connection,
 {
   if (!error)
   {
-    boost::asio::socket_base::keep_alive option(true);
-    connection->socket().set_option(option);
     connection->start();
   } else
   {

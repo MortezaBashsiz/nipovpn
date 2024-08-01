@@ -108,7 +108,9 @@ void TCPConnection::handleRead(
     if (writeBuffer_.size() > 0)
       doWrite();
     else
+    {
       socket_.close();
+    }
   }
   catch (std::exception& error)
   {
