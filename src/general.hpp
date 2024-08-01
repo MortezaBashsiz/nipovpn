@@ -281,9 +281,6 @@ inline BoolStr validateConfig(int argc, char const *argv[])
   {
     tmpStr = configYaml_["server"]["listenIp"].as<std::string>();
     tmpStr = configYaml_["server"]["listenPort"].as<unsigned short>();
-    tmpStr = configYaml_["server"]["webDir"].as<std::string>();
-    tmpStr = configYaml_["server"]["sslKey"].as<std::string>();
-    tmpStr = configYaml_["server"]["sslCert"].as<std::string>();
   } catch (std::exception& e)
   {
     boolStr_.message = std::string("Erro on parsing config file. something is wrong in block 'server' : ") + e.what() + "\n";

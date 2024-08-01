@@ -45,9 +45,6 @@ private:
     unsigned short threads;
     std::string listenIp;
     unsigned short listenPort;
-    std::string webDir;
-    std::string sslKey;
-    std::string sslCert;
   };
 
   struct Agent

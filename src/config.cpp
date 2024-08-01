@@ -25,10 +25,7 @@ Config::Config(const RunMode& mode,
     {
       configYaml_["server"]["threads"].as<unsigned short>(),
       configYaml_["server"]["listenIp"].as<std::string>(),
-      configYaml_["server"]["listenPort"].as<unsigned short>(),
-      configYaml_["server"]["webDir"].as<std::string>(),
-      configYaml_["server"]["sslKey"].as<std::string>(),
-      configYaml_["server"]["sslCert"].as<std::string>()
+      configYaml_["server"]["listenPort"].as<unsigned short>()
     },
     agent_
     {
@@ -85,9 +82,6 @@ const std::string Config::toString() const
   + "   threads: " + std::to_string(server_.threads) + "\n"
   + "   listenIp: " + server_.listenIp + "\n"
   + "   listenPort: " + std::to_string(server_.listenPort) + "\n"
-  + "   webDir: " + server_.webDir + "\n"
-  + "   sslKey: " + server_.sslKey + "\n"
-  + "   sslCert: " + server_.sslCert + "\n"
   + " agent :\n"
   + "   threads: " + std::to_string(agent_.threads) + "\n"
   + "   listenIp: " + agent_.listenIp + "\n"

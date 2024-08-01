@@ -22,24 +22,21 @@ log:
   logLevel: "INFO"
   # logFile: "/var/log/nipo/nipo.log"
   #   Path of log file
-  logFile: "/var/log/nipo/nipo.log"
+  logFile: "/var/log/nipovpn/nipovpn.log"
 
 # This block is to define server directives
 server:
   # threads: number of threads in server
   threads: 4
-  listenIp: "127.0.0.50"
+  listenIp: "0.0.0.0"
   listenPort: 443
-  webDir: "/var/lib/niposerver"
-  sslKey: "/etc/niposerver/ssl.key"
-  sslCert: "/etc/niposerver/ssl.cert"
 
 # This block is to define agent directives
 agent:
   threads: 4
-  listenIp: "127.0.0.10"
+  listenIp: "0.0.0.0"
   listenPort: 8080
-  serverIp: "127.0.0.50"
+  serverIp: "127.0.0.1"
   serverPort: 443
   encryption: "no"
   token: "af445adb-2434-4975-9445-2c1b223d556e"

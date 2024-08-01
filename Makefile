@@ -3,7 +3,7 @@ CXX_FLAGS := -Wall -Wextra -std=c++20 -ggdb
 PRE_FLAGS := -MMD -MP
 
 # Project directory structure
-BIN := bin
+BIN := nipovpn/usr/bin
 SRC := src
 LIB := lib
 INC := include
@@ -48,8 +48,8 @@ $(BUILD)/%.o: $(SRC)/%.cpp
 .PHONY: clean
 clean:
 	@echo "Clearing..."
-	rm -rf build
-	rm -rf bin
+	rm -rf $(BUILD)
+	rm -rf $(BIN)
 
 # Include all dependencies
 -include $(DEPS)
