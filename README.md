@@ -6,7 +6,7 @@ A powerfull proxy to hide your http packets inside a fake http request.
 ```mermaid
 sequenceDiagram
 Client ->> Agent: GET https://www.google.com/ 
-Note right of Client: Set http(s)_proxy and send CONNECT
+Note left of Client: Set http(s)_proxy and send CONNECT
 loop
     Agent-->>Agent: Encrypt, Encode
 end
