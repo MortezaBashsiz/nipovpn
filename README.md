@@ -8,7 +8,7 @@ sequenceDiagram
 Note left of Client: Set Proxy
 
 Client ->> nipoAgent: TCP Handshake
-Client ->> nipoAgent: CONNECT google.com
+Client ->> nipoAgent: CONNECT https://Origin.com
 
 nipoAgent-->>nipoAgent: Encrypt, Encode, Prepare fake http request
 
