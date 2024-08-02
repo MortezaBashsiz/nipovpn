@@ -10,10 +10,10 @@ Client ->> nipoAgent: GET https://www.google.com/
 loop
     nipoAgent-->>nipoAgent: Encrypt, Encode
 end
-Note right of nipoAgent: Prepare fake customizable http request
 nipoAgent ->> nipoServer: Fake http request
 loop
     nipoServer-->>nipoServer: Decrypt, Decode
+    nipoServer-->>nipoServer: Prepare fake customizable http request
 end
 nipoServer ->> Origin: Connection google.com:443(TCP handshake)
 Origin ->> nipoServer: Connection response(TCP handshake)
