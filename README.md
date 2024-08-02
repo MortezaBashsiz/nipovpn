@@ -28,9 +28,14 @@ Client ->> nipoAgent: Original request
 nipoAgent ->> nipoServer: Fake http request
 nipoServer ->> Origin: Original request
 Origin ->> nipoServer: Original response
-Note left of nipoServer: Encrypt, Encode
+loop
+    nipoServer-->>nipoServer: Encrypt, Encode
+    nipoServer-->>nipoServer: Prepare fake http response
+end
 nipoServer ->> nipoAgent: Fake http response
-Note right of nipoAgent: Decrypt, Decode
+loop
+    nipoServer-->>nipoServer: Decrypt, Decode
+end
 nipoAgent ->> Client: Original response
 
 
