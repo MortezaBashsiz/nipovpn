@@ -98,7 +98,6 @@ g++ build/tcpserver.o build/main.o build/agenthandler.o build/config.o build/tcp
 Create the log directory and log file
 ```bash
 [~/nipovpn]>$ sudo mkdir /var/log/nipovpn/
-mkdir: cannot create directory ‘/var/log/nipovpn/’: File exists
 [~/nipovpn]>$ sudo touch /var/log/nipovpn/nipovpn.log 
 ```
 
