@@ -31,7 +31,6 @@
 *.out
 *.app
 
-bin
 temp
 build
 *.deb

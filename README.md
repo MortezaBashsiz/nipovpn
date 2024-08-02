@@ -63,6 +63,13 @@ nipoAgent ->> Client: Original response
 
 ### Source
 
+#### Dependencies
+This program needs following dependencies
+```bash
+libyaml-cpp >= 0.8
+boost-libs >= 1.83.0
+```
+
 #### Make
 You can clone the repository and compile it yourself
 ```bash
@@ -129,7 +136,6 @@ Config :
    token: af445adb-2434-4975-9445-2c1b2231
    httpVersion: 1.1
    userAgent: NipoAgent 
-
 ```
 
 ### Package
