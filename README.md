@@ -9,7 +9,7 @@ Note left of Client: Set http(s)_proxy
 Client ->> nipoAgent: GET https://www.google.com/ 
 loop
     nipoAgent-->>nipoAgent: Encrypt, Encode
-    nipoServer-->>nipoServer: Prepare fake customizable http request
+    nipoAgent-->>nipoAgent: Prepare fake customizable http request
 end
 nipoAgent ->> nipoServer: Fake http request
 loop
