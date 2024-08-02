@@ -15,8 +15,8 @@ nipoAgent ->> nipoServer: Fake http request
 loop
     nipoServer-->>nipoServer: Decrypt, Decode
 end
-nipoServer ->> Origin
-Origin ->> nipoServer
+nipoServer <<->> Origin: SYN
+Origin ->> nipoServer: SYN/ACK
 Note right of nipoServer: TCP Handshake google.com
 loop
     nipoServer-->>nipoServer: Encrypt, Encode
