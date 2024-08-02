@@ -5,19 +5,18 @@ A powerfull proxy to hide your http packets inside a fake http request.
 
 ```mermaid
 sequenceDiagram
-Note left of Client: Set http(s)_proxy and send CONNECT
+Note left of Client: Set http(s)_proxy
 Client ->> nipoAgent: GET https://www.google.com/ 
 loop
     nipoAgent-->>nipoAgent: Encrypt, Encode
 end
-Note right of nipoAgent: Prepare fake customizable http request, Method, Domain, URL
-
+Note right of nipoAgent: Prepare fake customizable http request
 nipoAgent ->> nipoServer: Fake http request
 loop
     nipoServer-->>nipoServer: Decrypt, Decode
 end
-nipoServer ->> Origin: Connection to google.com (TCP handshake)
-Origin ->> nipoServer: Connect response (TCP handshake)
+nipoServer ->> Origin: Connection google.com:443(TCP handshake)
+Origin ->> nipoServer: Connection response(TCP handshake)
 Note right of nipoServer: Connection established to google.com
 nipoServer ->> nipoAgent: 200 Connection established
 nipoAgent ->> Client: 200 Connection established
