@@ -67,17 +67,29 @@ void ServerHandler::handle()
               client_->doRead();
               if (client_->readBuffer().size() > 0)
               {
-                // ENCRYPTION
-                std::string newRes(
-                  request_->genHttpOkResString(
-                    encode64(
-                      streambufToString(client_->readBuffer())
+                BoolStr encryption{false, std::string("FAILED")};
+                encryption = aes256Encrypt(streambufToString(client_->readBuffer()), config_->agent().token);
+                if ( encryption.ok )
+                {
+                  std::string newRes(
+                    request_->genHttpOkResString(
+                      encode64(
+                        encryption.message
+                      )
                     )
-                  )
-                );
-                copyStringToStreambuf(newRes, writeBuffer_);
-                if (request_->httpType() == HTTP::HttpType::http)
+                  );
+                  copyStringToStreambuf(newRes, writeBuffer_);
+                  if (request_->httpType() == HTTP::HttpType::http)
+                    client_->socket().close();
+                } else 
+                {
+                  log_->write("[ServerHandler handle] [Encryption Failed] : [ "+ 
+                  decryption.message+" ] ",
+                  Log::Level::DEBUG
+                  );
+                  log_->write("[ServerHandler handle] [Encryption Failed] : "+request_->toString(), Log::Level::INFO);
                   client_->socket().close();
+                }
               } else {
                 client_->socket().close();
               }
@@ -90,11 +102,12 @@ void ServerHandler::handle()
       }
     } else
     {
-      log_->write("[ServerHandler handle] [Invalid Token] : [ "+ 
+      log_->write("[ServerHandler handle] [Decryption Failed] : [ "+ 
       decryption.message+" ] ",
       Log::Level::DEBUG
       );
-      log_->write("[ServerHandler handle] [Invalid Token] : "+request_->toString(), Log::Level::INFO);
+      log_->write("[ServerHandler handle] [Decryption Failed] : "+request_->toString(), Log::Level::INFO);
+      client_->socket().close();
     }
   } else
   {

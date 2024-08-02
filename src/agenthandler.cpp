@@ -19,7 +19,6 @@ AgentHandler::~AgentHandler()
 
 void AgentHandler::handle()
 {
-  // ENCRYPTION
   BoolStr encryption{false, std::string("FAILED")};
   encryption = aes256Encrypt(hexStreambufToStr(readBuffer_), config_->agent().token);
   if ( encryption.ok )
@@ -41,7 +40,6 @@ void AgentHandler::handle()
       log_->write("[AgentHandler handle] [Request To Server] : \n"+newReq, Log::Level::DEBUG);
       client_->doWrite(readBuffer_);
       client_->doRead();
-      // DECRYPTION
       if (client_->readBuffer().size() > 0)
       {
         if (request_->httpType() != HTTP::HttpType::connect)
@@ -50,7 +48,26 @@ void AgentHandler::handle()
           if (response->parseHttpResp())
           {
             log_->write("[AgentHandler handle] [Response] : "+response->restoString(), Log::Level::DEBUG);
-            copyStringToStreambuf(decode64(boost::lexical_cast<std::string>(response->parsedHttpResponse().body())), writeBuffer_);
+            BoolStr decryption{false, std::string("FAILED")};
+            decryption = aes256Decrypt(
+              decode64(
+                boost::lexical_cast<std::string>(response->parsedHttpResponse().body())
+              ), 
+              config_->agent().token
+            );
+            if ( decryption.ok )
+            {
+              copyStringToStreambuf(decryption.message, writeBuffer_);
+            } 
+            else
+            {
+              log_->write("[AgentHandler handle] [Decryption Failed] : [ "+ 
+              decryption.message+" ] ",
+              Log::Level::DEBUG
+              );
+              log_->write("[AgentHandler handle] [Decryption Failed] : "+request_->toString(), Log::Level::INFO);
+              client_->socket().close();
+            }
           }
           else
           {
@@ -70,13 +87,14 @@ void AgentHandler::handle()
       log_->write("[AgentHandler handle] [NOT HTTP Request] [Request] : "+ streambufToString(readBuffer_), Log::Level::DEBUG);
     }
   } else {
-    log_->write("[AgentHandler handle] [Invalid Token] : [ "+ 
+    log_->write("[AgentHandler handle] [Encryption Faild] : [ "+ 
       encryption.message+" ] ",
       Log::Level::DEBUG
     );
-    log_->write("[AgentHandler handle] [Invalid Token] : "+ 
+    log_->write("[AgentHandler handle] [Encryption Faild] : "+ 
       client_->socket().remote_endpoint().address().to_string()+":"+std::to_string(client_->socket().remote_endpoint().port())+" ] ",
       Log::Level::INFO
     );
+    client_->socket().close();
   }
 }
