@@ -34,7 +34,7 @@ loop
 end
 nipoServer ->> nipoAgent: Fake http response
 loop
-    nipoServer-->>nipoServer: Decrypt, Decode
+    nipoAgent-->>nipoAgent: Decrypt, Decode
 end
 nipoAgent ->> Client: Original response
 
