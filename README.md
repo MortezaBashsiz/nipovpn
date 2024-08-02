@@ -15,9 +15,9 @@ nipoAgent ->> nipoServer: Fake http request
 loop
     nipoServer-->>nipoServer: Decrypt, Decode
 end
-nipoServer ->> Origin: Connection google.com:443(TCP handshake)
-Origin ->> nipoServer: Connection response(TCP handshake)
-Note right of nipoServer: Connection established to google.com
+nipoServer ->> Origin:
+Origin ->> nipoServer:
+Note right of nipoServer: TCP Handshake google.com
 loop
     nipoServer-->>nipoServer: Encrypt, Encode
     nipoServer-->>nipoServer: Prepare fake http response
