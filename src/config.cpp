@@ -34,7 +34,6 @@ Config::Config(const RunMode& mode,
       configYaml_["agent"]["listenPort"].as<unsigned short>(),
       configYaml_["agent"]["serverIp"].as<std::string>(),
       configYaml_["agent"]["serverPort"].as<unsigned short>(),
-      configYaml_["agent"]["encryption"].as<std::string>(),
       configYaml_["agent"]["token"].as<std::string>(),
       configYaml_["agent"]["httpVersion"].as<std::string>(),
       configYaml_["agent"]["userAgent"].as<std::string>()
@@ -88,7 +87,6 @@ const std::string Config::toString() const
   + "   listenPort: " + std::to_string(agent_.listenPort) + "\n"
   + "   serverIp: " + agent_.serverIp + "\n"
   + "   serverPort: " + std::to_string(agent_.serverPort) + "\n"
-  + "   encryption: " + agent_.encryption + "\n"
   + "   token: " + agent_.token + "\n"
   + "   httpVersion: " + agent_.httpVersion + "\n"
   + "   userAgent: " + agent_.userAgent + "\n";

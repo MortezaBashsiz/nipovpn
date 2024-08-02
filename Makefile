@@ -1,5 +1,5 @@
 # Pre-compiler and Compiler flags
-CXX_FLAGS := -Wall -Wextra -std=c++20 -ggdb
+CXX_FLAGS := -Wall -Wextra -std=c++20 -ggdb 
 PRE_FLAGS := -MMD -MP
 
 # Project directory structure
@@ -15,7 +15,7 @@ BUILD := build
 
 # Library search directories and flags
 EXT_LIB :=
-LDFLAGS := -lyaml-cpp
+LDFLAGS := -lyaml-cpp -lssl -lcrypto
 LDPATHS := $(addprefix -L,$(LIB) $(EXT_LIB))
 
 # Include directories

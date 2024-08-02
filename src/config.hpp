@@ -54,7 +54,6 @@ private:
     unsigned short listenPort;
     std::string serverIp;
     unsigned short serverPort;
-    std::string encryption;
     std::string token;
     std::string httpVersion;
     std::string userAgent;
