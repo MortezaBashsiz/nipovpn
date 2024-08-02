@@ -40,15 +40,6 @@ int main(int argc, char const *argv[])
   Log::pointer log_ = Log::create(config_);
 
   Runner runner_(config_, log_);
-  // std::string key = "01234567890123456789012345678901"; // 32-byte key for AES-256
-  // std::string plaintext = "This is a test.";
-
-  // std::string encrypted = aes256Encrypt(plaintext, key);
-  // std::cout << "Encrypted text: " << encrypted << std::endl;
-
-  // std::string decrypted = aes256Decrypt(encrypted, key);
-  // std::cout << "Decrypted text: " << decrypted << std::endl;
-
   runner_.run();
 
   return 0;
