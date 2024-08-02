@@ -1,6 +1,16 @@
 # NipoVPN
 A powerfull proxy to hide your http packets inside a fake http request.
 
+
+## Usecases
+
+### Bypass filtering
+This could help you to bypass the filtering in your country.
+
+### Hide your requests in the Internet
+If you want to hide your HTTP requests in the Internet, this proxy could help you.
+
+
 ## Flow
 Here you can see the logical flow of a single request from first step to get the response
 ```mermaid
