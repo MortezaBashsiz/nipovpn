@@ -416,7 +416,6 @@ inline BoolStr validateConfig(int argc, char const *argv[])
     tmpStr = configYaml_["agent"]["listenPort"].as<unsigned short>();
     tmpStr = configYaml_["agent"]["serverIp"].as<std::string>();
     tmpStr = configYaml_["agent"]["serverPort"].as<unsigned short>();
-    tmpStr = configYaml_["agent"]["encryption"].as<std::string>();
     tmpStr = configYaml_["agent"]["token"].as<std::string>();
     tmpStr = configYaml_["agent"]["httpVersion"].as<std::string>();
     tmpStr = configYaml_["agent"]["userAgent"].as<std::string>();
