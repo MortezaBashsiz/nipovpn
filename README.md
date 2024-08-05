@@ -1,5 +1,21 @@
-# NipoVPN
-A powerfull proxy to hide your http packets inside a fake http request.
+# NipoVPN (Not ready yet :D)
+
+## Overview
+
+NipoVPN is a powerful proxy tool designed to conceal your HTTP requests within fake HTTP requests. This program, written in C++, leverages the Boost library to handle networking functionalities efficiently.
+
+
+## Features
+
+  - HTTP Request Obfuscation: Hide your legitimate HTTP requests inside decoy requests to avoid detection.
+  - Boost Library Integration: Utilizes Boost for robust and reliable networking operations.
+  - High Performance: Optimized for speed and efficiency, ensuring minimal impact on request latency.
+
+## Requirements
+
+    C++20 or higher
+    Boost 1.75.0 or higher
+
 
 ## Usecases
 
@@ -17,6 +33,47 @@ If you want to hide your HTTP requests in the Internet, this proxy could help yo
 Here you can see the logical flow of a single request from first step to get the response
 ![Flow](https://github.com/MortezaBashsiz/nipovpn/blob/main/files/pic/flow.png)
 
+## Configuration and features
+This is the sample configuration file
+```yaml
+---
+general:
+  fakeUrl: "http://www.adas.com/api01"
+  method: "HEAD"
+  timeWait: 0
+  repeatWait: 1
+  keepAlive: 5
+
+log:
+  logLevel: "DEBUG"
+  logFile: "/var/log/nipovpn/nipovpn.log"
+
+server:
+  threads: 4
+  listenIp: "0.0.0.0"
+  listenPort: 443
+
+agent:
+  threads: 4
+  listenIp: "0.0.0.0"
+  listenPort: 8080
+  serverIp: "127.0.0.1"
+  serverPort: 443
+  token: "af445adb-2434-4975-9445-2c1b2231"
+  httpVersion: "1.1"
+  userAgent : "NipoAgent
+```
+
+### General
+```yaml
+general:
+  fakeUrl: "http://www.adas.com/api01"
+  method: "HEAD"
+  timeWait: 0
+  repeatWait: 1
+  keepAlive: 5
+```
+
 ## Installation
 
 ### Source
@@ -25,11 +82,20 @@ Here you can see the logical flow of a single request from first step to get the
 This program needs following dependencies
 ```bash
 libyaml-cpp >= 0.8
-boost-libs >= 1.83.0
+boost-libs >= 1.75.0
 ```
 
+#### Clone
+```bash
+[~]>$ git@github.com:MortezaBashsiz/nipovpn.git
+[~]>$ cd nipovpn
+```
+
+#### Install Boost Library:
+Follow the instructions on the Boost ![Flow](https://www.boost.org/) to install the Boost library suitable for your system.
+
 #### Make
-You can clone the repository and compile it yourself
+Make the source code
 ```bash
 [~/nipovpn]>$ make 
 mkdir -p build/
@@ -97,9 +163,40 @@ Config :
 ```
 
 ### Package
+
+#### Install
 Currently it is only available for debian based Linuxs and fully tested on ubuntu 24.04
 You can simply install the package
 ```bash
-[~/nipovpn]>$ wget https://github.com/MortezaBashsiz/nipovpn/raw/main/files/deb/nipovpn.deb
-[~/nipovpn]>$ apt install ./nipovpn.deb
+[~]>$ wget https://github.com/MortezaBashsiz/nipovpn/raw/main/files/deb/nipovpn.deb
+[~]>$ sudo apt install ./nipovpn.deb
+```
+
+#### Run
+```bash
+[~]>$ sudo nipovpn server /etc/nipovpn/config.yaml
+2024-08-02_15:30:07 [INFO] Config initialized in server mode 
+2024-08-02_15:30:07 [INFO] 
+Config :
+ General :
+   fakeUrl: http://www.adas.com/api01
+   method: HEAD
+   timeWait: 0
+   repeatWait: 1
+ Log :
+   logLevel: DEBUG
+   logFile: /var/log/nipovpn/nipovpn.log
+ server :
+   threads: 4
+   listenIp: 0.0.0.0
+   listenPort: 443
+ agent :
+   threads: 4
+   listenIp: 0.0.0.0
+   listenPort: 8080
+   serverIp: 127.0.0.1
+   serverPort: 443
+   token: af445adb-2434-4975-9445-2c1b2231
+   httpVersion: 1.1
+   userAgent: NipoAgent 
 ```
