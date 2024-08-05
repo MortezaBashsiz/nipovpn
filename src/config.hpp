@@ -1,54 +1,44 @@
-#pragma once
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
 #include <yaml-cpp/yaml.h>
+
 #include <memory>
+#include <sstream>
 
 #include "general.hpp"
 
 /*
-* This enum defines the modes which program are able to start
-* Mode server and agent
-*/
-enum class RunMode
-{
-  server,
-  agent
-};
+ * This enum defines the modes which the program can start
+ * Mode server and agent
+ */
+enum class RunMode { server, agent };
 
 /*
-* Class Config will contain all the configuration directives
-* This class is declared and initialized in main.cpp
-*/
-class Config 
-  : private Uncopyable
-{
-private:
-
-  struct General
-  {
+ * Class Config will contain all the configuration directives
+ * This class is declared and initialized in main.cpp
+ */
+class Config : private Uncopyable {
+ private:
+  struct General {
     std::string fakeUrl;
     std::string method;
     unsigned int timeWait;
     unsigned short repeatWait;
   };
 
-  struct Log
-  {
+  struct Log {
     std::string level;
     std::string file;
   };
 
-  struct Server
-  {
+  struct Server {
     unsigned short threads;
     std::string listenIp;
     unsigned short listenPort;
   };
 
-  struct Agent
-  {
+  struct Agent {
     unsigned short threads;
     std::string listenIp;
     unsigned short listenPort;
@@ -59,182 +49,44 @@ private:
     std::string userAgent;
   };
 
-  /*
-  * RunMode is declared in general.hpp
-  */
   const RunMode& runMode_;
-
-  /*
-  * Configuration file path string
-  */
   std::string filePath_;
-
-  /*
-  * It contains the main yaml node of the config file
-  * For more information see Config default constructor and also in general.cpp function validateConfig
-  */
   const YAML::Node configYaml_;
-
   unsigned short threads_;
   std::string listenIp_;
   unsigned short listenPort_;
 
-  /*
-  * Default constructor for Config. The main Config object is initialized here
-  */
-  explicit Config(const RunMode& mode,
-    const std::string& filePath);
+  explicit Config(const RunMode& mode, const std::string& filePath);
 
-public:
-  using pointer =  std::shared_ptr<Config>;
+ public:
+  using pointer = std::shared_ptr<Config>;
 
-  static pointer create(const RunMode& mode, const std::string& filePath)
-  {
+  static pointer create(const RunMode& mode, const std::string& filePath) {
     return pointer(new Config(mode, filePath));
   }
 
-  /*
-  * Objects for separation of configuration sections (log, agent, server)
-  * For more information see the private items
-  */
   const General general_;
   const Log log_;
   const Server server_;
   const Agent agent_;
-  /*
-  * Copy constructor if you want to copy and initialize it
-  */
-  explicit Config(const Config::pointer& config);
 
-  /*
-  * Default distructor
-  */
+  explicit Config(const Config::pointer& config);
   ~Config();
 
-  /*
-  * Functions to handle private members
-  */
-  inline const Config::General& general()&
-  {
-    return general_;
-  }
-
-  inline const Config::General&& general()&&
-  {
-    return std::move(general_);
-  }
-
-  inline const Config::Log& log()&
-  {
-    return log_;
-  }
-
-  inline const Config::Log&& log()&&
-  {
-    return std::move(log_);
-  }
-
-  inline const Config::Server& server()&
-  {
-    return server_;
-  }
-
-  inline const Config::Server&& server()&&
-  {
-    return std::move(server_);
-  }
-
-  inline const Config::Agent& agent()&
-  {
-    return agent_;
-  }
-
-  inline const Config::Agent&& agent()&&
-  {
-    return std::move(agent_);
-  }
-
-  inline const unsigned short& threads()&
-  {
-    return threads_;
-  }
-
-  inline const unsigned short&& threads()&&
-  {
-    return std::move(threads_);
-  }
-
-  inline void threads(unsigned short threads)
-  {
-    threads_ = threads;
-  }
-
-  inline const std::string& listenIp()&
-  {
-    return listenIp_;
-  }
-
-  inline const std::string&& listenIp()&&
-  {
-    return std::move(listenIp_);
-  }
-
-  inline void listenIp(std::string ip)
-  {
-    listenIp_ = ip;
-  }
-
-  inline const unsigned short& listenPort()&
-  {
-    return listenPort_;
-  }
-
-  inline const unsigned short&& listenPort()&&
-  {
-    return std::move(listenPort_);
-  }
-
-  inline void listenPort(unsigned short port)
-  {
-    listenPort_ = port;
-  }
-
-  inline const RunMode& runMode()&
-  {
-    return runMode_;
-  }
-
-  inline const RunMode& runMode()&&
-  {
-    return std::move(runMode_);
-  }
-
-  inline const std::string& filePath()&
-  {
-    return filePath_;
-  }
-
-  inline const std::string&& filePath()&&
-  {
-    return std::move(filePath_);
-  }
-
-  inline const std::string modeToString() const
-  {
-    switch (runMode_){
-      case RunMode::server:
-        return "server";
-        break;
-      case RunMode::agent:
-        return "agent";
-        break;
-      default:
-        return "UNKNOWN MODE";
-    }
-  }
-
-  const std::string toString() const;
-
+  const General& general() const;
+  const Log& log() const;
+  const Server& server() const;
+  const Agent& agent() const;
+  const unsigned short& threads() const;
+  void threads(unsigned short threads);
+  const std::string& listenIp() const;
+  void listenIp(const std::string& ip);
+  const unsigned short& listenPort() const;
+  void listenPort(unsigned short port);
+  const RunMode& runMode() const;
+  const std::string& filePath() const;
+  std::string modeToString() const;
+  std::string toString() const;
 };
 
 #endif /* CONFIG_HPP */

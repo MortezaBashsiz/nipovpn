@@ -3,41 +3,59 @@
 #define TCPSERVER_HPP
 
 #include <boost/asio.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include <boost/bind/bind.hpp>
+#include <boost/enable_shared_from_this.hpp>
+#include <boost/shared_ptr.hpp>
 
-#include "serverhandler.hpp"
 #include "agenthandler.hpp"
 #include "general.hpp"
+#include "serverhandler.hpp"
 #include "tcpconnection.hpp"
 
-/*
-* Thic class is to create and handle TCP server
-* Listening to the IP:Port and handling the socket is here
-*/
-class TCPServer 
-{
-public:
-  using pointer =  boost::shared_ptr<TCPServer>;
-
-  static pointer create(boost::asio::io_context& io_context, 
-    const std::shared_ptr<Config>& config, 
-    const std::shared_ptr<Log>& log)
-  {
+/**
+ * @brief This class is to create and handle a TCP server.
+ * It listens to the IP:Port and handles the socket.
+ */
+class TCPServer {
+ public:
+  using pointer = boost::shared_ptr<TCPServer>;
+  /**
+   * @brief Factory method to create a TCPServer instance.
+   *
+   * @param io_context The io_context to be used for asynchronous operations.
+   * @param config The shared configuration object.
+   * @param log The shared log object.
+   * @return pointer A shared pointer to the created TCPServer instance.
+   */
+  static pointer create(boost::asio::io_context& io_context,
+                        const std::shared_ptr<Config>& config,
+                        const std::shared_ptr<Log>& log) {
     return pointer(new TCPServer(io_context, config, log));
   }
 
-private:
-  explicit TCPServer(boost::asio::io_context& io_context, 
-    const std::shared_ptr<Config>& config, 
-    const std::shared_ptr<Log>& log);
-
+ private:
+  /**
+   * @brief Constructs a TCPServer instance.
+   *
+   * @param io_context The io_context to be used for asynchronous operations.
+   * @param config The shared configuration object.
+   * @param log The shared log object.
+   */
+  explicit TCPServer(boost::asio::io_context& io_context,
+                     const std::shared_ptr<Config>& config,
+                     const std::shared_ptr<Log>& log);
+  /**
+   * @brief Starts accepting incoming connections.
+   */
   void startAccept();
-
+  /**
+   * @brief Handles the acceptance of a new connection.
+   *
+   * @param connection The pointer to the new TCP connection.
+   * @param error The error code from the accept operation.
+   */
   void handleAccept(TCPConnection::pointer connection,
-    const boost::system::error_code& error);
-
+                    const boost::system::error_code& error);
   const std::shared_ptr<Config>& config_;
   const std::shared_ptr<Log>& log_;
   TCPClient::pointer client_;
