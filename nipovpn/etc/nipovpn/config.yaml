@@ -5,7 +5,7 @@ general:
   # method: "HEAD|GET|POST|PUT|DELETE"
   # Defines with which method
   #   you like to send requests from agent to server
-  method: "HEAD"
+  method: "POST"
   # timeWait: unsigned int(0-4,294,967,295)
   # Defines the time wait between each reapeat to read from socket.
   #   This directive will be usefull when you expect to read very long stream from socket
