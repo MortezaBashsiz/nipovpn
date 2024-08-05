@@ -7,9 +7,9 @@ NipoVPN is a powerful proxy tool designed to conceal your HTTP requests within f
 
 ## Features
 
-    - HTTP Request Obfuscation: Hide your legitimate HTTP requests inside decoy requests to avoid detection.
-    - Boost Library Integration: Utilizes Boost for robust and reliable networking operations.
-    - High Performance: Optimized for speed and efficiency, ensuring minimal impact on request latency.
+  - HTTP Request Obfuscation: Hide your legitimate HTTP requests inside decoy requests to avoid detection.
+  - Boost Library Integration: Utilizes Boost for robust and reliable networking operations.
+  - High Performance: Optimized for speed and efficiency, ensuring minimal impact on request latency.
 
 ## Requirements
 
