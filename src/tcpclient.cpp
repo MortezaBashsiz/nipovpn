@@ -131,7 +131,7 @@ void TCPClient::doRead()
       }
       catch (std::exception& error)
       {
-        log_->write(std::string("[TCPClient doRead] [catch] ") + error.what(), Log::Level::ERROR);
+        log_->write(std::string("[TCPClient doRead] [catch log] ") + error.what(), Log::Level::ERROR);
       }
     } else
     {
@@ -140,6 +140,6 @@ void TCPClient::doRead()
   }
   catch (std::exception& error)
   {
-    log_->write(std::string("[TCPClient doRead] [catch] ") + error.what(), Log::Level::ERROR);
+    log_->write(std::string("[TCPClient doRead] [catch read] ") + error.what(), Log::Level::ERROR);
   }
 }
