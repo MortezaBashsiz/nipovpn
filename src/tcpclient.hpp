@@ -3,50 +3,39 @@
 #define TCPCLIENT_HPP
 
 #include <boost/asio.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include <boost/bind/bind.hpp>
+#include <boost/enable_shared_from_this.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "config.hpp"
-#include "log.hpp"
 #include "general.hpp"
 #include "http.hpp"
+#include "log.hpp"
 
 /*
-* Thic class is to create and handle TCP client
-* Connects to the endpoint and handles the connection
-*/
-class TCPClient
-  : public boost::enable_shared_from_this<TCPClient>
-{
-public:
-  using pointer =  boost::shared_ptr<TCPClient>;
+ * Thic class is to create and handle TCP client
+ * Connects to the endpoint and handles the connection
+ */
+class TCPClient : public boost::enable_shared_from_this<TCPClient> {
+ public:
+  using pointer = boost::shared_ptr<TCPClient>;
 
-  static pointer create(boost::asio::io_context& io_context, 
-    const std::shared_ptr<Config>& config, 
-    const std::shared_ptr<Log>& log)
-  {
+  static pointer create(boost::asio::io_context& io_context,
+                        const std::shared_ptr<Config>& config,
+                        const std::shared_ptr<Log>& log) {
     return pointer(new TCPClient(io_context, config, log));
   }
 
   boost::asio::ip::tcp::socket& socket();
   void writeBuffer(boost::asio::streambuf& buffer);
 
-  inline boost::asio::streambuf& writeBuffer()&
-  {
-    return writeBuffer_;
-  }
-  inline boost::asio::streambuf&& writeBuffer()&&
-  {
+  inline boost::asio::streambuf& writeBuffer() & { return writeBuffer_; }
+  inline boost::asio::streambuf&& writeBuffer() && {
     return std::move(writeBuffer_);
   }
 
-  inline boost::asio::streambuf& readBuffer()&
-  {
-    return readBuffer_;
-  }
-  inline boost::asio::streambuf&& readBuffer()&&
-  {
+  inline boost::asio::streambuf& readBuffer() & { return readBuffer_; }
+  inline boost::asio::streambuf&& readBuffer() && {
     return std::move(readBuffer_);
   }
 
@@ -54,10 +43,10 @@ public:
   void doWrite(boost::asio::streambuf& buffer);
   void doRead();
 
-private:
-    explicit TCPClient(boost::asio::io_context& io_context, 
-      const std::shared_ptr<Config>& config, 
-      const std::shared_ptr<Log>& log);
+ private:
+  explicit TCPClient(boost::asio::io_context& io_context,
+                     const std::shared_ptr<Config>& config,
+                     const std::shared_ptr<Log>& log);
 
   const std::shared_ptr<Config>& config_;
   const std::shared_ptr<Log>& log_;
