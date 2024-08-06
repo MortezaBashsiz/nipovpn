@@ -30,6 +30,9 @@ class Runner : private Uncopyable {
  private:
   const std::shared_ptr<Config>& config_;
   const std::shared_ptr<Log>& log_;
+  boost::asio::io_context io_context_;
+  boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
+      workGuard_;
 };
 
 #endif /* RUNNER_HPP */
