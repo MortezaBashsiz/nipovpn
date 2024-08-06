@@ -1,64 +1,77 @@
 #include "runner.hpp"
 
+// Constructor for the Runner class
 Runner::Runner(const std::shared_ptr<Config>& config,
                const std::shared_ptr<Log>& log)
-    : config_(config),
-      log_(log),
-      io_context_(),
-      work_guard_(boost::asio::make_work_guard(io_context_)),
-      running_(true) {}
+    : config_(config),  // Store the configuration object
+      log_(log),        // Store the log object
+      io_context_(),  // Initialize the I/O context for asynchronous operations
+      work_guard_(boost::asio::make_work_guard(
+          io_context_)),  // Prevents io_context from running out of work
+      running_(true) {}   // Initialize running state to true
 
+// Destructor for the Runner class
 Runner::~Runner() {
-  running_.store(false);
-  io_context_.stop();
-  for (auto& thread : threadPool_) {
+  running_.store(
+      false);  // Set the running flag to false to stop the worker threads
+  io_context_.stop();  // Stop the I/O context, which will end the processing
+  for (auto& thread : threadPool_) {  // Wait for all threads to complete
     if (thread.joinable()) {
       thread.join();
     }
   }
 }
 
+// Main function to run the server
 void Runner::run() {
   try {
+    // Log the configuration mode and details
     log_->write("Config initialized in " + config_->modeToString() + " mode",
                 Log::Level::INFO);
     log_->write(config_->toString(), Log::Level::INFO);
+
+    // Create and initialize the TCP server
     TCPServer::pointer tcpServer =
         TCPServer::create(io_context_, config_, log_);
 
-    // Start initial threads
+    // Start initial worker threads
     for (auto i = 0; i < config_->threads(); ++i) {
       threadPool_.emplace_back([this] { workerThread(); });
     }
 
-    // Main loop to create new threads
+    // Main loop to continuously add new worker threads
     while (running_.load()) {
       threadPool_.emplace_back([this] { workerThread(); });
-      std::this_thread::sleep_for(
-          std::chrono::seconds(1));  // Adjust sleep duration as needed
+      std::this_thread::sleep_for(std::chrono::seconds(
+          1));  // Sleep for a second before adding more threads
     }
 
-    // Ensure all threads are joined
+    // Ensure all threads are joined before exiting
     for (auto& thread : threadPool_) {
       if (thread.joinable()) {
         thread.join();
       }
     }
   } catch (const std::exception& error) {
+    // Log any exceptions thrown during execution
     log_->write(std::string("[Runner run] ") + error.what(), Log::Level::ERROR);
   } catch (...) {
+    // Log any unknown exceptions
     log_->write("[Runner run] Unknown error occurred", Log::Level::ERROR);
   }
 }
 
+// Function for worker threads to process tasks
 void Runner::workerThread() {
-  while (running_.load()) {
+  while (running_.load()) {  // Continue processing while running is true
     try {
-      io_context_.run();
+      io_context_.run();  // Process asynchronous operations
     } catch (const std::exception& e) {
+      // Log exceptions that occur in worker threads
       log_->write(std::string("[WorkerThread] Exception: ") + e.what(),
                   Log::Level::ERROR);
     } catch (...) {
+      // Log any unknown exceptions that occur in worker threads
       log_->write("[WorkerThread] Unknown exception", Log::Level::ERROR);
     }
   }
