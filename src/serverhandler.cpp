@@ -95,7 +95,7 @@ void ServerHandler::handle() {
               } else {
                 // Log encryption failure and close the connection.
                 log_->write("[ServerHandler handle] [Encryption Failed] : [ " +
-                                decryption.message + " ] ",
+                                decryption.message + "] ",
                             Log::Level::DEBUG);
                 log_->write("[ServerHandler handle] [Encryption Failed] : " +
                                 request_->toString(),
@@ -117,7 +117,7 @@ void ServerHandler::handle() {
     } else {
       // Log decryption failure and close the connection.
       log_->write("[ServerHandler handle] [Decryption Failed] : [ " +
-                      decryption.message + " ] ",
+                      decryption.message + "] ",
                   Log::Level::DEBUG);
       log_->write("[ServerHandler handle] [Decryption Failed] : " +
                       request_->toString(),
