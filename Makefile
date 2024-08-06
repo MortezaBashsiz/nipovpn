@@ -10,7 +10,7 @@ INC := include
 MAINFILE := $(SRC)/main.cpp
 
 # Build directories and output
-TARGET := $(BIN)/nipovpn
+TARGET := $(BIN)/nipovpn.bin
 BUILD := build
 
 # Library search directories and flags
