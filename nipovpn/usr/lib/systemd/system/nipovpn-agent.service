@@ -1,0 +1,14 @@
+[Unit]
+Description=NipoVPN agent
+After=network.target auditd.service
+
+[Service]
+ExecStart=/usr/bin/nipovpn agent /etc/nipovpn/config.yaml 
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
+Alias=sshd.service

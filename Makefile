@@ -7,10 +7,13 @@ BIN := nipovpn/usr/bin
 SRC := src
 LIB := lib
 INC := include
+DEBIANDIR := nipovpn
+DEBDIR := files/deb
+DEBFILE := $(DEBDIR)/nipovpn.deb
 MAINFILE := $(SRC)/main.cpp
 
 # Build directories and output
-TARGET := $(BIN)/nipovpn.bin
+TARGET := $(BIN)/nipovpn
 BUILD := build
 
 # Library search directories and flags
@@ -31,7 +34,7 @@ DEPS := $(OBJS:.o=.d)
 build: all
 
 # Main task
-all: $(TARGET)
+all: $(TARGET) deb
 
 # Task producing target from built files
 $(TARGET): $(OBJS)
@@ -44,12 +47,19 @@ $(BUILD)/%.o: $(SRC)/%.cpp
 	mkdir -p $(dir $@)
 	$(CXX) $(CXX_FLAGS) $(PRE_FLAGS) $(INC_FLAGS) -c -o $@ $< $(LDPATHS) $(LDFLAGS)
 
+# Create deb file
+.PHONY: deb
+deb:
+	@echo "Creating deb file..."
+	dpkg-deb --build $(DEBIANDIR)/ $(DEBFILE)
+
 # Clean task
 .PHONY: clean
 clean:
 	@echo "Clearing..."
 	rm -rf $(BUILD)
 	rm -rf $(BIN)
+	rm -fr $(DEBFILE)
 
 # Include all dependencies
 -include $(DEPS)
