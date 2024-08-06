@@ -1,5 +1,11 @@
 #include "config.hpp"
 
+/**
+ * @brief Constructs a Config instance with specified mode and file path.
+ *
+ * @param mode The operational mode of the application (server or agent).
+ * @param filePath The path to the configuration file.
+ */
 Config::Config(const RunMode& mode, const std::string& filePath)
     : runMode_(mode),
       filePath_(filePath),
@@ -24,6 +30,7 @@ Config::Config(const RunMode& mode, const std::string& filePath)
               configYaml_["agent"]["token"].as<std::string>(),
               configYaml_["agent"]["httpVersion"].as<std::string>(),
               configYaml_["agent"]["userAgent"].as<std::string>()}) {
+  // Set specific parameters based on the operational mode.
   switch (runMode_) {
     case RunMode::server:
       threads_ = server_.threads;
@@ -38,6 +45,11 @@ Config::Config(const RunMode& mode, const std::string& filePath)
   }
 }
 
+/**
+ * @brief Copy constructor for Config.
+ *
+ * @param config A shared pointer to another Config instance.
+ */
 Config::Config(const Config::pointer& config)
     : runMode_(config->runMode()),
       configYaml_(YAML::LoadFile(config->filePath())),
@@ -46,8 +58,16 @@ Config::Config(const Config::pointer& config)
       server_(config->server()),
       agent_(config->agent()) {}
 
+/**
+ * @brief Destructor for Config.
+ */
 Config::~Config() = default;
 
+/**
+ * @brief Returns a string representation of the current configuration.
+ *
+ * @return A string describing the configuration settings.
+ */
 std::string Config::toString() const {
   std::stringstream ss;
   ss << "\nConfig :\n"
@@ -75,30 +95,95 @@ std::string Config::toString() const {
   return ss.str();
 }
 
+/**
+ * @brief Returns the general configuration settings.
+ *
+ * @return A constant reference to the general configuration.
+ */
 const Config::General& Config::general() const { return general_; }
 
+/**
+ * @brief Returns the logging configuration settings.
+ *
+ * @return A constant reference to the logging configuration.
+ */
 const Config::Log& Config::log() const { return log_; }
 
+/**
+ * @brief Returns the server configuration settings.
+ *
+ * @return A constant reference to the server configuration.
+ */
 const Config::Server& Config::server() const { return server_; }
 
+/**
+ * @brief Returns the agent configuration settings.
+ *
+ * @return A constant reference to the agent configuration.
+ */
 const Config::Agent& Config::agent() const { return agent_; }
 
+/**
+ * @brief Returns the number of threads specified in the configuration.
+ *
+ * @return A constant reference to the number of threads.
+ */
 const unsigned short& Config::threads() const { return threads_; }
 
+/**
+ * @brief Sets the number of threads in the configuration.
+ *
+ * @param threads The number of threads to set.
+ */
 void Config::threads(unsigned short threads) { threads_ = threads; }
 
+/**
+ * @brief Returns the IP address on which the server listens.
+ *
+ * @return A constant reference to the IP address.
+ */
 const std::string& Config::listenIp() const { return listenIp_; }
 
+/**
+ * @brief Sets the IP address on which the server listens.
+ *
+ * @param ip The IP address to set.
+ */
 void Config::listenIp(const std::string& ip) { listenIp_ = ip; }
 
+/**
+ * @brief Returns the port on which the server listens.
+ *
+ * @return A constant reference to the port number.
+ */
 const unsigned short& Config::listenPort() const { return listenPort_; }
 
+/**
+ * @brief Sets the port on which the server listens.
+ *
+ * @param port The port number to set.
+ */
 void Config::listenPort(unsigned short port) { listenPort_ = port; }
 
+/**
+ * @brief Returns the current operational mode of the application.
+ *
+ * @return A constant reference to the operational mode.
+ */
 const RunMode& Config::runMode() const { return runMode_; }
 
+/**
+ * @brief Returns the file path to the configuration file.
+ *
+ * @return A constant reference to the file path.
+ */
 const std::string& Config::filePath() const { return filePath_; }
 
+/**
+ * @brief Converts the run mode to a string representation.
+ *
+ * @return A string describing the operational mode.
+ */
 std::string Config::modeToString() const {
   switch (runMode_) {
     case RunMode::server:
