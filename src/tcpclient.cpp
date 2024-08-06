@@ -52,10 +52,10 @@ void TCPClient::doConnect(const std::string& dstIP,
   try {
     // Log connection attempt
     log_->write("[TCPClient doConnect] [DST " + dstIP + ":" +
-                    std::to_string(dstPort) + " ]",
+                    std::to_string(dstPort) + "]",
                 Log::Level::DEBUG);
     log_->write(
-        "[Connect to] [DST " + dstIP + ":" + std::to_string(dstPort) + " ]",
+        "[Connect to] [DST " + dstIP + ":" + std::to_string(dstPort) + "]",
         Log::Level::INFO);
 
     // Resolve the endpoint and connect
@@ -95,12 +95,12 @@ void TCPClient::doWrite(boost::asio::streambuf& buffer) {
     boost::asio::write(socket_, writeBuffer_, error);
     if (error) {
       log_->write(std::string("[TCPClient doWrite] [error] ") + error.what(),
-                  Log::Level::ERROR);
+                  Log::Level::DEBUG);
     }
   } catch (std::exception& error) {
     // Log exceptions during the write operation
     log_->write(std::string("[TCPClient doWrite] [catch] ") + error.what(),
-                Log::Level::ERROR);
+                Log::Level::DEBUG);
   }
 }
 
@@ -152,7 +152,7 @@ void TCPClient::doRead() {
         // Log exceptions during logging
         log_->write(
             std::string("[TCPClient doRead] [catch log] ") + error.what(),
-            Log::Level::ERROR);
+            Log::Level::DEBUG);
       }
     } else {
       socket_.close();

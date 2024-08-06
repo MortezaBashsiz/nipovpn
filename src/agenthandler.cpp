@@ -40,6 +40,15 @@ void AgentHandler::handle() {
       log_->write("[AgentHandler handle] [Request] : " + request_->toString(),
                   Log::Level::DEBUG);
 
+      // Log the HTTP request target
+      if (request_->parsedHttpRequest().target().length() > 0) {
+        log_->write("[Connect to] [DST " +
+                        boost::lexical_cast<std::string>(
+                            request_->parsedHttpRequest().target()) +
+                        "]",
+                    Log::Level::INFO);
+      }
+
       // If the client socket is not open or the request type is HTTP or CONNECT
       if (!client_->socket().is_open() ||
           request_->httpType() == HTTP::HttpType::http ||
@@ -98,7 +107,7 @@ void AgentHandler::handle() {
             } else {
               // Log decryption failure and close the socket
               log_->write("[AgentHandler handle] [Decryption Failed] : [ " +
-                              decryption.message + " ] ",
+                              decryption.message + "] ",
                           Log::Level::DEBUG);
               log_->write("[AgentHandler handle] [Decryption Failed] : " +
                               request_->toString(),
@@ -134,12 +143,12 @@ void AgentHandler::handle() {
   } else {
     // Log encryption failure and close the socket
     log_->write("[AgentHandler handle] [Encryption Failed] : [ " +
-                    encryption.message + " ] ",
+                    encryption.message + "] ",
                 Log::Level::DEBUG);
     log_->write(
         "[AgentHandler handle] [Encryption Failed] : " +
             client_->socket().remote_endpoint().address().to_string() + ":" +
-            std::to_string(client_->socket().remote_endpoint().port()) + " ] ",
+            std::to_string(client_->socket().remote_endpoint().port()) + "] ",
         Log::Level::INFO);
     client_->socket().close();
   }

@@ -27,13 +27,13 @@ log:
 # This block is to define server directives
 server:
   # threads: number of threads in server
-  threads: 4
+  threads: 1
   listenIp: "0.0.0.0"
   listenPort: 443
 
 # This block is to define agent directives
 agent:
-  threads: 4
+  threads: 1
   listenIp: "0.0.0.0"
   listenPort: 8080
   serverIp: "127.0.0.1"
