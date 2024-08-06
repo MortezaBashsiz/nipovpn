@@ -111,5 +111,6 @@ void TCPClient::doRead() {
   } catch (std::exception& error) {
     log_->write(std::string("[TCPClient doRead] [catch read] ") + error.what(),
                 Log::Level::ERROR);
+    return;
   }
 }

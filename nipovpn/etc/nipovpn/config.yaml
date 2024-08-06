@@ -19,7 +19,7 @@ general:
 # This block is to define log directives
 log:
   # logLevel: "INFO|TRACE|DEBUG"
-  logLevel: "DEBUG"
+  logLevel: "INFO"
   # logFile: "/var/log/nipo/nipo.log"
   #   Path of log file
   logFile: "/var/log/nipovpn/nipovpn.log"
@@ -27,13 +27,13 @@ log:
 # This block is to define server directives
 server:
   # threads: number of threads in server
-  threads: 1
+  threads: 4
   listenIp: "0.0.0.0"
   listenPort: 443
 
 # This block is to define agent directives
 agent:
-  threads: 1
+  threads: 4
   listenIp: "0.0.0.0"
   listenPort: 8080
   serverIp: "127.0.0.1"
