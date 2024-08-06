@@ -27,9 +27,17 @@ void AgentHandler::handle() {
                   Log::Level::DEBUG);
       if (!client_->socket().is_open() ||
           request_->httpType() == HTTP::HttpType::http ||
-          request_->httpType() == HTTP::HttpType::connect)
+          request_->httpType() == HTTP::HttpType::connect) {
+        boost::system::error_code ec;
         client_->doConnect(config_->agent().serverIp,
                            config_->agent().serverPort);
+        if (ec) {
+          log_->write(std::string("[AgentHandler handle] Connection error: ") +
+                          ec.message(),
+                      Log::Level::ERROR);
+          return;
+        }
+      }
       copyStringToStreambuf(newReq, readBuffer_);
       log_->write("[AgentHandler handle] [Request To Server] : \n" + newReq,
                   Log::Level::DEBUG);
@@ -80,11 +88,11 @@ void AgentHandler::handle() {
                   Log::Level::DEBUG);
     }
   } else {
-    log_->write("[AgentHandler handle] [Encryption Faild] : [ " +
+    log_->write("[AgentHandler handle] [Encryption Failed] : [ " +
                     encryption.message + " ] ",
                 Log::Level::DEBUG);
     log_->write(
-        "[AgentHandler handle] [Encryption Faild] : " +
+        "[AgentHandler handle] [Encryption Failed] : " +
             client_->socket().remote_endpoint().address().to_string() + ":" +
             std::to_string(client_->socket().remote_endpoint().port()) + " ] ",
         Log::Level::INFO);
