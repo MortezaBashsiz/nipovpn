@@ -36,28 +36,47 @@ void TCPConnection::doRead() {
   } catch (std::exception& error) {
     log_->write(std::string("[TCPConnection doRead] [catch] ") + error.what(),
                 Log::Level::ERROR);  // Log any exceptions
+    socket_.close();
   }
 }
 
-void TCPConnection::handleRead(const boost::system::error_code&, size_t) {
+void TCPConnection::handleRead(const boost::system::error_code& error, size_t) {
   try {
-    boost::system::error_code error;
+    if (error) {
+      if (error == boost::asio::error::eof) {
+        log_->write(
+            "[TCPConnection handleRead] [EOF] Connection closed by peer.",
+            Log::Level::DEBUG);
+      } else {
+        log_->write(std::string("[TCPConnection handleRead] [error] ") +
+                        error.message(),
+                    Log::Level::ERROR);
+      }
+      socket_.close();  // Close the socket on error or EOF
+      return;
+    }
+
     if (socket_.available() > 0) {  // Check if there is data available to read
       boost::asio::deadline_timer timer{io_context_};
       for (auto i = 0; i <= config_->general().repeatWait; i++) {
         while (true) {
           if (socket_.available() == 0)
             break;  // Exit if no more data is available
+          boost::system::error_code read_error;
           boost::asio::read(socket_, readBuffer_,
-                            boost::asio::transfer_exactly(1), error);
-          if (error == boost::asio::error::eof) {
+                            boost::asio::transfer_exactly(1), read_error);
+          if (read_error == boost::asio::error::eof) {
+            log_->write(
+                "[TCPConnection handleRead] [EOF] Connection closed by peer.",
+                Log::Level::DEBUG);
             socket_.close();  // Close the socket on EOF
-            break;
-          } else if (error) {
-            socket_.close();  // Close the socket on any other errors
+            return;
+          } else if (read_error) {
             log_->write(std::string("[TCPConnection handleRead] [error] ") +
-                            error.what(),
+                            read_error.message(),
                         Log::Level::ERROR);
+            socket_.close();  // Close the socket on any other errors
+            return;
           }
         }
         timer.expires_from_now(
@@ -65,22 +84,14 @@ void TCPConnection::handleRead(const boost::system::error_code&, size_t) {
         timer.wait();  // Wait for the specified timeout duration
       }
     }
-    try {
-      log_->write("[TCPConnection handleRead] [SRC " +
-                      socket_.remote_endpoint().address().to_string() + ":" +
-                      std::to_string(socket_.remote_endpoint().port()) +
-                      "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
-                  Log::Level::DEBUG);
-      log_->write("[Read from] [SRC " +
-                      socket_.remote_endpoint().address().to_string() + ":" +
-                      std::to_string(socket_.remote_endpoint().port()) +
-                      "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
-                  Log::Level::TRACE);  // Log the details of the read operation
-    } catch (std::exception& error) {
-      log_->write(
-          std::string("[TCPConnection handleRead] [catch log] ") + error.what(),
-          Log::Level::DEBUG);
-    }
+
+    // Log the successful read operation
+    log_->write("[TCPConnection handleRead] [SRC " +
+                    socket_.remote_endpoint().address().to_string() + ":" +
+                    std::to_string(socket_.remote_endpoint().port()) +
+                    "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
+                Log::Level::DEBUG);
+
     // Handle the request based on the running mode
     if (config_->runMode() == RunMode::agent) {
       AgentHandler::pointer agentHandler_ = AgentHandler::create(
@@ -95,15 +106,17 @@ void TCPConnection::handleRead(const boost::system::error_code&, size_t) {
               std::to_string(socket_.remote_endpoint().port()));
       serverHandler_->handle();  // Process the request as a server
     }
-    if (writeBuffer_.size() > 0)
+
+    if (writeBuffer_.size() > 0) {
       doWrite();  // Write to the socket if there is data in the write buffer
-    else {
+    } else {
       socket_.close();  // Close the socket if no data to write
     }
   } catch (std::exception& error) {
     log_->write(
         std::string("[TCPConnection handleRead] [catch read] ") + error.what(),
-        Log::Level::ERROR);  // Log any exceptions during the read handling
+        Log::Level::DEBUG);
+    socket_.close();  // Ensure socket closure on exception
   }
 }
 
@@ -124,13 +137,16 @@ void TCPConnection::doWrite() {
                        error);  // Write data to the socket
     if (error) {
       log_->write(
-          std::string("[TCPConnection doWrite] [error] ") + error.what(),
+          std::string("[TCPConnection doWrite] [error] ") + error.message(),
           Log::Level::ERROR);  // Log any errors during the write operation
+      socket_.close();         // Close the socket on error
+      return;
     }
     doRead();  // Continue reading after writing
   } catch (std::exception& error) {
     log_->write(
         std::string("[TCPConnection doWrite] [catch] ") + error.what(),
         Log::Level::ERROR);  // Log any exceptions during the write operation
+    socket_.close();         // Ensure socket closure on exception
   }
 }

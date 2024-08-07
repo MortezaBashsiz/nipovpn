@@ -91,13 +91,15 @@ void TCPClient::doWrite(boost::asio::streambuf& buffer) {
     boost::system::error_code error;
     boost::asio::write(socket_, writeBuffer_, error);
     if (error) {
-      log_->write(std::string("[TCPClient doWrite] [error] ") + error.what(),
+      log_->write(std::string("[TCPClient doWrite] [error] ") + error.message(),
                   Log::Level::DEBUG);
+      socket_.close();  // Close socket on write error
     }
   } catch (std::exception& error) {
     // Log exceptions during the write operation
     log_->write(std::string("[TCPClient doWrite] [catch] ") + error.what(),
                 Log::Level::DEBUG);
+    socket_.close();  // Ensure socket closure on exception
   }
 }
 
@@ -114,6 +116,7 @@ void TCPClient::doRead() {
     // Read at least 1 byte from the socket
     boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(1),
                       error);
+
     if (socket_.available() > 0) {
       // Implement retry mechanism if data is still available
       boost::asio::deadline_timer timer{io_context_};
@@ -124,12 +127,13 @@ void TCPClient::doRead() {
                             boost::asio::transfer_exactly(1), error);
           if (error == boost::asio::error::eof) {
             socket_.close();
-            break;
+            return;  // Exit after closing the socket
           } else if (error) {
             log_->write(
-                std::string("[TCPClient doRead] [error] ") + error.what(),
+                std::string("[TCPClient doRead] [error] ") + error.message(),
                 Log::Level::ERROR);
             socket_.close();
+            return;  // Exit after closing the socket
           }
         }
         timer.expires_from_now(
@@ -137,6 +141,7 @@ void TCPClient::doRead() {
         timer.wait();
       }
     }
+
     if (readBuffer_.size() > 0) {
       try {
         // Log the successful read operation
@@ -152,12 +157,13 @@ void TCPClient::doRead() {
             Log::Level::DEBUG);
       }
     } else {
-      socket_.close();
+      socket_.close();  // Close socket if no data is read
     }
   } catch (std::exception& error) {
     // Log exceptions during the read operation
     log_->write(std::string("[TCPClient doRead] [catch read] ") + error.what(),
                 Log::Level::ERROR);
+    socket_.close();  // Ensure socket closure on error
     return;
   }
 }
