@@ -54,9 +54,6 @@ void TCPClient::doConnect(const std::string& dstIP,
     log_->write("[TCPClient doConnect] [DST " + dstIP + ":" +
                     std::to_string(dstPort) + "]",
                 Log::Level::DEBUG);
-    log_->write(
-        "[Connect to] [DST " + dstIP + ":" + std::to_string(dstPort) + "]",
-        Log::Level::INFO);
 
     // Resolve the endpoint and connect
     boost::asio::ip::tcp::resolver resolver(io_context_);

@@ -44,7 +44,7 @@ void AgentHandler::handle() {
 
       // Log the client connention string and HTTP request target
       if (request_->parsedHttpRequest().target().length() > 0) {
-        log_->write("[Connect] [SRC " + clientConnStr_ + "]" + "[DST " +
+        log_->write("[CONNECT] [SRC " + clientConnStr_ + "]" + " [DST " +
                         boost::lexical_cast<std::string>(
                             request_->parsedHttpRequest().target()) +
                         "]",

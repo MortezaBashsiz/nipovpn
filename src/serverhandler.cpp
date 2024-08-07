@@ -12,13 +12,16 @@ ServerHandler::ServerHandler(boost::asio::streambuf& readBuffer,
                              boost::asio::streambuf& writeBuffer,
                              const std::shared_ptr<Config>& config,
                              const std::shared_ptr<Log>& log,
-                             const TCPClient::pointer& client)
+                             const TCPClient::pointer& client,
+                             const std::string& clientConnStr)
     : config_(config),
       log_(log),
       client_(client),
       readBuffer_(readBuffer),
       writeBuffer_(writeBuffer),
-      request_(HTTP::create(config, log, readBuffer)) {}
+      request_(HTTP::create(config, log, readBuffer)),
+      clientConnStr_(clientConnStr)  // Initialize client connection string
+{}
 
 /*
  * Destructor for cleanup. No specific resources to release.
@@ -63,6 +66,10 @@ void ServerHandler::handle() {
             boost::asio::streambuf tempBuff;
             std::iostream os(&tempBuff);
             client_->doConnect(request_->dstIP(), request_->dstPort());
+            log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
+                            request_->dstIP() + ":" +
+                            std::to_string(request_->dstPort()) + "]",
+                        Log::Level::INFO);
             if (client_->socket().is_open()) {
               std::string message(
                   "HTTP/1.1 200 Connection established\r\n\r\n");

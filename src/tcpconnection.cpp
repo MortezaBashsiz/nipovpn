@@ -90,7 +90,9 @@ void TCPConnection::handleRead(const boost::system::error_code&, size_t) {
       agentHandler_->handle();  // Process the request as an agent
     } else if (config_->runMode() == RunMode::server) {
       ServerHandler::pointer serverHandler_ = ServerHandler::create(
-          readBuffer_, writeBuffer_, config_, log_, client_);
+          readBuffer_, writeBuffer_, config_, log_, client_,
+          socket_.remote_endpoint().address().to_string() + ":" +
+              std::to_string(socket_.remote_endpoint().port()));
       serverHandler_->handle();  // Process the request as a server
     }
     if (writeBuffer_.size() > 0)
