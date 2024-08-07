@@ -36,9 +36,10 @@ class AgentHandler : private Uncopyable {
                         boost::asio::streambuf& writeBuffer,
                         const std::shared_ptr<Config>& config,
                         const std::shared_ptr<Log>& log,
-                        const TCPClient::pointer& client) {
-    return pointer(
-        new AgentHandler(readBuffer, writeBuffer, config, log, client));
+                        const TCPClient::pointer& client,
+                        const std::string& clientConnStr) {
+    return pointer(new AgentHandler(readBuffer, writeBuffer, config, log,
+                                    client, clientConnStr));
   }
 
   ~AgentHandler();  ///< Destructor for AgentHandler
@@ -80,7 +81,8 @@ class AgentHandler : private Uncopyable {
                boost::asio::streambuf& writeBuffer,
                const std::shared_ptr<Config>& config,
                const std::shared_ptr<Log>& log,
-               const TCPClient::pointer& client);
+               const TCPClient::pointer& client,
+               const std::string& clientConnStr);
 
   const std::shared_ptr<Config>& config_;  ///< Shared configuration object
   const std::shared_ptr<Log>& log_;        ///< Shared logging object
@@ -88,6 +90,8 @@ class AgentHandler : private Uncopyable {
   boost::asio::streambuf &readBuffer_,
       &writeBuffer_;  ///< References to buffers for reading and writing data
   HTTP::pointer request_;  ///< HTTP request object
+  const std::string&
+      clientConnStr_;  ///< socket client connection string "ip:port"
 };
 
 #endif /* AGENTHADLER_HPP */

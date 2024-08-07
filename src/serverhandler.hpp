@@ -35,9 +35,10 @@ class ServerHandler : private Uncopyable {
                         boost::asio::streambuf& writeBuffer,
                         const std::shared_ptr<Config>& config,
                         const std::shared_ptr<Log>& log,
-                        const TCPClient::pointer& client) {
+                        const TCPClient::pointer& client,
+                        const std::string& clientConnStr) {
     return pointer(
-        new ServerHandler(readBuffer, writeBuffer, config, log, client));
+        new ServerHandler(readBuffer, writeBuffer, config, log, client, clientConnStr));
   }
 
   /*
@@ -77,7 +78,8 @@ class ServerHandler : private Uncopyable {
                          boost::asio::streambuf& writeBuffer,
                          const std::shared_ptr<Config>& config,
                          const std::shared_ptr<Log>& log,
-                         const TCPClient::pointer& client);
+                         const TCPClient::pointer& client,
+                         const std::string& clientConnStr);
 
   const std::shared_ptr<Config>&
       config_;                        // Reference to the configuration object.
@@ -86,6 +88,8 @@ class ServerHandler : private Uncopyable {
   boost::asio::streambuf &readBuffer_,
       &writeBuffer_;       // References to the read and write buffers.
   HTTP::pointer request_;  // Shared pointer to the HTTP request object.
+  const std::string&
+      clientConnStr_;  ///< socket client connection string "ip:port"
 };
 
 #endif /* SERVERHANDLER_HPP */
