@@ -5,14 +5,16 @@ AgentHandler::AgentHandler(boost::asio::streambuf& readBuffer,
                            boost::asio::streambuf& writeBuffer,
                            const std::shared_ptr<Config>& config,
                            const std::shared_ptr<Log>& log,
-                           const TCPClient::pointer& client)
+                           const TCPClient::pointer& client,
+                           const std::string& clientConnStr)
     : config_(config),            // Initialize configuration
       log_(log),                  // Initialize logging
       client_(client),            // Initialize TCP client
       readBuffer_(readBuffer),    // Reference to the read buffer
       writeBuffer_(writeBuffer),  // Reference to the write buffer
-      request_(HTTP::create(config, log, readBuffer)) {
-}  // Initialize HTTP request handler
+      request_(HTTP::create(config, log, readBuffer)),
+      clientConnStr_(clientConnStr)  // Initialize client connection string
+{}
 
 // Destructor for the AgentHandler class
 AgentHandler::~AgentHandler() {}
@@ -40,9 +42,9 @@ void AgentHandler::handle() {
       log_->write("[AgentHandler handle] [Request] : " + request_->toString(),
                   Log::Level::DEBUG);
 
-      // Log the HTTP request target
+      // Log the client connention string and HTTP request target
       if (request_->parsedHttpRequest().target().length() > 0) {
-        log_->write("[Connect to] [DST " +
+        log_->write("[Connect] [SRC " + clientConnStr_ + "]" + "[DST " +
                         boost::lexical_cast<std::string>(
                             request_->parsedHttpRequest().target()) +
                         "]",
