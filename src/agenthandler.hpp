@@ -18,11 +18,10 @@
  * The AgentHandler processes HTTP requests by encrypting/decrypting data,
  * forwarding requests to a TCP server, and handling responses.
  */
-class AgentHandler : private Uncopyable
-{
-public:
-  using pointer = std::shared_ptr<AgentHandler>; ///< Shared pointer type for
-                                                 ///< AgentHandler
+class AgentHandler : private Uncopyable {
+ public:
+  using pointer = std::shared_ptr<AgentHandler>;  ///< Shared pointer type for
+                                                  ///< AgentHandler
 
   /**
    * @brief Factory method to create an instance of AgentHandler.
@@ -34,18 +33,17 @@ public:
    * @param client Shared pointer to a TCP client.
    * @return pointer A shared pointer to the created AgentHandler instance.
    */
-  static pointer
-  create (boost::asio::streambuf &readBuffer,
-          boost::asio::streambuf &writeBuffer,
-          const std::shared_ptr<Config> &config,
-          const std::shared_ptr<Log> &log, const TCPClient::pointer &client,
-          const std::string &clientConnStr)
-  {
-    return pointer (new AgentHandler (readBuffer, writeBuffer, config, log,
-                                      client, clientConnStr));
+  static pointer create(boost::asio::streambuf &readBuffer,
+                        boost::asio::streambuf &writeBuffer,
+                        const std::shared_ptr<Config> &config,
+                        const std::shared_ptr<Log> &log,
+                        const TCPClient::pointer &client,
+                        const std::string &clientConnStr) {
+    return pointer(new AgentHandler(readBuffer, writeBuffer, config, log,
+                                    client, clientConnStr));
   }
 
-  ~AgentHandler (); ///< Destructor for AgentHandler
+  ~AgentHandler();  ///< Destructor for AgentHandler
 
   /**
    * @brief Handles the HTTP request.
@@ -54,31 +52,23 @@ public:
    * It processes the request, encrypts or decrypts data as needed,
    * forwards requests to the server, and handles responses.
    */
-  void handle ();
+  void handle();
 
   /**
    * @brief Gets a reference to the HTTP request object.
    *
    * @return The HTTP request object.
    */
-  inline const HTTP::pointer &
-  request () &
-  {
-    return request_;
-  }
+  inline const HTTP::pointer &request() & { return request_; }
 
   /**
    * @brief Gets a rvalue reference to the HTTP request object.
    *
    * @return The HTTP request object (rvalue).
    */
-  inline const HTTP::pointer &&
-  request () &&
-  {
-    return std::move (request_);
-  }
+  inline const HTTP::pointer &&request() && { return std::move(request_); }
 
-private:
+ private:
   /**
    * @brief Constructs an AgentHandler instance.
    *
@@ -88,21 +78,21 @@ private:
    * @param log Shared logging object.
    * @param client Shared pointer to a TCP client.
    */
-  AgentHandler (boost::asio::streambuf &readBuffer,
-                boost::asio::streambuf &writeBuffer,
-                const std::shared_ptr<Config> &config,
-                const std::shared_ptr<Log> &log,
-                const TCPClient::pointer &client,
-                const std::string &clientConnStr);
+  AgentHandler(boost::asio::streambuf &readBuffer,
+               boost::asio::streambuf &writeBuffer,
+               const std::shared_ptr<Config> &config,
+               const std::shared_ptr<Log> &log,
+               const TCPClient::pointer &client,
+               const std::string &clientConnStr);
 
-  const std::shared_ptr<Config> &config_; ///< Shared configuration object
-  const std::shared_ptr<Log> &log_;       ///< Shared logging object
-  const TCPClient::pointer &client_;      ///< Shared pointer to a TCP client
+  const std::shared_ptr<Config> &config_;  ///< Shared configuration object
+  const std::shared_ptr<Log> &log_;        ///< Shared logging object
+  const TCPClient::pointer &client_;       ///< Shared pointer to a TCP client
   boost::asio::streambuf &readBuffer_,
-      &writeBuffer_; ///< References to buffers for reading and writing data
-  HTTP::pointer request_; ///< HTTP request object
+      &writeBuffer_;  ///< References to buffers for reading and writing data
+  HTTP::pointer request_;  ///< HTTP request object
   const std::string
-      &clientConnStr_; ///< socket client connection string "ip:port"
+      &clientConnStr_;  ///< socket client connection string "ip:port"
 };
 
 #endif /* AGENTHADLER_HPP */

@@ -20,39 +20,38 @@
  * handles exceptions. This class is used in the main function to run the I/O
  * context and manage the server lifecycle.
  */
-class Runner : private Uncopyable
-{
-public:
+class Runner : private Uncopyable {
+ public:
   /*
    * Constructor to initialize the Runner object with configuration and logging
    * objects.
    * @param config - Shared pointer to the configuration object.
    * @param log - Shared pointer to the logging object.
    */
-  explicit Runner (const std::shared_ptr<Config> &config,
-                   const std::shared_ptr<Log> &log);
+  explicit Runner(const std::shared_ptr<Config> &config,
+                  const std::shared_ptr<Log> &log);
 
   /*
    * Destructor to clean up resources, stop the I/O context, and join all
    * threads.
    */
-  ~Runner ();
+  ~Runner();
 
   /*
    * Main function to start the server and run the I/O context.
    * This function sets up the server, starts worker threads, and manages
    * execution.
    */
-  void run ();
+  void run();
 
-private:
+ private:
   /*
    * Worker thread function that processes asynchronous operations.
    * This function runs the I/O context and handles exceptions.
    */
-  void workerThread ();
+  void workerThread();
 
-  void stop ();
+  void stop();
 
   // Configuration object for the server.
   const std::shared_ptr<Config> &config_;
