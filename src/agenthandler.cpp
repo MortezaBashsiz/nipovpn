@@ -1,12 +1,12 @@
 #include "agenthandler.hpp"
 
 // Constructor for the AgentHandler class
-AgentHandler::AgentHandler(boost::asio::streambuf& readBuffer,
-                           boost::asio::streambuf& writeBuffer,
-                           const std::shared_ptr<Config>& config,
-                           const std::shared_ptr<Log>& log,
-                           const TCPClient::pointer& client,
-                           const std::string& clientConnStr)
+AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
+                           boost::asio::streambuf &writeBuffer,
+                           const std::shared_ptr<Config> &config,
+                           const std::shared_ptr<Log> &log,
+                           const TCPClient::pointer &client,
+                           const std::string &clientConnStr)
     : config_(config),            // Initialize configuration
       log_(log),                  // Initialize logging
       client_(client),            // Initialize TCP client
@@ -51,7 +51,8 @@ void AgentHandler::handle() {
                     Log::Level::INFO);
       }
 
-      // If the client socket is not open or the request type is HTTP or CONNECT
+      // If the client socket is not open or the request type is HTTP or
+      // CONNECT
       if (!client_->socket().is_open() ||
           request_->httpType() == HTTP::HttpType::http ||
           request_->httpType() == HTTP::HttpType::connect) {
@@ -76,7 +77,8 @@ void AgentHandler::handle() {
       log_->write("[AgentHandler handle] [Request To Server] : \n" + newReq,
                   Log::Level::DEBUG);
 
-      // Write the request to the client socket and initiate a read operation
+      // Write the request to the client socket and initiate a read
+      // operation
       client_->doWrite(readBuffer_);
       client_->doRead();
 
@@ -119,7 +121,8 @@ void AgentHandler::handle() {
           } else {
             // Log if the response is not an HTTP response
             log_->write(
-                "[AgentHandler handle] [NOT HTTP Response] [Response] : " +
+                "[AgentHandler handle] [NOT HTTP Response] "
+                "[Response] : " +
                     streambufToString(client_->readBuffer()),
                 Log::Level::DEBUG);
           }

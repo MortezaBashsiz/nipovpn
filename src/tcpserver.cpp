@@ -1,9 +1,9 @@
 #include "tcpserver.hpp"
 
 // Constructor for TCPServer
-TCPServer::TCPServer(boost::asio::io_context& io_context,
-                     const std::shared_ptr<Config>& config,
-                     const std::shared_ptr<Log>& log)
+TCPServer::TCPServer(boost::asio::io_context &io_context,
+                     const std::shared_ptr<Config> &config,
+                     const std::shared_ptr<Log> &log)
     : config_(config),  // Initialize configuration
       log_(log),        // Initialize logging
       client_(TCPClient::create(io_context, config,
@@ -29,7 +29,7 @@ void TCPServer::startAccept() {
   // Initiate asynchronous accept operation
   acceptor_.async_accept(
       connection->socket(),  // Socket to be accepted
-      [this, connection](const boost::system::error_code& error) {
+      [this, connection](const boost::system::error_code &error) {
         // Handle the result of the accept operation
         handleAccept(connection, error);
       });
@@ -37,7 +37,7 @@ void TCPServer::startAccept() {
 
 // Handles the result of an asynchronous accept operation
 void TCPServer::handleAccept(TCPConnection::pointer connection,
-                             const boost::system::error_code& error) {
+                             const boost::system::error_code &error) {
   if (!error) {
     // No error, start the connection
     connection->start();

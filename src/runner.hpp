@@ -15,10 +15,10 @@
 #include "tcpserver.hpp"
 
 /*
- * The Runner class is responsible for managing the application's main execution
- * loop. It initializes the server, starts worker threads, and handles
- * exceptions. This class is used in the main function to run the I/O context
- * and manage the server lifecycle.
+ * The Runner class is responsible for managing the application's main
+ * execution loop. It initializes the server, starts worker threads, and
+ * handles exceptions. This class is used in the main function to run the I/O
+ * context and manage the server lifecycle.
  */
 class Runner : private Uncopyable {
  public:
@@ -28,8 +28,8 @@ class Runner : private Uncopyable {
    * @param config - Shared pointer to the configuration object.
    * @param log - Shared pointer to the logging object.
    */
-  explicit Runner(const std::shared_ptr<Config>& config,
-                  const std::shared_ptr<Log>& log);
+  explicit Runner(const std::shared_ptr<Config> &config,
+                  const std::shared_ptr<Log> &log);
 
   /*
    * Destructor to clean up resources, stop the I/O context, and join all
@@ -51,11 +51,13 @@ class Runner : private Uncopyable {
    */
   void workerThread();
 
+  void stop();
+
   // Configuration object for the server.
-  const std::shared_ptr<Config>& config_;
+  const std::shared_ptr<Config> &config_;
 
   // Logging object for recording messages and errors.
-  const std::shared_ptr<Log>& log_;
+  const std::shared_ptr<Log> &log_;
 
   // Boost.Asio I/O context to manage asynchronous operations.
   boost::asio::io_context io_context_;
@@ -69,6 +71,9 @@ class Runner : private Uncopyable {
 
   // Thread pool to manage worker threads.
   std::vector<std::thread> threadPool_;
+
+  // Add strand to manage concurrency
+  boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 };
 
 #endif /* RUNNER_HPP */

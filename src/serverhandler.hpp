@@ -31,14 +31,14 @@ class ServerHandler : private Uncopyable {
    * @param client - Shared pointer to the TCP client object.
    * @return A shared pointer to the created ServerHandler instance.
    */
-  static pointer create(boost::asio::streambuf& readBuffer,
-                        boost::asio::streambuf& writeBuffer,
-                        const std::shared_ptr<Config>& config,
-                        const std::shared_ptr<Log>& log,
-                        const TCPClient::pointer& client,
-                        const std::string& clientConnStr) {
-    return pointer(
-        new ServerHandler(readBuffer, writeBuffer, config, log, client, clientConnStr));
+  static pointer create(boost::asio::streambuf &readBuffer,
+                        boost::asio::streambuf &writeBuffer,
+                        const std::shared_ptr<Config> &config,
+                        const std::shared_ptr<Log> &log,
+                        const TCPClient::pointer &client,
+                        const std::string &clientConnStr) {
+    return pointer(new ServerHandler(readBuffer, writeBuffer, config, log,
+                                     client, clientConnStr));
   }
 
   /*
@@ -57,13 +57,13 @@ class ServerHandler : private Uncopyable {
    * Accessor for the HTTP request object.
    * @return A reference to the HTTP request object.
    */
-  inline const HTTP::pointer& request() & { return request_; }
+  inline const HTTP::pointer &request() & { return request_; }
 
   /*
    * Move accessor for the HTTP request object.
    * @return An rvalue reference to the HTTP request object.
    */
-  inline const HTTP::pointer&& request() && { return std::move(request_); }
+  inline const HTTP::pointer &&request() && { return std::move(request_); }
 
  private:
   /*
@@ -74,22 +74,22 @@ class ServerHandler : private Uncopyable {
    * @param log - Shared pointer to the logging object.
    * @param client - Shared pointer to the TCP client object.
    */
-  explicit ServerHandler(boost::asio::streambuf& readBuffer,
-                         boost::asio::streambuf& writeBuffer,
-                         const std::shared_ptr<Config>& config,
-                         const std::shared_ptr<Log>& log,
-                         const TCPClient::pointer& client,
-                         const std::string& clientConnStr);
+  explicit ServerHandler(boost::asio::streambuf &readBuffer,
+                         boost::asio::streambuf &writeBuffer,
+                         const std::shared_ptr<Config> &config,
+                         const std::shared_ptr<Log> &log,
+                         const TCPClient::pointer &client,
+                         const std::string &clientConnStr);
 
-  const std::shared_ptr<Config>&
-      config_;                        // Reference to the configuration object.
-  const std::shared_ptr<Log>& log_;   // Reference to the logging object.
-  const TCPClient::pointer& client_;  // Reference to the TCP client object.
+  const std::shared_ptr<Config>
+      &config_;                       // Reference to the configuration object.
+  const std::shared_ptr<Log> &log_;   // Reference to the logging object.
+  const TCPClient::pointer &client_;  // Reference to the TCP client object.
   boost::asio::streambuf &readBuffer_,
       &writeBuffer_;       // References to the read and write buffers.
   HTTP::pointer request_;  // Shared pointer to the HTTP request object.
-  const std::string&
-      clientConnStr_;  ///< socket client connection string "ip:port"
+  const std::string
+      &clientConnStr_;  ///< socket client connection string "ip:port"
 };
 
 #endif /* SERVERHANDLER_HPP */

@@ -8,12 +8,12 @@
  * @param log - Shared pointer to the logging object.
  * @param client - Shared pointer to the TCP client object.
  */
-ServerHandler::ServerHandler(boost::asio::streambuf& readBuffer,
-                             boost::asio::streambuf& writeBuffer,
-                             const std::shared_ptr<Config>& config,
-                             const std::shared_ptr<Log>& log,
-                             const TCPClient::pointer& client,
-                             const std::string& clientConnStr)
+ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
+                             boost::asio::streambuf &writeBuffer,
+                             const std::shared_ptr<Config> &config,
+                             const std::shared_ptr<Log> &log,
+                             const TCPClient::pointer &client,
+                             const std::string &clientConnStr)
     : config_(config),
       log_(log),
       client_(client),
@@ -29,8 +29,9 @@ ServerHandler::ServerHandler(boost::asio::streambuf& readBuffer,
 ServerHandler::~ServerHandler() {}
 
 /*
- * Handles the incoming request by processing it based on its type (HTTP/HTTPS).
- * It performs decryption, handles connection, and processes the request.
+ * Handles the incoming request by processing it based on its type
+ * (HTTP/HTTPS). It performs decryption, handles connection, and processes the
+ * request.
  */
 void ServerHandler::handle() {
   // Detects the type of request (HTTP/HTTPS).
@@ -83,8 +84,20 @@ void ServerHandler::handle() {
           case HTTP::HttpType::http:
           case HTTP::HttpType::https: {
             // Handle HTTP or HTTPS requests.
-            if (!client_->socket().is_open())
+            if (request_->httpType() == HTTP::HttpType::http) {
               client_->doConnect(request_->dstIP(), request_->dstPort());
+              log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
+                              request_->dstIP() + ":" +
+                              std::to_string(request_->dstPort()) + "]",
+                          Log::Level::INFO);
+            }
+            if (!client_->socket().is_open()) {
+              client_->doConnect(request_->dstIP(), request_->dstPort());
+              log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
+                              request_->dstIP() + ":" +
+                              std::to_string(request_->dstPort()) + "]",
+                          Log::Level::INFO);
+            }
             client_->doWrite(readBuffer_);
             client_->doRead();
             if (client_->readBuffer().size() > 0) {
@@ -101,9 +114,11 @@ void ServerHandler::handle() {
                   client_->socket().close();
               } else {
                 // Log encryption failure and close the connection.
-                log_->write("[ServerHandler handle] [Encryption Failed] : [ " +
-                                decryption.message + "] ",
-                            Log::Level::DEBUG);
+                log_->write(
+                    "[ServerHandler handle] [Encryption "
+                    "Failed] : [ " +
+                        decryption.message + "] ",
+                    Log::Level::DEBUG);
                 log_->write("[ServerHandler handle] [Encryption Failed] : " +
                                 request_->toString(),
                             Log::Level::INFO);

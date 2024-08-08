@@ -1,7 +1,7 @@
 #include "http.hpp"
 
-HTTP::HTTP(const std::shared_ptr<Config>& config,
-           const std::shared_ptr<Log>& log, boost::asio::streambuf& buffer)
+HTTP::HTTP(const std::shared_ptr<Config> &config,
+           const std::shared_ptr<Log> &log, boost::asio::streambuf &buffer)
     : config_(config),
       log_(log),
       buffer_(buffer),
@@ -9,7 +9,7 @@ HTTP::HTTP(const std::shared_ptr<Config>& config,
       httpType_(HTTP::HttpType::https),
       parsedTlsRequest_{"", "", TlsTypes::TLSHandshake} {}
 
-HTTP::HTTP(const HTTP& http)
+HTTP::HTTP(const HTTP &http)
     : config_(http.config_),
       log_(http.log_),
       buffer_(http.buffer_),
@@ -125,7 +125,7 @@ bool HTTP::parseTls() {
     return false;
 }
 
-const std::string HTTP::genHttpPostReqString(const std::string& body) const {
+const std::string HTTP::genHttpPostReqString(const std::string &body) const {
   return std::string(config_->general().method + " " +
                      config_->general().fakeUrl + " HTTP/" +
                      config_->agent().httpVersion + "\r\n") +
@@ -136,7 +136,7 @@ const std::string HTTP::genHttpPostReqString(const std::string& body) const {
          "Content-Type: application/x-www-form-urlencoded\r\n" + "\r\n" + body;
 }
 
-const std::string HTTP::genHttpOkResString(const std::string& body) const {
+const std::string HTTP::genHttpOkResString(const std::string &body) const {
   return std::string("HTTP/1.1 200 OK\r\n") +
          "Content-Type: application/x-www-form-urlencoded\r\n" +
          "Content-Length: " + std::to_string(body.length()) + "\r\n" +

@@ -14,9 +14,9 @@
  * @param config - Shared pointer to the configuration object.
  * @param log - Shared pointer to the logging object.
  */
-TCPClient::TCPClient(boost::asio::io_context& io_context,
-                     const std::shared_ptr<Config>& config,
-                     const std::shared_ptr<Log>& log)
+TCPClient::TCPClient(boost::asio::io_context &io_context,
+                     const std::shared_ptr<Config> &config,
+                     const std::shared_ptr<Log> &log)
     : config_(config),
       log_(log),
       io_context_(io_context),
@@ -29,14 +29,14 @@ TCPClient::TCPClient(boost::asio::io_context& io_context,
  *
  * @return Reference to the Boost Asio TCP socket.
  */
-boost::asio::ip::tcp::socket& TCPClient::socket() { return socket_; }
+boost::asio::ip::tcp::socket &TCPClient::socket() { return socket_; }
 
 /*
  * Moves the contents of the given stream buffer to the internal write buffer.
  *
  * @param buffer - Stream buffer containing data to be written.
  */
-void TCPClient::writeBuffer(boost::asio::streambuf& buffer) {
+void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
   moveStreambuf(buffer, writeBuffer_);
 }
 
@@ -47,8 +47,8 @@ void TCPClient::writeBuffer(boost::asio::streambuf& buffer) {
  * @param dstIP - Destination IP address as a string.
  * @param dstPort - Destination port number.
  */
-void TCPClient::doConnect(const std::string& dstIP,
-                          const unsigned short& dstPort) {
+void TCPClient::doConnect(const std::string &dstIP,
+                          const unsigned short &dstPort) {
   try {
     // Log connection attempt
     log_->write("[TCPClient doConnect] [DST " + dstIP + ":" +
@@ -60,7 +60,7 @@ void TCPClient::doConnect(const std::string& dstIP,
     auto endpoint =
         resolver.resolve(dstIP.c_str(), std::to_string(dstPort).c_str());
     boost::asio::connect(socket_, endpoint);
-  } catch (std::exception& error) {
+  } catch (std::exception &error) {
     // Log connection errors
     log_->write(std::string("[TCPClient doConnect] ") + error.what(),
                 Log::Level::ERROR);
@@ -73,7 +73,7 @@ void TCPClient::doConnect(const std::string& dstIP,
  *
  * @param buffer - Stream buffer containing data to be written.
  */
-void TCPClient::doWrite(boost::asio::streambuf& buffer) {
+void TCPClient::doWrite(boost::asio::streambuf &buffer) {
   try {
     moveStreambuf(buffer, writeBuffer_);
     // Log details of the write operation
@@ -91,13 +91,15 @@ void TCPClient::doWrite(boost::asio::streambuf& buffer) {
     boost::system::error_code error;
     boost::asio::write(socket_, writeBuffer_, error);
     if (error) {
-      log_->write(std::string("[TCPClient doWrite] [error] ") + error.what(),
+      log_->write(std::string("[TCPClient doWrite] [error] ") + error.message(),
                   Log::Level::DEBUG);
+      socket_.close();  // Close socket on write error
     }
-  } catch (std::exception& error) {
+  } catch (std::exception &error) {
     // Log exceptions during the write operation
     log_->write(std::string("[TCPClient doWrite] [catch] ") + error.what(),
                 Log::Level::DEBUG);
+    socket_.close();  // Ensure socket closure on exception
   }
 }
 
@@ -114,6 +116,7 @@ void TCPClient::doRead() {
     // Read at least 1 byte from the socket
     boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(1),
                       error);
+
     if (socket_.available() > 0) {
       // Implement retry mechanism if data is still available
       boost::asio::deadline_timer timer{io_context_};
@@ -123,13 +126,18 @@ void TCPClient::doRead() {
           boost::asio::read(socket_, readBuffer_,
                             boost::asio::transfer_exactly(1), error);
           if (error == boost::asio::error::eof) {
+            log_->write(
+                "[TCPClient doRead] [EOF] Connection "
+                "closed by peer.",
+                Log::Level::TRACE);
             socket_.close();
-            break;
+            return;  // Exit after closing the socket
           } else if (error) {
             log_->write(
-                std::string("[TCPClient doRead] [error] ") + error.what(),
+                std::string("[TCPClient doRead] [error] ") + error.message(),
                 Log::Level::ERROR);
             socket_.close();
+            return;  // Exit after closing the socket
           }
         }
         timer.expires_from_now(
@@ -137,6 +145,7 @@ void TCPClient::doRead() {
         timer.wait();
       }
     }
+
     if (readBuffer_.size() > 0) {
       try {
         // Log the successful read operation
@@ -145,19 +154,26 @@ void TCPClient::doRead() {
                         std::to_string(socket_.remote_endpoint().port()) +
                         "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
                     Log::Level::DEBUG);
-      } catch (std::exception& error) {
+        log_->write("[Read from] [SRC " +
+                        socket_.remote_endpoint().address().to_string() + ":" +
+                        std::to_string(socket_.remote_endpoint().port()) +
+                        "] " + "[Bytes " + std::to_string(readBuffer_.size()) +
+                        "] ",
+                    Log::Level::TRACE);
+      } catch (std::exception &error) {
         // Log exceptions during logging
         log_->write(
             std::string("[TCPClient doRead] [catch log] ") + error.what(),
             Log::Level::DEBUG);
       }
     } else {
-      socket_.close();
+      socket_.close();  // Close socket if no data is read
     }
-  } catch (std::exception& error) {
+  } catch (std::exception &error) {
     // Log exceptions during the read operation
     log_->write(std::string("[TCPClient doRead] [catch read] ") + error.what(),
                 Log::Level::ERROR);
+    socket_.close();  // Ensure socket closure on error
     return;
   }
 }

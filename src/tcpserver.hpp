@@ -27,9 +27,9 @@ class TCPServer {
    * @param log The shared log object.
    * @return pointer A shared pointer to the created TCPServer instance.
    */
-  static pointer create(boost::asio::io_context& io_context,
-                        const std::shared_ptr<Config>& config,
-                        const std::shared_ptr<Log>& log) {
+  static pointer create(boost::asio::io_context &io_context,
+                        const std::shared_ptr<Config> &config,
+                        const std::shared_ptr<Log> &log) {
     return pointer(new TCPServer(io_context, config, log));
   }
 
@@ -41,9 +41,9 @@ class TCPServer {
    * @param config The shared configuration object.
    * @param log The shared log object.
    */
-  explicit TCPServer(boost::asio::io_context& io_context,
-                     const std::shared_ptr<Config>& config,
-                     const std::shared_ptr<Log>& log);
+  explicit TCPServer(boost::asio::io_context &io_context,
+                     const std::shared_ptr<Config> &config,
+                     const std::shared_ptr<Log> &log);
   /**
    * @brief Starts accepting incoming connections.
    */
@@ -55,11 +55,11 @@ class TCPServer {
    * @param error The error code from the accept operation.
    */
   void handleAccept(TCPConnection::pointer connection,
-                    const boost::system::error_code& error);
-  const std::shared_ptr<Config>& config_;
-  const std::shared_ptr<Log>& log_;
+                    const boost::system::error_code &error);
+  const std::shared_ptr<Config> &config_;
+  const std::shared_ptr<Log> &log_;
   TCPClient::pointer client_;
-  boost::asio::io_context& io_context_;
+  boost::asio::io_context &io_context_;
   boost::asio::ip::tcp::acceptor acceptor_;
 };
 

@@ -33,17 +33,16 @@ class Uncopyable {
   Uncopyable() = default;
 
  private:
-  Uncopyable(const Uncopyable&) = delete;
-  Uncopyable& operator=(const Uncopyable&) = delete;
+  Uncopyable(const Uncopyable &) = delete;
+  Uncopyable &operator=(const Uncopyable &) = delete;
 };
 
-/**
- * @brief Prints an error message to standard error.
- *
- * @param message The message to be printed.
+/*
+ * FUCK function prints it on screen
  */
-inline void printError(const auto& message) {
-  std::cerr << "Error: " << message << std::endl;
+inline void FUCK(const auto &message) {
+  std::cout << "FUCK FUCK FUCK FUCK FUCK FUCK FUCK FUCK : " << message
+            << std::endl;
 }
 
 /**
@@ -63,7 +62,7 @@ struct BoolStr {
  * @param name The name of the file to check.
  * @return true if the file exists, false otherwise.
  */
-inline bool fileExists(const std::string& name) {
+inline bool fileExists(const std::string &name) {
   std::ifstream file(name.c_str());
   return file.good();
 }
@@ -74,7 +73,7 @@ inline bool fileExists(const std::string& name) {
  * @param buff The streambuf to convert.
  * @return The resulting string.
  */
-inline std::string streambufToString(const boost::asio::streambuf& buff) {
+inline std::string streambufToString(const boost::asio::streambuf &buff) {
   return {boost::asio::buffers_begin(buff.data()),
           boost::asio::buffers_begin(buff.data()) + buff.size()};
 }
@@ -85,8 +84,8 @@ inline std::string streambufToString(const boost::asio::streambuf& buff) {
  * @param inputStr The string to copy.
  * @param buff The target streambuf.
  */
-inline void copyStringToStreambuf(const std::string& inputStr,
-                                  boost::asio::streambuf& buff) {
+inline void copyStringToStreambuf(const std::string &inputStr,
+                                  boost::asio::streambuf &buff) {
   buff.consume(buff.size());
   std::ostream os(&buff);
   os << inputStr;
@@ -98,8 +97,8 @@ inline void copyStringToStreambuf(const std::string& inputStr,
  * @param source The source streambuf.
  * @param target The target streambuf.
  */
-inline void moveStreambuf(boost::asio::streambuf& source,
-                          boost::asio::streambuf& target) {
+inline void moveStreambuf(boost::asio::streambuf &source,
+                          boost::asio::streambuf &target) {
   auto bytes_copied =
       boost::asio::buffer_copy(target.prepare(source.size()), source.data());
   target.commit(bytes_copied);
@@ -112,8 +111,8 @@ inline void moveStreambuf(boost::asio::streambuf& source,
  * @param source The source streambuf.
  * @param target The target streambuf.
  */
-inline void copyStreambuf(boost::asio::streambuf& source,
-                          boost::asio::streambuf& target) {
+inline void copyStreambuf(boost::asio::streambuf &source,
+                          boost::asio::streambuf &target) {
   auto bytes_copied =
       boost::asio::buffer_copy(target.prepare(source.size()), source.data());
   target.commit(bytes_copied);
@@ -126,7 +125,7 @@ inline void copyStreambuf(boost::asio::streambuf& source,
  * @param size The size of the data array.
  * @return The resulting string.
  */
-inline std::string hexArrToStr(const unsigned char* data, std::size_t size) {
+inline std::string hexArrToStr(const unsigned char *data, std::size_t size) {
   std::stringstream tempStr;
   tempStr << std::hex << std::setfill('0');
   for (std::size_t i = 0; i < size; ++i) {
@@ -141,7 +140,7 @@ inline std::string hexArrToStr(const unsigned char* data, std::size_t size) {
  * @param hexString The hex string.
  * @return The resulting integer.
  */
-inline unsigned short hexToInt(const std::string& hexString) {
+inline unsigned short hexToInt(const std::string &hexString) {
   unsigned short result;
   std::stringstream hexStr(hexString);
   hexStr >> std::hex >> result;
@@ -154,7 +153,7 @@ inline unsigned short hexToInt(const std::string& hexString) {
  * @param hex The hex string.
  * @return The resulting ASCII string.
  */
-inline std::string hexToASCII(const std::string& hex) {
+inline std::string hexToASCII(const std::string &hex) {
   std::string ascii;
   for (size_t i = 0; i < hex.length(); i += 2) {
     std::string part = hex.substr(i, 2);
@@ -183,7 +182,7 @@ inline unsigned char charToHex(char c) {
  * @param hexStr The hex string.
  * @return The resulting hex array.
  */
-inline std::vector<unsigned char> strToHexArr(const std::string& hexStr) {
+inline std::vector<unsigned char> strToHexArr(const std::string &hexStr) {
   std::vector<unsigned char> result(hexStr.size() / 2);
   for (std::size_t i = 0; i < hexStr.size() / 2; ++i)
     result[i] = 16 * charToHex(hexStr[2 * i]) + charToHex(hexStr[2 * i + 1]);
@@ -196,9 +195,9 @@ inline std::vector<unsigned char> strToHexArr(const std::string& hexStr) {
  * @param buff The streambuf.
  * @return The resulting string.
  */
-inline std::string hexStreambufToStr(const boost::asio::streambuf& buff) {
+inline std::string hexStreambufToStr(const boost::asio::streambuf &buff) {
   return hexArrToStr(
-      reinterpret_cast<const unsigned char*>(streambufToString(buff).c_str()),
+      reinterpret_cast<const unsigned char *>(streambufToString(buff).c_str()),
       buff.size());
 }
 
@@ -209,8 +208,8 @@ inline std::string hexStreambufToStr(const boost::asio::streambuf& buff) {
  * @param token The token to split by.
  * @return A vector of strings resulting from the split.
  */
-inline std::vector<std::string> splitString(const std::string& str,
-                                            const std::string& token) {
+inline std::vector<std::string> splitString(const std::string &str,
+                                            const std::string &token) {
   std::vector<std::string> result;
   std::string tempStr = str;
   while (!tempStr.empty()) {
@@ -233,7 +232,7 @@ inline std::vector<std::string> splitString(const std::string& str,
  * @param inputStr The Base64 encoded string.
  * @return The decoded string.
  */
-inline std::string decode64(const std::string& inputStr) {
+inline std::string decode64(const std::string &inputStr) {
   using namespace boost::archive::iterators;
 
   std::string temp = inputStr;
@@ -244,7 +243,7 @@ inline std::string decode64(const std::string& inputStr) {
     using transformWidth = transform_width<binaryFromBase64, 8, 6>;
 
     return {transformWidth(temp.begin()), transformWidth(temp.end())};
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     throw std::runtime_error("Invalid Base64 encoding");
   }
 }
@@ -255,7 +254,7 @@ inline std::string decode64(const std::string& inputStr) {
  * @param inputStr The string to encode.
  * @return The Base64 encoded string.
  */
-inline std::string encode64(const std::string& inputStr) {
+inline std::string encode64(const std::string &inputStr) {
   using namespace boost::archive::iterators;
 
   using transformWidth = transform_width<std::string::const_iterator, 6, 8>;
@@ -276,8 +275,8 @@ inline std::string encode64(const std::string& inputStr) {
  * @param key The encryption key.
  * @return BoolStr containing success status and the encrypted message.
  */
-inline BoolStr aes256Encrypt(const std::string& plaintext,
-                             const std::string& key) {
+inline BoolStr aes256Encrypt(const std::string &plaintext,
+                             const std::string &key) {
   BoolStr result{false, "Encryption failed"};
 
   unsigned char iv[EVP_MAX_IV_LENGTH];
@@ -290,14 +289,14 @@ inline BoolStr aes256Encrypt(const std::string& plaintext,
       plaintext.size() + EVP_CIPHER_block_size(EVP_aes_256_cbc());
   std::vector<unsigned char> ciphertext(ciphertext_len);
 
-  EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
   if (!ctx) {
     result.message = "Context initialization failed";
     return result;
   }
 
   if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL,
-                         reinterpret_cast<const unsigned char*>(key.c_str()),
+                         reinterpret_cast<const unsigned char *>(key.c_str()),
                          iv) != 1) {
     EVP_CIPHER_CTX_free(ctx);
     result.message = "Encryption initialization failed";
@@ -307,7 +306,7 @@ inline BoolStr aes256Encrypt(const std::string& plaintext,
   int len;
   if (EVP_EncryptUpdate(
           ctx, ciphertext.data(), &len,
-          reinterpret_cast<const unsigned char*>(plaintext.c_str()),
+          reinterpret_cast<const unsigned char *>(plaintext.c_str()),
           plaintext.size()) != 1) {
     EVP_CIPHER_CTX_free(ctx);
     result.message = "Encryption update failed";
@@ -324,8 +323,8 @@ inline BoolStr aes256Encrypt(const std::string& plaintext,
 
   EVP_CIPHER_CTX_free(ctx);
 
-  std::string final_result(reinterpret_cast<char*>(iv), sizeof(iv));
-  final_result.append(reinterpret_cast<char*>(ciphertext.data()),
+  std::string final_result(reinterpret_cast<char *>(iv), sizeof(iv));
+  final_result.append(reinterpret_cast<char *>(ciphertext.data()),
                       ciphertext_len);
   result.ok = true;
   result.message = final_result;
@@ -340,8 +339,8 @@ inline BoolStr aes256Encrypt(const std::string& plaintext,
  * @param key The decryption key.
  * @return BoolStr containing success status and the decrypted message.
  */
-inline BoolStr aes256Decrypt(const std::string& ciphertext_with_iv,
-                             const std::string& key) {
+inline BoolStr aes256Decrypt(const std::string &ciphertext_with_iv,
+                             const std::string &key) {
   BoolStr result{false, "Decryption failed"};
 
   unsigned char iv[EVP_MAX_IV_LENGTH];
@@ -353,14 +352,14 @@ inline BoolStr aes256Decrypt(const std::string& ciphertext_with_iv,
   int max_plaintext_len = ciphertext.size();
   std::vector<unsigned char> plaintext(max_plaintext_len);
 
-  EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
   if (!ctx) {
     result.message = "Context initialization failed";
     return result;
   }
 
   if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL,
-                         reinterpret_cast<const unsigned char*>(key.c_str()),
+                         reinterpret_cast<const unsigned char *>(key.c_str()),
                          iv) != 1) {
     EVP_CIPHER_CTX_free(ctx);
     result.message = "Decryption initialization failed";
@@ -370,7 +369,7 @@ inline BoolStr aes256Decrypt(const std::string& ciphertext_with_iv,
   int len;
   if (EVP_DecryptUpdate(
           ctx, plaintext.data(), &len,
-          reinterpret_cast<const unsigned char*>(ciphertext.c_str()),
+          reinterpret_cast<const unsigned char *>(ciphertext.c_str()),
           ciphertext.size()) != 1) {
     EVP_CIPHER_CTX_free(ctx);
     result.message = "Decryption update failed";
@@ -389,7 +388,7 @@ inline BoolStr aes256Decrypt(const std::string& ciphertext_with_iv,
 
   result.ok = true;
   result.message =
-      std::string(reinterpret_cast<char*>(plaintext.data()), plaintext_len);
+      std::string(reinterpret_cast<char *>(plaintext.data()), plaintext_len);
 
   return result;
 }
@@ -401,7 +400,7 @@ inline BoolStr aes256Decrypt(const std::string& ciphertext_with_iv,
  * @param argv The command-line arguments.
  * @return BoolStr containing success status and validation message.
  */
-inline BoolStr validateConfig(int argc, const char* argv[]) {
+inline BoolStr validateConfig(int argc, const char *argv[]) {
   BoolStr result{false, "Validation failed"};
 
   if (argc != 3) {
@@ -425,7 +424,7 @@ inline BoolStr validateConfig(int argc, const char* argv[]) {
   YAML::Node configYaml;
   try {
     configYaml = YAML::LoadFile(argv[2]);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     result.message =
         std::string("Error parsing config file: ") + e.what() + "\n";
     return result;
@@ -434,7 +433,7 @@ inline BoolStr validateConfig(int argc, const char* argv[]) {
   try {
     configYaml["log"]["logFile"].as<std::string>();
     configYaml["log"]["logLevel"].as<std::string>();
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     result.message = std::string("Error in 'log' block: ") + e.what() + "\n";
     return result;
   }
@@ -442,7 +441,7 @@ inline BoolStr validateConfig(int argc, const char* argv[]) {
   try {
     configYaml["server"]["listenIp"].as<std::string>();
     configYaml["server"]["listenPort"].as<unsigned short>();
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     result.message = std::string("Error in 'server' block: ") + e.what() + "\n";
     return result;
   }
@@ -455,7 +454,7 @@ inline BoolStr validateConfig(int argc, const char* argv[]) {
     configYaml["agent"]["token"].as<std::string>();
     configYaml["agent"]["httpVersion"].as<std::string>();
     configYaml["agent"]["userAgent"].as<std::string>();
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     result.message = std::string("Error in 'agent' block: ") + e.what() + "\n";
     return result;
   }

@@ -66,7 +66,7 @@ class Config : private Uncopyable {
     std::string userAgent;    ///< User-Agent string used by the agent.
   };
 
-  const RunMode& runMode_;  ///< The operational mode of the application.
+  const RunMode &runMode_;  ///< The operational mode of the application.
   std::string filePath_;    ///< Path to the configuration YAML file.
   const YAML::Node
       configYaml_;          ///< YAML node for parsing the configuration file.
@@ -80,7 +80,7 @@ class Config : private Uncopyable {
    * @param mode The operational mode (server or agent).
    * @param filePath The path to the configuration file.
    */
-  explicit Config(const RunMode& mode, const std::string& filePath);
+  explicit Config(const RunMode &mode, const std::string &filePath);
 
  public:
   using pointer = std::shared_ptr<Config>;  ///< Shared pointer type for Config.
@@ -92,7 +92,7 @@ class Config : private Uncopyable {
    * @param filePath The path to the configuration file.
    * @return A shared pointer to the created Config instance.
    */
-  static pointer create(const RunMode& mode, const std::string& filePath) {
+  static pointer create(const RunMode &mode, const std::string &filePath) {
     return pointer(new Config(mode, filePath));
   }
 
@@ -107,7 +107,7 @@ class Config : private Uncopyable {
    *
    * @param config A shared pointer to another Config instance.
    */
-  explicit Config(const Config::pointer& config);
+  explicit Config(const Config::pointer &config);
 
   /**
    * @brief Destructor for Config.
@@ -119,35 +119,35 @@ class Config : private Uncopyable {
    *
    * @return A constant reference to the General struct.
    */
-  const General& general() const;
+  const General &general() const;
 
   /**
    * @brief Returns the logging configuration settings.
    *
    * @return A constant reference to the Log struct.
    */
-  const Log& log() const;
+  const Log &log() const;
 
   /**
    * @brief Returns the server-specific configuration settings.
    *
    * @return A constant reference to the Server struct.
    */
-  const Server& server() const;
+  const Server &server() const;
 
   /**
    * @brief Returns the agent-specific configuration settings.
    *
    * @return A constant reference to the Agent struct.
    */
-  const Agent& agent() const;
+  const Agent &agent() const;
 
   /**
    * @brief Returns the number of threads configured.
    *
    * @return A constant reference to the number of threads.
    */
-  const unsigned short& threads() const;
+  const unsigned short &threads() const;
 
   /**
    * @brief Sets the number of threads in the configuration.
@@ -161,21 +161,21 @@ class Config : private Uncopyable {
    *
    * @return A constant reference to the IP address.
    */
-  const std::string& listenIp() const;
+  const std::string &listenIp() const;
 
   /**
    * @brief Sets the IP address for listening.
    *
    * @param ip The IP address to set.
    */
-  void listenIp(const std::string& ip);
+  void listenIp(const std::string &ip);
 
   /**
    * @brief Returns the port number for listening.
    *
    * @return A constant reference to the port number.
    */
-  const unsigned short& listenPort() const;
+  const unsigned short &listenPort() const;
 
   /**
    * @brief Sets the port number for listening.
@@ -189,14 +189,14 @@ class Config : private Uncopyable {
    *
    * @return A constant reference to the operational mode.
    */
-  const RunMode& runMode() const;
+  const RunMode &runMode() const;
 
   /**
    * @brief Returns the path to the configuration file.
    *
    * @return A constant reference to the file path.
    */
-  const std::string& filePath() const;
+  const std::string &filePath() const;
 
   /**
    * @brief Converts the operational mode to a string representation.

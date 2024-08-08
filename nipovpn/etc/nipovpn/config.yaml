@@ -9,11 +9,11 @@ general:
   # timeWait: unsigned int(0-4,294,967,295)
   # Defines the time wait between each reapeat to read from socket.
   #   This directive will be usefull when you expect to read very long stream from socket
-  timeWait: 1
+  timeWait: 5
   # repeatWait: unsigned short(1-65,635)
   # Defines the loop count which will try to repeat read from socket.
   #   Same as timeWait
-  repeatWait: 5
+  repeatWait: 10
   keepAlive: 5
 
 # This block is to define log directives
@@ -27,13 +27,13 @@ log:
 # This block is to define server directives
 server:
   # threads: number of threads in server
-  threads: 1
+  threads: 8
   listenIp: "0.0.0.0"
   listenPort: 443
 
 # This block is to define agent directives
 agent:
-  threads: 1
+  threads: 8
   listenIp: "0.0.0.0"
   listenPort: 8080
   serverIp: "127.0.0.1"
