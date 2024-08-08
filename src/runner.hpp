@@ -51,6 +51,8 @@ class Runner : private Uncopyable {
    */
   void workerThread();
 
+  void stop();
+
   // Configuration object for the server.
   const std::shared_ptr<Config>& config_;
 

@@ -31,22 +31,14 @@ void Runner::run() {
     log_->write(config_->toString(), Log::Level::INFO);
 
     // Create and initialize the TCP server
-    TCPServer::pointer tcpServer =
-        TCPServer::create(io_context_, config_, log_);
+    auto tcpServer = TCPServer::create(io_context_, config_, log_);
 
     // Start initial worker threads
     for (auto i = 0; i < config_->threads(); ++i) {
       threadPool_.emplace_back([this] { workerThread(); });
     }
 
-    // Main loop to continuously add new worker threads
-    while (running_.load()) {
-      threadPool_.emplace_back([this] { workerThread(); });
-      std::this_thread::sleep_for(std::chrono::seconds(
-          1));  // Sleep for a second before adding more threads
-    }
-
-    // Ensure all threads are joined before exiting
+    // Wait for all threads to finish
     for (auto& thread : threadPool_) {
       if (thread.joinable()) {
         thread.join();
@@ -63,16 +55,21 @@ void Runner::run() {
 
 // Function for worker threads to process tasks
 void Runner::workerThread() {
-  while (running_.load()) {  // Continue processing while running is true
+  while (running_.load()) {
     try {
-      io_context_.run();  // Process asynchronous operations
+      io_context_.run();
+      break;  // Exit loop if io_context_.run() completes
     } catch (const std::exception& e) {
-      // Log exceptions that occur in worker threads
       log_->write(std::string("[WorkerThread] Exception: ") + e.what(),
                   Log::Level::ERROR);
     } catch (...) {
-      // Log any unknown exceptions that occur in worker threads
-      log_->write("[WorkerThread] Unknown exception", Log::Level::ERROR);
+      log_->write("[WorkerThread] Unknown error occurred", Log::Level::ERROR);
     }
   }
+}
+
+// Function to stop thread
+void Runner::stop() {
+  running_.store(false);
+  io_context_.stop();
 }
