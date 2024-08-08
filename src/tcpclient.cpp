@@ -126,6 +126,8 @@ void TCPClient::doRead() {
           boost::asio::read(socket_, readBuffer_,
                             boost::asio::transfer_exactly(1), error);
           if (error == boost::asio::error::eof) {
+            log_->write("[TCPClient doRead] [EOF] Connection closed by peer.",
+                        Log::Level::TRACE);
             socket_.close();
             return;  // Exit after closing the socket
           } else if (error) {
@@ -150,6 +152,12 @@ void TCPClient::doRead() {
                         std::to_string(socket_.remote_endpoint().port()) +
                         "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
                     Log::Level::DEBUG);
+        log_->write("[Read from] [SRC " +
+                        socket_.remote_endpoint().address().to_string() + ":" +
+                        std::to_string(socket_.remote_endpoint().port()) +
+                        "] " + "[Bytes " + std::to_string(readBuffer_.size()) +
+                        "] ",
+                    Log::Level::TRACE);
       } catch (std::exception& error) {
         // Log exceptions during logging
         log_->write(

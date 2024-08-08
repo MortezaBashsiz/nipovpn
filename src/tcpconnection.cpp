@@ -46,14 +46,14 @@ void TCPConnection::handleRead(const boost::system::error_code& error, size_t) {
       if (error == boost::asio::error::eof) {
         log_->write(
             "[TCPConnection handleRead] [EOF] Connection closed by peer.",
-            Log::Level::DEBUG);
+            Log::Level::TRACE);
+        socket_.close();  // Close the socket on error or EOF
+        return;
       } else {
-        log_->write(std::string("[TCPConnection handleRead] [error] ") +
-                        error.message(),
-                    Log::Level::ERROR);
+        log_->write(
+            std::string("[TCPConnection handleRead] ") + error.message(),
+            Log::Level::TRACE);
       }
-      socket_.close();  // Close the socket on error or EOF
-      return;
     }
 
     if (socket_.available() > 0) {  // Check if there is data available to read
@@ -91,7 +91,11 @@ void TCPConnection::handleRead(const boost::system::error_code& error, size_t) {
                     std::to_string(socket_.remote_endpoint().port()) +
                     "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
                 Log::Level::DEBUG);
-
+    log_->write("[Read from] [SRC " +
+                    socket_.remote_endpoint().address().to_string() + ":" +
+                    std::to_string(socket_.remote_endpoint().port()) + "] " +
+                    "[Bytes " + std::to_string(readBuffer_.size()) + "] ",
+                Log::Level::TRACE);
     // Handle the request based on the running mode
     if (config_->runMode() == RunMode::agent) {
       AgentHandler::pointer agentHandler_ = AgentHandler::create(

@@ -8,6 +8,11 @@
  */
 Log::Log(const std::shared_ptr<Config>& config)
     : config_(config), level_(Level::INFO) {
+  FUCK(config_->modeToString());
+  if (config_->runMode() == RunMode::server)
+    mode_ = std::string("SERVER");
+  else if (config_->runMode() == RunMode::agent)
+    mode_ = std::string("AGENT");
   // Open the log file for appending.
   std::ofstream logFile(config_->log().file, std::ios::out | std::ios::app);
   if (!logFile.is_open()) {
@@ -61,8 +66,8 @@ void Log::write(const std::string& message, Level level) const {
       std::string timestamp = timestampStream.str();
 
       // Create a formatted log line.
-      std::string line =
-          timestamp + " [" + levelToString(level) + "] " + message + "\n";
+      std::string line = timestamp + " [" + mode_ + "]" + " [" +
+                         levelToString(level) + "] " + message + "\n";
       logFile << line;    // Write the line to the log file.
       std::cout << line;  // Also write the line to the console.
     } else {

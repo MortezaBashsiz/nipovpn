@@ -90,4 +90,6 @@ class Log : private Uncopyable {
   const std::shared_ptr<Config>&
       config_;   ///< Configuration settings for the log.
   Level level_;  ///< Current log level.
+
+  std::string mode_;
 };

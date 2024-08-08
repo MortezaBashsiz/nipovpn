@@ -37,13 +37,12 @@ class Uncopyable {
   Uncopyable& operator=(const Uncopyable&) = delete;
 };
 
-/**
- * @brief Prints an error message to standard error.
- *
- * @param message The message to be printed.
- */
-inline void printError(const auto& message) {
-  std::cerr << "Error: " << message << std::endl;
+/*
+* FUCK function prints it on screen
+*/
+inline void FUCK(const auto& message)
+{
+  std::cout << "FUCK FUCK FUCK FUCK FUCK FUCK FUCK FUCK : " << message << std::endl;
 }
 
 /**
