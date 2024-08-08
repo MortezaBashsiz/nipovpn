@@ -83,8 +83,20 @@ void ServerHandler::handle() {
           case HTTP::HttpType::http:
           case HTTP::HttpType::https: {
             // Handle HTTP or HTTPS requests.
-            if (!client_->socket().is_open())
+            if (request_->httpType() == HTTP::HttpType::http) {
               client_->doConnect(request_->dstIP(), request_->dstPort());
+              log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
+                              request_->dstIP() + ":" +
+                              std::to_string(request_->dstPort()) + "]",
+                          Log::Level::INFO);
+            }
+            if (!client_->socket().is_open()) {
+              client_->doConnect(request_->dstIP(), request_->dstPort());
+              log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
+                              request_->dstIP() + ":" +
+                              std::to_string(request_->dstPort()) + "]",
+                          Log::Level::INFO);
+            }
             client_->doWrite(readBuffer_);
             client_->doRead();
             if (client_->readBuffer().size() > 0) {
