@@ -33,6 +33,10 @@ If you want to hide your HTTP requests in the Internet, this proxy could help yo
 Here you can see the logical flow of a single request from first step to get the response
 ![Flow](https://github.com/MortezaBashsiz/nipovpn/blob/main/files/pic/flow.png)
 
+
+## Contribution
+To contribute take a look at [contribution page](https://github.com/MortezaBashsiz/nipovpn/blob/main/CONTRIBUTING.md).
+
 ## Installation
 
 ### Source
