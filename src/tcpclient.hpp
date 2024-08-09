@@ -76,7 +76,7 @@ class TCPClient : public boost::enable_shared_from_this<TCPClient> {
    * @param dstIP - Destination IP address as a string.
    * @param dstPort - Destination port number.
    */
-  void doConnect(const std::string &dstIP, const unsigned short &dstPort);
+  bool doConnect(const std::string &dstIP, const unsigned short &dstPort);
 
   /*
    * Writes data from the internal write buffer to the connected socket.

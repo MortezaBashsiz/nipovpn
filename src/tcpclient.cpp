@@ -47,7 +47,7 @@ void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
  * @param dstIP - Destination IP address as a string.
  * @param dstPort - Destination port number.
  */
-void TCPClient::doConnect(const std::string &dstIP,
+bool TCPClient::doConnect(const std::string &dstIP,
                           const unsigned short &dstPort) {
   try {
     // Log connection attempt
@@ -57,13 +57,20 @@ void TCPClient::doConnect(const std::string &dstIP,
 
     // Resolve the endpoint and connect
     boost::asio::ip::tcp::resolver resolver(io_context_);
-    auto endpoint =
-        resolver.resolve(dstIP.c_str(), std::to_string(dstPort).c_str());
-    boost::asio::connect(socket_, endpoint);
+    boost::system::error_code error_code;
+    auto endpoint = resolver.resolve(
+        dstIP.c_str(), std::to_string(dstPort).c_str(), error_code);
+    if (error_code) {
+      return false;
+    } else {
+      boost::asio::connect(socket_, endpoint);
+      return true;
+    }
   } catch (std::exception &error) {
     // Log connection errors
     log_->write(std::string("[TCPClient doConnect] ") + error.what(),
                 Log::Level::ERROR);
+    return false;
   }
 }
 

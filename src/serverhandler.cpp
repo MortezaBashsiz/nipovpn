@@ -66,11 +66,18 @@ void ServerHandler::handle() {
             // Handle CONNECT request to establish a connection.
             boost::asio::streambuf tempBuff;
             std::iostream os(&tempBuff);
-            client_->doConnect(request_->dstIP(), request_->dstPort());
-            log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
-                            request_->dstIP() + ":" +
-                            std::to_string(request_->dstPort()) + "]",
-                        Log::Level::INFO);
+            if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
+              log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
+                              request_->dstIP() + ":" +
+                              std::to_string(request_->dstPort()) + "]",
+                          Log::Level::INFO);
+            } else {
+              log_->write(
+                  std::string("[CONNECT] [ERROR] [Resolving Host] [SRC ") +
+                      clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
+                      std::to_string(request_->dstPort()) + "]",
+                  Log::Level::INFO);
+            }
             if (client_->socket().is_open()) {
               std::string message(
                   "HTTP/1.1 200 Connection established\r\n\r\n");
@@ -85,18 +92,21 @@ void ServerHandler::handle() {
           case HTTP::HttpType::https: {
             // Handle HTTP or HTTPS requests.
             if (request_->httpType() == HTTP::HttpType::http) {
-              client_->doConnect(request_->dstIP(), request_->dstPort());
-              log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
-                              request_->dstIP() + ":" +
-                              std::to_string(request_->dstPort()) + "]",
-                          Log::Level::INFO);
+              if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
+                log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
+                                request_->dstIP() + ":" +
+                                std::to_string(request_->dstPort()) + "]",
+                            Log::Level::INFO);
+              } else {
+                log_->write(
+                    std::string("[CONNECT] [ERROR] [Resolving Host] [SRC ") +
+                        clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
+                        std::to_string(request_->dstPort()) + "]",
+                    Log::Level::INFO);
+              }
             }
             if (!client_->socket().is_open()) {
               client_->doConnect(request_->dstIP(), request_->dstPort());
-              log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
-                              request_->dstIP() + ":" +
-                              std::to_string(request_->dstPort()) + "]",
-                          Log::Level::INFO);
             }
             client_->doWrite(readBuffer_);
             client_->doRead();
@@ -110,8 +120,14 @@ void ServerHandler::handle() {
                 std::string newRes(
                     request_->genHttpOkResString(encode64(encryption.message)));
                 copyStringToStreambuf(newRes, writeBuffer_);
-                if (request_->httpType() == HTTP::HttpType::http)
+                if (request_->httpType() == HTTP::HttpType::http) {
                   client_->socket().close();
+                } else {
+                  if (request_->parsedTlsRequest().type ==
+                      HTTP::TlsTypes::ApplicationData) {
+                    client_->socket().close();
+                  }
+                }
               } else {
                 // Log encryption failure and close the connection.
                 log_->write(
