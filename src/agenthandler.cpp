@@ -58,8 +58,16 @@ void AgentHandler::handle() {
           request_->httpType() == HTTP::HttpType::connect) {
         // Connect the TCP client to the server
         boost::system::error_code ec;
-        client_->doConnect(config_->agent().serverIp,
-                           config_->agent().serverPort);
+        ;
+
+        if (!client_->doConnect(config_->agent().serverIp,
+                                config_->agent().serverPort)) {
+          log_->write(std::string("[CONNECT] [ERROR] [To Server] [SRC ") +
+                          clientConnStr_ + "] [DST " +
+                          config_->agent().serverIp + ":" +
+                          std::to_string(config_->agent().serverPort) + "]",
+                      Log::Level::INFO);
+        }
 
         // Check for connection errors
         if (ec) {

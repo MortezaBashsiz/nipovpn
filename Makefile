@@ -34,7 +34,10 @@ DEPS := $(OBJS:.o=.d)
 build: all
 
 # Main task
-all: $(TARGET) deb
+all: format $(TARGET) deb
+
+format:
+	clang-format --style=Google -i src/*
 
 # Task producing target from built files
 $(TARGET): $(OBJS)
