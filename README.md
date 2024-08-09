@@ -168,7 +168,7 @@ Config :
 Currently it is only available for debian based Linuxs and fully tested on ubuntu 24.04
 You can simply install the package
 ```bash
-[~]>$ wget https://github.com/MortezaBashsiz/nipovpn/raw/main/files/deb/nipovpn.deb
+[~]>$ wget https://raw.githubusercontent.com/MortezaBashsiz/nipovpn/main/files/deb/nipovpn.deb
 [~]>$ sudo apt install ./nipovpn.deb
 ```
 
