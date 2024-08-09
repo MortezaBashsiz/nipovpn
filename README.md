@@ -33,47 +33,6 @@ If you want to hide your HTTP requests in the Internet, this proxy could help yo
 Here you can see the logical flow of a single request from first step to get the response
 ![Flow](https://github.com/MortezaBashsiz/nipovpn/blob/main/files/pic/flow.png)
 
-## Configuration and features
-This is the sample configuration file
-```yaml
----
-general:
-  fakeUrl: "http://www.adas.com/api01"
-  method: "HEAD"
-  timeWait: 0
-  repeatWait: 1
-  keepAlive: 5
-
-log:
-  logLevel: "DEBUG"
-  logFile: "/var/log/nipovpn/nipovpn.log"
-
-server:
-  threads: 4
-  listenIp: "0.0.0.0"
-  listenPort: 443
-
-agent:
-  threads: 4
-  listenIp: "0.0.0.0"
-  listenPort: 8080
-  serverIp: "127.0.0.1"
-  serverPort: 443
-  token: "af445adb-2434-4975-9445-2c1b2231"
-  httpVersion: "1.1"
-  userAgent : "NipoAgent
-```
-
-### General
-```yaml
-general:
-  fakeUrl: "http://www.adas.com/api01"
-  method: "HEAD"
-  timeWait: 0
-  repeatWait: 1
-  keepAlive: 5
-```
-
 ## Installation
 
 ### Source

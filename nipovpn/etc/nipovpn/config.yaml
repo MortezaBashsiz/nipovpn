@@ -14,7 +14,6 @@ general:
   # Defines the loop count which will try to repeat read from socket.
   #   Same as timeWait
   repeatWait: 1
-  keepAlive: 5
 
 # This block is to define log directives
 log:
@@ -28,16 +27,26 @@ log:
 server:
   # threads: number of threads in server
   threads: 8
+  # listenIp: which must be IPv4 which is used on server
   listenIp: "0.0.0.0"
+  # listenPort: the port number which will be used on server
   listenPort: 443
 
 # This block is to define agent directives
 agent:
+  # threads: number of threads in agent
   threads: 8
+  # listenIp: which must be IPv4 which is used on agent
   listenIp: "0.0.0.0"
+  # listenPort: the port number which will be used on agent
   listenPort: 8080
+  # serverIp: IPv4 of the nipoServer
   serverIp: "127.0.0.1"
+  # serverPort: port number of the nipoServer
   serverPort: 443
+  # token: 32 bytes of string. this will be used on agent and server side to encryption
   token: "af445adb-2434-4975-9445-2c1b2231"
+  # httpVersion: This version will be used between agent and server
   httpVersion: "1.1"
-  userAgent : "NipoAgent
+  # userAgent: This is the http user agent which will be used between agent and server
+  userAgent : "NipoAgent"
