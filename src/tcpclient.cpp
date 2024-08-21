@@ -179,7 +179,7 @@ void TCPClient::doRead() {
   } catch (std::exception &error) {
     // Log exceptions during the read operation
     log_->write(std::string("[TCPClient doRead] [catch read] ") + error.what(),
-                Log::Level::ERROR);
+                Log::Level::DEBUG);
     socket_.close();  // Ensure socket closure on error
     return;
   }
