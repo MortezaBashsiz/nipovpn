@@ -21,6 +21,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 /**
  * @brief Base class to prevent copying of derived classes.
@@ -60,11 +61,11 @@ struct BoolStr {
  * @brief Checks if a file exists.
  *
  * @param name The name of the file to check.
- * @return true if the file exists, false otherwise.
+ * @return True if the file exists, false otherwise.
  */
 inline bool fileExists(const std::string &name) {
-  std::ifstream file(name.c_str());
-  return file.good();
+  namespace fs = std::filesystem;
+  return fs::exists(fs::path { name });
 }
 
 /**
