@@ -34,3 +34,7 @@
 *.bin
 temp
 build
+
+# Editor files/directories
+.vscode/*
+*.swp
