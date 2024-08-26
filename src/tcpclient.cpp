@@ -120,37 +120,38 @@ void TCPClient::doRead() {
     // Clear the read buffer
     readBuffer_.consume(readBuffer_.size());
     boost::system::error_code error;
-    // Read at least 1 byte from the socket
-    boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(1),
+    // Read at least 39 byte from the socket
+    boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(39),
                       error);
-
-    if (socket_.available() > 0) {
-      // Implement retry mechanism if data is still available
-      boost::asio::deadline_timer timer{io_context_};
-      for (auto i = 0; i <= config_->general().repeatWait; i++) {
-        while (true) {
-          if (socket_.available() == 0) break;
-          boost::asio::read(socket_, readBuffer_,
-                            boost::asio::transfer_exactly(1), error);
-          if (error == boost::asio::error::eof) {
-            log_->write(
-                "[TCPClient doRead] [EOF] Connection "
-                "closed by peer.",
-                Log::Level::TRACE);
-            socket_.close();
-            return;  // Exit after closing the socket
-          } else if (error) {
-            log_->write(
-                std::string("[TCPClient doRead] [error] ") + error.message(),
-                Log::Level::ERROR);
-            socket_.close();
-            return;  // Exit after closing the socket
-          }
+    // Implement retry mechanism if data is still available
+    boost::asio::deadline_timer timer{io_context_};
+    for (auto i = 0; i <= config_->general().repeatWait; i++) {
+      while (true) {
+        if (!socket_.is_open()) {
+          log_->write("[TCPClient doRead] Socket is not OPEN",
+                      Log::Level::DEBUG);
+          socket_.close();
+          return;
         }
-        timer.expires_from_now(
-            boost::posix_time::milliseconds(config_->general().timeWait));
-        timer.wait();
+        if (socket_.available() == 0) break;
+        boost::asio::read(socket_, readBuffer_,
+                          boost::asio::transfer_exactly(1), error);
+        if (error == boost::asio::error::eof) {
+          log_->write("[TCPClient doRead] [EOF] Connection closed by peer.",
+                      Log::Level::TRACE);
+          socket_.close();
+          return;  // Exit after closing the socket
+        } else if (error) {
+          log_->write(
+              std::string("[TCPClient doRead] [error] ") + error.message(),
+              Log::Level::ERROR);
+          socket_.close();
+          return;  // Exit after closing the socket
+        }
       }
+      timer.expires_from_now(
+          boost::posix_time::milliseconds(config_->general().timeWait));
+      timer.wait();
     }
 
     if (readBuffer_.size() > 0) {
@@ -175,12 +176,13 @@ void TCPClient::doRead() {
       }
     } else {
       socket_.close();  // Close socket if no data is read
+      return;           // Exit after closing the socket
     }
   } catch (std::exception &error) {
     // Log exceptions during the read operation
     log_->write(std::string("[TCPClient doRead] [catch read] ") + error.what(),
                 Log::Level::DEBUG);
     socket_.close();  // Ensure socket closure on error
-    return;
+    return;           // Exit after closing the socket
   }
 }

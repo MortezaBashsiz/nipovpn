@@ -13,7 +13,8 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
           io_context,
           boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(
                                              config->listenIp()),  // Listen IP
-                                         config->listenPort()))  // Listen port
+                                         config->listenPort())),  // Listen port
+      strand_(boost::asio::make_strand(io_context))  // Initialize the strand
 {
   startAccept();  // Begin accepting incoming connections
 }
@@ -26,13 +27,14 @@ void TCPServer::startAccept() {
   // Set socket option to allow address reuse
   acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
 
-  // Initiate asynchronous accept operation
+  // Initiate asynchronous accept operation using strand to synchronize
   acceptor_.async_accept(
       connection->socket(),  // Socket to be accepted
-      [this, connection](const boost::system::error_code &error) {
-        // Handle the result of the accept operation
-        handleAccept(connection, error);
-      });
+      boost::asio::bind_executor(
+          strand_, [this, connection](const boost::system::error_code &error) {
+            // Handle the result of the accept operation
+            handleAccept(connection, error);
+          }));
 }
 
 // Handles the result of an asynchronous accept operation
@@ -43,7 +45,7 @@ void TCPServer::handleAccept(TCPConnection::pointer connection,
     connection->start();
   } else {
     // Log error details
-    log_->write("[TCPServer handleAccept] " + std::string(error.what()),
+    log_->write("[TCPServer handleAccept] " + std::string(error.message()),
                 Log::Level::ERROR);
   }
 
