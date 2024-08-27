@@ -55,7 +55,7 @@ boost-libs >= 1.75.0
 ```
 
 #### Install Boost Library:
-Follow the instructions on the Boost ![Flow](https://www.boost.org/) to install the Boost library suitable for your system.
+Follow the instructions on the [Boost](https://www.boost.org/) to install the Boost library suitable for your system.
 
 #### Make
 Make the source code
