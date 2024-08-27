@@ -143,6 +143,7 @@ void ServerHandler::handle() {
             } else {
               // Close the connection if no data was read.
               client_->socket().close();
+              return;
             }
           } break;
         }
@@ -151,6 +152,9 @@ void ServerHandler::handle() {
         log_->write("[ServerHandler handle] [NOT HTTP Request] [Request] : " +
                         streambufToString(readBuffer_),
                     Log::Level::DEBUG);
+        // Close the socket if no data is available
+        client_->socket().close();
+        return;
       }
     } else {
       // Log decryption failure and close the connection.
@@ -160,7 +164,9 @@ void ServerHandler::handle() {
       log_->write("[ServerHandler handle] [Decryption Failed] : " +
                       request_->toString(),
                   Log::Level::INFO);
+      // Close the socket if no data is available
       client_->socket().close();
+      return;
     }
   } else {
     // Log if the request is not from an agent.
@@ -168,5 +174,8 @@ void ServerHandler::handle() {
         "[ServerHandler handle] [NOT HTTP Request From Agent] [Request] : " +
             streambufToString(readBuffer_),
         Log::Level::DEBUG);
+    // Close the socket if no data is available
+    client_->socket().close();
+    return;
   }
 }

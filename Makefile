@@ -34,7 +34,10 @@ DEPS := $(OBJS:.o=.d)
 build: all
 
 # Main task
-all: format $(TARGET) deb
+all: format $(TARGET)
+
+# Build package
+deb: deb
 
 format:
 	clang-format --style=Google -i src/*

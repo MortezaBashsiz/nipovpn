@@ -146,12 +146,16 @@ void AgentHandler::handle() {
       } else {
         // Close the socket if no data is available
         client_->socket().close();
+        return;
       }
     } else {
       // Log if the request is not a valid HTTP request
       log_->write("[AgentHandler handle] [NOT HTTP Request] [Request] : " +
                       streambufToString(readBuffer_),
                   Log::Level::DEBUG);
+      // Close the socket if no data is available
+      client_->socket().close();
+      return;
     }
   } else {
     // Log encryption failure and close the socket
@@ -163,6 +167,8 @@ void AgentHandler::handle() {
             client_->socket().remote_endpoint().address().to_string() + ":" +
             std::to_string(client_->socket().remote_endpoint().port()) + "] ",
         Log::Level::INFO);
+    // Close the socket if no data is available
     client_->socket().close();
+    return;
   }
 }
