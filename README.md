@@ -11,11 +11,6 @@ NipoVPN is a powerful proxy tool designed to conceal your HTTP requests within f
   - Boost Library Integration: Utilizes Boost for robust and reliable networking operations.
   - High Performance: Optimized for speed and efficiency, ensuring minimal impact on request latency.
 
-## Requirements
-
-    C++20 or higher
-    Boost 1.75.0 or higher
-
 
 ## Usecases
 
@@ -37,56 +32,13 @@ Here you can see the logical flow of a single request from first step to get the
 ## Contribution
 To contribute take a look at [contribution page](https://github.com/MortezaBashsiz/nipovpn/blob/main/CONTRIBUTING.md).
 
-## Installation
+## Build
 
-### Source
+Build from source for [Linux](guides/BuildLinux.md)
 
-#### Dependencies
-This program needs following dependencies
-```bash
-libyaml-cpp >= 0.8
-boost-libs >= 1.75.0
-```
 
-#### Clone
-```bash
-[~]>$ git@github.com:MortezaBashsiz/nipovpn.git
-[~]>$ cd nipovpn
-```
 
-#### Install Boost Library:
-Follow the instructions on the [Boost](https://www.boost.org/) to install the Boost library suitable for your system.
-
-#### Make
-Make the source code
-```bash
-[~/nipovpn]>$ make 
-mkdir -p build/
-g++ -Wall -Wextra -std=c++20 -ggdb  -MMD -MP -Iinclude -Isrc -c -o build/tcpserver.o src/tcpserver.cpp -Llib -lyaml-cpp -lssl -lcrypto
-mkdir -p build/
-g++ -Wall -Wextra -std=c++20 -ggdb  -MMD -MP -Iinclude -Isrc -c -o build/main.o src/main.cpp -Llib -lyaml-cpp -lssl -lcrypto
-mkdir -p build/
-g++ -Wall -Wextra -std=c++20 -ggdb  -MMD -MP -Iinclude -Isrc -c -o build/agenthandler.o src/agenthandler.cpp -Llib -lyaml-cpp -lssl -lcrypto
-mkdir -p build/
-g++ -Wall -Wextra -std=c++20 -ggdb  -MMD -MP -Iinclude -Isrc -c -o build/config.o src/config.cpp -Llib -lyaml-cpp -lssl -lcrypto
-mkdir -p build/
-g++ -Wall -Wextra -std=c++20 -ggdb  -MMD -MP -Iinclude -Isrc -c -o build/tcpclient.o src/tcpclient.cpp -Llib -lyaml-cpp -lssl -lcrypto
-mkdir -p build/
-g++ -Wall -Wextra -std=c++20 -ggdb  -MMD -MP -Iinclude -Isrc -c -o build/http.o src/http.cpp -Llib -lyaml-cpp -lssl -lcrypto
-mkdir -p build/
-g++ -Wall -Wextra -std=c++20 -ggdb  -MMD -MP -Iinclude -Isrc -c -o build/tcpconnection.o src/tcpconnection.cpp -Llib -lyaml-cpp -lssl -lcrypto
-mkdir -p build/
-g++ -Wall -Wextra -std=c++20 -ggdb  -MMD -MP -Iinclude -Isrc -c -o build/log.o src/log.cpp -Llib -lyaml-cpp -lssl -lcrypto
-mkdir -p build/
-g++ -Wall -Wextra -std=c++20 -ggdb  -MMD -MP -Iinclude -Isrc -c -o build/serverhandler.o src/serverhandler.cpp -Llib -lyaml-cpp -lssl -lcrypto
-mkdir -p build/
-g++ -Wall -Wextra -std=c++20 -ggdb  -MMD -MP -Iinclude -Isrc -c -o build/runner.o src/runner.cpp -Llib -lyaml-cpp -lssl -lcrypto
-Building...
-mkdir -p nipovpn/usr/bin/
-g++ build/tcpserver.o build/main.o build/agenthandler.o build/config.o build/tcpclient.o build/http.o build/tcpconnection.o build/log.o build/serverhandler.o build/runner.o -o nipovpn/usr/bin/nipovpn -Llib -lyaml-cpp -lssl -lcrypto
-[~/nipovpn]>$
-
-```
+## Run
 
 #### Create directories
 Create the log directory and log file
@@ -95,10 +47,9 @@ Create the log directory and log file
 [~/nipovpn]>$ sudo touch /var/log/nipovpn/nipovpn.log 
 ```
 
-#### Run
 Run it
 ```bash
-[~/nipovpn]>$ sudo nipovpn/usr/bin/nipovpn server nipovpn/etc/nipovpn/config.yaml
+sudo build/core/nipovpn_core server nipovpn/etc/nipovpn/config.yaml
 2024-08-02_15:30:07 [INFO] Config initialized in server mode 
 2024-08-02_15:30:07 [INFO] 
 Config :

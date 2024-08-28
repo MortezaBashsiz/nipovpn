@@ -34,3 +34,5 @@
 *.bin
 temp
 build
+.idea
+/cmake-build-debug/
