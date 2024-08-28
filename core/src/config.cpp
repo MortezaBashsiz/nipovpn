@@ -30,19 +30,19 @@ Config::Config(const RunMode &mode, const std::string &filePath)
               configYaml_["agent"]["token"].as<std::string>(),
               configYaml_["agent"]["httpVersion"].as<std::string>(),
               configYaml_["agent"]["userAgent"].as<std::string>()}) {
-  // Set specific parameters based on the operational mode.
-  switch (runMode_) {
-    case RunMode::server:
-      threads_ = server_.threads;
-      listenIp_ = server_.listenIp;
-      listenPort_ = server_.listenPort;
-      break;
-    case RunMode::agent:
-      threads_ = agent_.threads;
-      listenIp_ = agent_.listenIp;
-      listenPort_ = agent_.listenPort;
-      break;
-  }
+    // Set specific parameters based on the operational mode.
+    switch (runMode_) {
+        case RunMode::server:
+            threads_ = server_.threads;
+            listenIp_ = server_.listenIp;
+            listenPort_ = server_.listenPort;
+            break;
+        case RunMode::agent:
+            threads_ = agent_.threads;
+            listenIp_ = agent_.listenIp;
+            listenPort_ = agent_.listenPort;
+            break;
+    }
 }
 
 /**
@@ -69,30 +69,30 @@ Config::~Config() = default;
  * @return A string describing the configuration settings.
  */
 std::string Config::toString() const {
-  std::stringstream ss;
-  ss << "\nConfig :\n"
-     << " General :\n"
-     << "   fakeUrl: " << general_.fakeUrl << "\n"
-     << "   method: " << general_.method << "\n"
-     << "   timeWait: " << general_.timeWait << "\n"
-     << "   repeatWait: " << general_.repeatWait << "\n"
-     << " Log :\n"
-     << "   logLevel: " << log_.level << "\n"
-     << "   logFile: " << log_.file << "\n"
-     << " server :\n"
-     << "   threads: " << server_.threads << "\n"
-     << "   listenIp: " << server_.listenIp << "\n"
-     << "   listenPort: " << server_.listenPort << "\n"
-     << " agent :\n"
-     << "   threads: " << agent_.threads << "\n"
-     << "   listenIp: " << agent_.listenIp << "\n"
-     << "   listenPort: " << agent_.listenPort << "\n"
-     << "   serverIp: " << agent_.serverIp << "\n"
-     << "   serverPort: " << agent_.serverPort << "\n"
-     << "   token: " << agent_.token << "\n"
-     << "   httpVersion: " << agent_.httpVersion << "\n"
-     << "   userAgent: " << agent_.userAgent << "\n";
-  return ss.str();
+    std::stringstream ss;
+    ss << "\nConfig :\n"
+       << " General :\n"
+       << "   fakeUrl: " << general_.fakeUrl << "\n"
+       << "   method: " << general_.method << "\n"
+       << "   timeWait: " << general_.timeWait << "\n"
+       << "   repeatWait: " << general_.repeatWait << "\n"
+       << " Log :\n"
+       << "   logLevel: " << log_.level << "\n"
+       << "   logFile: " << log_.file << "\n"
+       << " server :\n"
+       << "   threads: " << server_.threads << "\n"
+       << "   listenIp: " << server_.listenIp << "\n"
+       << "   listenPort: " << server_.listenPort << "\n"
+       << " agent :\n"
+       << "   threads: " << agent_.threads << "\n"
+       << "   listenIp: " << agent_.listenIp << "\n"
+       << "   listenPort: " << agent_.listenPort << "\n"
+       << "   serverIp: " << agent_.serverIp << "\n"
+       << "   serverPort: " << agent_.serverPort << "\n"
+       << "   token: " << agent_.token << "\n"
+       << "   httpVersion: " << agent_.httpVersion << "\n"
+       << "   userAgent: " << agent_.userAgent << "\n";
+    return ss.str();
 }
 
 /**
@@ -185,12 +185,12 @@ const std::string &Config::filePath() const { return filePath_; }
  * @return A string describing the operational mode.
  */
 std::string Config::modeToString() const {
-  switch (runMode_) {
-    case RunMode::server:
-      return "server";
-    case RunMode::agent:
-      return "agent";
-    default:
-      return "UNKNOWN MODE";
-  }
+    switch (runMode_) {
+        case RunMode::server:
+            return "server";
+        case RunMode::agent:
+            return "agent";
+        default:
+            return "UNKNOWN MODE";
+    }
 }

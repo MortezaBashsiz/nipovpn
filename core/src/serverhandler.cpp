@@ -20,7 +20,7 @@ ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
       readBuffer_(readBuffer),
       writeBuffer_(writeBuffer),
       request_(HTTP::create(config, log, readBuffer)),
-      clientConnStr_(clientConnStr)  // Initialize client connection string
+      clientConnStr_(clientConnStr)// Initialize client connection string
 {}
 
 /*
@@ -34,148 +34,148 @@ ServerHandler::~ServerHandler() {}
  * request.
  */
 void ServerHandler::handle() {
-  // Detects the type of request (HTTP/HTTPS).
-  if (request_->detectType()) {
-    // Log the received request from the agent.
-    log_->write(
-        "[ServerHandler handle] [Request From Agent] : " + request_->toString(),
-        Log::Level::DEBUG);
-
-    // Decrypt the request body using AES256.
-    BoolStr decryption{false, std::string("FAILED")};
-    decryption = aes256Decrypt(decode64(boost::lexical_cast<std::string>(
-                                   request_->parsedHttpRequest().body())),
-                               config_->agent().token);
-
-    if (decryption.ok) {
-      // Log successful decryption and process the request.
-      log_->write(
-          "[ServerHandler handle] [Token Valid] : " + request_->toString(),
-          Log::Level::DEBUG);
-      auto tempHexArr = strToHexArr(decryption.message);
-      std::string tempHexArrStr(tempHexArr.begin(), tempHexArr.end());
-      copyStringToStreambuf(tempHexArrStr, readBuffer_);
-
-      // Re-check the request type and process accordingly.
-      if (request_->detectType()) {
+    // Detects the type of request (HTTP/HTTPS).
+    if (request_->detectType()) {
+        // Log the received request from the agent.
         log_->write(
-            "[ServerHandler handle] [Request] : " + request_->toString(),
-            Log::Level::DEBUG);
-        switch (request_->httpType()) {
-          case HTTP::HttpType::connect: {
-            // Handle CONNECT request to establish a connection.
-            boost::asio::streambuf tempBuff;
-            std::iostream os(&tempBuff);
-            if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
-              log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
-                              request_->dstIP() + ":" +
-                              std::to_string(request_->dstPort()) + "]",
-                          Log::Level::INFO);
-            } else {
-              log_->write(
-                  std::string("[CONNECT] [ERROR] [Resolving Host] [SRC ") +
-                      clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
-                      std::to_string(request_->dstPort()) + "]",
-                  Log::Level::INFO);
-            }
-            if (client_->socket().is_open()) {
-              std::string message(
-                  "HTTP/1.1 200 Connection established\r\n\r\n");
-              os << message;
-            } else {
-              std::string message("HTTP/1.1 500 Connection failed\r\n\r\n");
-              os << message;
-            }
-            moveStreambuf(tempBuff, writeBuffer_);
-          } break;
-          case HTTP::HttpType::http:
-          case HTTP::HttpType::https: {
-            // Handle HTTP or HTTPS requests.
-            if (request_->httpType() == HTTP::HttpType::http) {
-              if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
-                log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
-                                request_->dstIP() + ":" +
-                                std::to_string(request_->dstPort()) + "]",
-                            Log::Level::INFO);
-              } else {
+                "[ServerHandler handle] [Request From Agent] : " + request_->toString(),
+                Log::Level::DEBUG);
+
+        // Decrypt the request body using AES256.
+        BoolStr decryption{false, std::string("FAILED")};
+        decryption = aes256Decrypt(decode64(boost::lexical_cast<std::string>(
+                                           request_->parsedHttpRequest().body())),
+                                   config_->agent().token);
+
+        if (decryption.ok) {
+            // Log successful decryption and process the request.
+            log_->write(
+                    "[ServerHandler handle] [Token Valid] : " + request_->toString(),
+                    Log::Level::DEBUG);
+            auto tempHexArr = strToHexArr(decryption.message);
+            std::string tempHexArrStr(tempHexArr.begin(), tempHexArr.end());
+            copyStringToStreambuf(tempHexArrStr, readBuffer_);
+
+            // Re-check the request type and process accordingly.
+            if (request_->detectType()) {
                 log_->write(
-                    std::string("[CONNECT] [ERROR] [Resolving Host] [SRC ") +
-                        clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
-                        std::to_string(request_->dstPort()) + "]",
-                    Log::Level::INFO);
-              }
-            }
-            if (!client_->socket().is_open()) {
-              client_->doConnect(request_->dstIP(), request_->dstPort());
-            }
-            client_->doWrite(readBuffer_);
-            client_->doRead();
-            if (client_->readBuffer().size() > 0) {
-              // Encrypt the response and send it back.
-              BoolStr encryption{false, std::string("FAILED")};
-              encryption =
-                  aes256Encrypt(streambufToString(client_->readBuffer()),
-                                config_->agent().token);
-              if (encryption.ok) {
-                std::string newRes(
-                    request_->genHttpOkResString(encode64(encryption.message)));
-                copyStringToStreambuf(newRes, writeBuffer_);
-                if (request_->httpType() == HTTP::HttpType::http) {
-                  client_->socket().close();
-                } else {
-                  if (request_->parsedTlsRequest().type ==
-                      HTTP::TlsTypes::ApplicationData) {
-                    client_->socket().close();
-                  }
+                        "[ServerHandler handle] [Request] : " + request_->toString(),
+                        Log::Level::DEBUG);
+                switch (request_->httpType()) {
+                    case HTTP::HttpType::connect: {
+                        // Handle CONNECT request to establish a connection.
+                        boost::asio::streambuf tempBuff;
+                        std::iostream os(&tempBuff);
+                        if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
+                            log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
+                                                request_->dstIP() + ":" +
+                                                std::to_string(request_->dstPort()) + "]",
+                                        Log::Level::INFO);
+                        } else {
+                            log_->write(
+                                    std::string("[CONNECT] [ERROR] [Resolving Host] [SRC ") +
+                                            clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
+                                            std::to_string(request_->dstPort()) + "]",
+                                    Log::Level::INFO);
+                        }
+                        if (client_->socket().is_open()) {
+                            std::string message(
+                                    "HTTP/1.1 200 Connection established\r\n\r\n");
+                            os << message;
+                        } else {
+                            std::string message("HTTP/1.1 500 Connection failed\r\n\r\n");
+                            os << message;
+                        }
+                        moveStreambuf(tempBuff, writeBuffer_);
+                    } break;
+                    case HTTP::HttpType::http:
+                    case HTTP::HttpType::https: {
+                        // Handle HTTP or HTTPS requests.
+                        if (request_->httpType() == HTTP::HttpType::http) {
+                            if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
+                                log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
+                                                    request_->dstIP() + ":" +
+                                                    std::to_string(request_->dstPort()) + "]",
+                                            Log::Level::INFO);
+                            } else {
+                                log_->write(
+                                        std::string("[CONNECT] [ERROR] [Resolving Host] [SRC ") +
+                                                clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
+                                                std::to_string(request_->dstPort()) + "]",
+                                        Log::Level::INFO);
+                            }
+                        }
+                        if (!client_->socket().is_open()) {
+                            client_->doConnect(request_->dstIP(), request_->dstPort());
+                        }
+                        client_->doWrite(readBuffer_);
+                        client_->doRead();
+                        if (client_->readBuffer().size() > 0) {
+                            // Encrypt the response and send it back.
+                            BoolStr encryption{false, std::string("FAILED")};
+                            encryption =
+                                    aes256Encrypt(streambufToString(client_->readBuffer()),
+                                                  config_->agent().token);
+                            if (encryption.ok) {
+                                std::string newRes(
+                                        request_->genHttpOkResString(encode64(encryption.message)));
+                                copyStringToStreambuf(newRes, writeBuffer_);
+                                if (request_->httpType() == HTTP::HttpType::http) {
+                                    client_->socket().close();
+                                } else {
+                                    if (request_->parsedTlsRequest().type ==
+                                        HTTP::TlsTypes::ApplicationData) {
+                                        client_->socket().close();
+                                    }
+                                }
+                            } else {
+                                // Log encryption failure and close the connection.
+                                log_->write(
+                                        "[ServerHandler handle] [Encryption "
+                                        "Failed] : [ " +
+                                                decryption.message + "] ",
+                                        Log::Level::DEBUG);
+                                log_->write("[ServerHandler handle] [Encryption Failed] : " +
+                                                    request_->toString(),
+                                            Log::Level::INFO);
+                                client_->socket().close();
+                            }
+                        } else {
+                            // Close the connection if no data was read.
+                            client_->socket().close();
+                            return;
+                        }
+                    } break;
                 }
-              } else {
-                // Log encryption failure and close the connection.
-                log_->write(
-                    "[ServerHandler handle] [Encryption "
-                    "Failed] : [ " +
-                        decryption.message + "] ",
-                    Log::Level::DEBUG);
-                log_->write("[ServerHandler handle] [Encryption Failed] : " +
-                                request_->toString(),
-                            Log::Level::INFO);
-                client_->socket().close();
-              }
             } else {
-              // Close the connection if no data was read.
-              client_->socket().close();
-              return;
+                // Log non-HTTP requests if detected.
+                log_->write("[ServerHandler handle] [NOT HTTP Request] [Request] : " +
+                                    streambufToString(readBuffer_),
+                            Log::Level::DEBUG);
+                // Close the socket if no data is available
+                client_->socket().close();
+                return;
             }
-          } break;
+        } else {
+            // Log decryption failure and close the connection.
+            log_->write("[ServerHandler handle] [Decryption Failed] : [ " +
+                                decryption.message + "] ",
+                        Log::Level::DEBUG);
+            log_->write("[ServerHandler handle] [Decryption Failed] : " +
+                                request_->toString(),
+                        Log::Level::INFO);
+            // Close the socket if no data is available
+            client_->socket().close();
+            return;
         }
-      } else {
-        // Log non-HTTP requests if detected.
-        log_->write("[ServerHandler handle] [NOT HTTP Request] [Request] : " +
+    } else {
+        // Log if the request is not from an agent.
+        log_->write(
+                "[ServerHandler handle] [NOT HTTP Request From Agent] [Request] : " +
                         streambufToString(readBuffer_),
-                    Log::Level::DEBUG);
+                Log::Level::DEBUG);
         // Close the socket if no data is available
         client_->socket().close();
         return;
-      }
-    } else {
-      // Log decryption failure and close the connection.
-      log_->write("[ServerHandler handle] [Decryption Failed] : [ " +
-                      decryption.message + "] ",
-                  Log::Level::DEBUG);
-      log_->write("[ServerHandler handle] [Decryption Failed] : " +
-                      request_->toString(),
-                  Log::Level::INFO);
-      // Close the socket if no data is available
-      client_->socket().close();
-      return;
     }
-  } else {
-    // Log if the request is not from an agent.
-    log_->write(
-        "[ServerHandler handle] [NOT HTTP Request From Agent] [Request] : " +
-            streambufToString(readBuffer_),
-        Log::Level::DEBUG);
-    // Close the socket if no data is available
-    client_->socket().close();
-    return;
-  }
 }
