@@ -96,9 +96,18 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
                     Log::Level::TRACE);
         // Perform the write operation
         boost::system::error_code error;
-        boost::asio::write(socket_, writeBuffer_, error);
-        if (error) {
-            log_->write(std::string("[TCPClient doWrite] [error] ") + error.message(),
+        if (writeBuffer_.size() > 0) {
+            boost::asio::write(socket_, writeBuffer_, error);
+            if (error) {
+                log_->write(std::string("[TCPClient doWrite] [error] ") + error.message(),
+                            Log::Level::DEBUG);
+                socket_.close();// Close socket on write error
+            }
+        } else {
+            log_->write("[TCPClient doWrite] [ZERO Bytes] [DST " +
+                                socket_.remote_endpoint().address().to_string() + ":" +
+                                std::to_string(socket_.remote_endpoint().port()) + "] " +
+                                "[Bytes " + std::to_string(writeBuffer_.size()) + "] ",
                         Log::Level::DEBUG);
             socket_.close();// Close socket on write error
         }
