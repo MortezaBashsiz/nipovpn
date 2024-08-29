@@ -21,59 +21,59 @@
  * context and manage the server lifecycle.
  */
 class Runner : private Uncopyable {
- public:
-  /*
+public:
+    /*
    * Constructor to initialize the Runner object with configuration and logging
    * objects.
    * @param config - Shared pointer to the configuration object.
    * @param log - Shared pointer to the logging object.
    */
-  explicit Runner(const std::shared_ptr<Config> &config,
-                  const std::shared_ptr<Log> &log);
+    explicit Runner(const std::shared_ptr<Config> &config,
+                    const std::shared_ptr<Log> &log);
 
-  /*
+    /*
    * Destructor to clean up resources, stop the I/O context, and join all
    * threads.
    */
-  ~Runner();
+    ~Runner();
 
-  /*
+    /*
    * Main function to start the server and run the I/O context.
    * This function sets up the server, starts worker threads, and manages
    * execution.
    */
-  void run();
+    void run();
 
- private:
-  /*
+private:
+    /*
    * Worker thread function that processes asynchronous operations.
    * This function runs the I/O context and handles exceptions.
    */
-  void workerThread();
+    void workerThread();
 
-  void stop();
+    void stop();
 
-  // Configuration object for the server.
-  const std::shared_ptr<Config> &config_;
+    // Configuration object for the server.
+    const std::shared_ptr<Config> &config_;
 
-  // Logging object for recording messages and errors.
-  const std::shared_ptr<Log> &log_;
+    // Logging object for recording messages and errors.
+    const std::shared_ptr<Log> &log_;
 
-  // Boost.Asio I/O context to manage asynchronous operations.
-  boost::asio::io_context io_context_;
+    // Boost.Asio I/O context to manage asynchronous operations.
+    boost::asio::io_context io_context_;
 
-  // Work guard to prevent the I/O context from running out of work.
-  boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
-      work_guard_;
+    // Work guard to prevent the I/O context from running out of work.
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
+            work_guard_;
 
-  // Atomic flag to indicate if the server is still running.
-  std::atomic<bool> running_;
+    // Atomic flag to indicate if the server is still running.
+    std::atomic<bool> running_;
 
-  // Thread pool to manage worker threads.
-  std::vector<std::thread> threadPool_;
+    // Thread pool to manage worker threads.
+    std::vector<std::thread> threadPool_;
 
-  // Add strand to manage concurrency
-  boost::asio::strand<boost::asio::io_context::executor_type> strand_;
+    // Add strand to manage concurrency
+    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 };
 
 #endif /* RUNNER_HPP */
