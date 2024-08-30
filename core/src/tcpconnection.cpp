@@ -22,6 +22,7 @@ boost::asio::ip::tcp::socket &TCPConnection::socket() {
 }
 
 void TCPConnection::start() {
+    client_->uuid_ = uuid_;
     doRead();// Start reading from the socket
 }
 

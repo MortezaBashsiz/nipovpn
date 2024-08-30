@@ -23,7 +23,6 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
 void TCPServer::startAccept() {
     // Create a new TCP connection
     auto connection = TCPConnection::create(io_context_, config_, log_, client_);
-    client_->uuid_ = connection->uuid();
 
     // Set socket option to allow address reuse
     acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
