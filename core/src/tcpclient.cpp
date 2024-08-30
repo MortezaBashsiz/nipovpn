@@ -1,8 +1,6 @@
 #include "tcpclient.hpp"
 
-/*
- * TCPClient
- */
+#include <boost/asio/steady_timer.hpp>
 
 /*
  * Constructor for the TCPClient class.
@@ -29,7 +27,10 @@ TCPClient::TCPClient(boost::asio::io_context &io_context,
  *
  * @return Reference to the Boost Asio TCP socket.
  */
-boost::asio::ip::tcp::socket &TCPClient::socket() { return socket_; }
+boost::asio::ip::tcp::socket &TCPClient::socket() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return socket_;
+}
 
 /*
  * Moves the contents of the given stream buffer to the internal write buffer.
@@ -37,6 +38,7 @@ boost::asio::ip::tcp::socket &TCPClient::socket() { return socket_; }
  * @param buffer - Stream buffer containing data to be written.
  */
 void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
+    std::lock_guard<std::mutex> lock(mutex_);
     moveStreambuf(buffer, writeBuffer_);
 }
 
@@ -49,6 +51,7 @@ void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
  */
 bool TCPClient::doConnect(const std::string &dstIP,
                           const unsigned short &dstPort) {
+    std::lock_guard<std::mutex> lock(mutex_);
     try {
         // Log connection attempt
         log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " + dstIP + ":" +
@@ -56,10 +59,8 @@ bool TCPClient::doConnect(const std::string &dstIP,
                     Log::Level::DEBUG);
 
         // Resolve the endpoint and connect
-        boost::asio::ip::tcp::resolver resolver(io_context_);
         boost::system::error_code error_code;
-        auto endpoint = resolver.resolve(
-                dstIP.c_str(), std::to_string(dstPort).c_str(), error_code);
+        auto endpoint = resolver_.resolve(dstIP.c_str(), std::to_string(dstPort).c_str(), error_code);
         if (error_code) {
             return false;
         } else {
@@ -81,6 +82,7 @@ bool TCPClient::doConnect(const std::string &dstIP,
  * @param buffer - Stream buffer containing data to be written.
  */
 void TCPClient::doWrite(boost::asio::streambuf &buffer) {
+    std::lock_guard<std::mutex> lock(mutex_);
     try {
         moveStreambuf(buffer, writeBuffer_);
         // Log details of the write operation
@@ -125,15 +127,16 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
  * Implements a retry mechanism based on configuration settings.
  */
 void TCPClient::doRead() {
+    std::lock_guard<std::mutex> lock(mutex_);
     try {
         // Clear the read buffer
         readBuffer_.consume(readBuffer_.size());
         boost::system::error_code error;
-        // Read at least 39 byte from the socket
+        // Read at least 39 bytes from the socket
         boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(39),
                           error);
         // Implement retry mechanism if data is still available
-        boost::asio::deadline_timer timer{io_context_};
+        boost::asio::steady_timer timer(io_context_);
         for (auto i = 0; i <= config_->general().repeatWait; i++) {
             while (true) {
                 if (!socket_.is_open()) {
@@ -158,8 +161,7 @@ void TCPClient::doRead() {
                     return;// Exit after closing the socket
                 }
             }
-            timer.expires_from_now(
-                    boost::posix_time::milliseconds(config_->general().timeWait));
+            timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
             timer.wait();
         }
 

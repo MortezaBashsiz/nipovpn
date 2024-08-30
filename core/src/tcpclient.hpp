@@ -6,6 +6,7 @@
 #include <boost/bind/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
+#include <mutex>// Include mutex header
 
 #include "config.hpp"
 #include "general.hpp"
@@ -117,6 +118,9 @@ private:
     boost::asio::streambuf readBuffer_;      // Buffer for data to be read
     boost::asio::ip::tcp::resolver resolver_;// Resolver for endpoint resolution
     boost::asio::deadline_timer timer_;      // Timer for managing timeouts
+
+    // Mutex for protecting access to the socket and buffers
+    mutable std::mutex mutex_;
 };
 
 #endif /* TCPCLIENT_HPP */
