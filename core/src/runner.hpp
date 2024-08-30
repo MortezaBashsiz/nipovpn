@@ -70,7 +70,7 @@ private:
     std::atomic<bool> running_;
 
     // Thread pool to manage worker threads.
-    std::vector<std::thread> threadPool_;
+    std::vector<std::jthread> threadPool_;
 
     // Add strand to manage concurrency
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;

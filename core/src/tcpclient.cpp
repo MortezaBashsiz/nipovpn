@@ -51,7 +51,7 @@ bool TCPClient::doConnect(const std::string &dstIP,
                           const unsigned short &dstPort) {
     try {
         // Log connection attempt
-        log_->write("[TCPClient doConnect] [DST " + dstIP + ":" +
+        log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " + dstIP + ":" +
                             std::to_string(dstPort) + "]",
                     Log::Level::DEBUG);
 
@@ -68,7 +68,7 @@ bool TCPClient::doConnect(const std::string &dstIP,
         }
     } catch (std::exception &error) {
         // Log connection errors
-        log_->write(std::string("[TCPClient doConnect] ") + error.what(),
+        log_->write(std::string("[" + to_string(uuid_) + "] [TCPClient doConnect] ") + error.what(),
                     Log::Level::ERROR);
         return false;
     }
@@ -84,12 +84,12 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
     try {
         moveStreambuf(buffer, writeBuffer_);
         // Log details of the write operation
-        log_->write("[TCPClient doWrite] [DST " +
+        log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [DST " +
                             socket_.remote_endpoint().address().to_string() + ":" +
                             std::to_string(socket_.remote_endpoint().port()) + "] " +
                             "[Bytes " + std::to_string(writeBuffer_.size()) + "] ",
                     Log::Level::DEBUG);
-        log_->write("[Write to] [DST " +
+        log_->write("[" + to_string(uuid_) + "] [Write to] [DST " +
                             socket_.remote_endpoint().address().to_string() + ":" +
                             std::to_string(socket_.remote_endpoint().port()) + "] " +
                             "[Bytes " + std::to_string(writeBuffer_.size()) + "] ",
@@ -99,12 +99,12 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
         if (writeBuffer_.size() > 0) {
             boost::asio::write(socket_, writeBuffer_, error);
             if (error) {
-                log_->write(std::string("[TCPClient doWrite] [error] ") + error.message(),
+                log_->write(std::string("[" + to_string(uuid_) + "] [TCPClient doWrite] [error] ") + error.message(),
                             Log::Level::DEBUG);
                 socket_.close();// Close socket on write error
             }
         } else {
-            log_->write("[TCPClient doWrite] [ZERO Bytes] [DST " +
+            log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [ZERO Bytes] [DST " +
                                 socket_.remote_endpoint().address().to_string() + ":" +
                                 std::to_string(socket_.remote_endpoint().port()) + "] " +
                                 "[Bytes " + std::to_string(writeBuffer_.size()) + "] ",
@@ -113,7 +113,7 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
         }
     } catch (std::exception &error) {
         // Log exceptions during the write operation
-        log_->write(std::string("[TCPClient doWrite] [catch] ") + error.what(),
+        log_->write(std::string("[" + to_string(uuid_) + "] [TCPClient doWrite] [catch] ") + error.what(),
                     Log::Level::DEBUG);
         socket_.close();// Ensure socket closure on exception
     }
@@ -137,7 +137,7 @@ void TCPClient::doRead() {
         for (auto i = 0; i <= config_->general().repeatWait; i++) {
             while (true) {
                 if (!socket_.is_open()) {
-                    log_->write("[TCPClient doRead] Socket is not OPEN",
+                    log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] Socket is not OPEN",
                                 Log::Level::DEBUG);
                     socket_.close();
                     return;
@@ -146,13 +146,13 @@ void TCPClient::doRead() {
                 boost::asio::read(socket_, readBuffer_,
                                   boost::asio::transfer_exactly(1), error);
                 if (error == boost::asio::error::eof) {
-                    log_->write("[TCPClient doRead] [EOF] Connection closed by peer.",
+                    log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [EOF] Connection closed by peer.",
                                 Log::Level::TRACE);
                     socket_.close();
                     return;// Exit after closing the socket
                 } else if (error) {
                     log_->write(
-                            std::string("[TCPClient doRead] [error] ") + error.message(),
+                            std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [error] ") + error.message(),
                             Log::Level::ERROR);
                     socket_.close();
                     return;// Exit after closing the socket
@@ -166,12 +166,12 @@ void TCPClient::doRead() {
         if (readBuffer_.size() > 0) {
             try {
                 // Log the successful read operation
-                log_->write("[TCPClient doRead] [SRC " +
+                log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
                                     "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
                             Log::Level::DEBUG);
-                log_->write("[Read from] [SRC " +
+                log_->write("[" + to_string(uuid_) + "] [Read from] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
                                     "] " + "[Bytes " + std::to_string(readBuffer_.size()) +
@@ -180,7 +180,7 @@ void TCPClient::doRead() {
             } catch (std::exception &error) {
                 // Log exceptions during logging
                 log_->write(
-                        std::string("[TCPClient doRead] [catch log] ") + error.what(),
+                        std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [catch log] ") + error.what(),
                         Log::Level::DEBUG);
             }
         } else {
@@ -189,7 +189,7 @@ void TCPClient::doRead() {
         }
     } catch (std::exception &error) {
         // Log exceptions during the read operation
-        log_->write(std::string("[TCPClient doRead] [catch read] ") + error.what(),
+        log_->write(std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [catch read] ") + error.what(),
                     Log::Level::DEBUG);
         socket_.close();// Ensure socket closure on error
         return;         // Exit after closing the socket

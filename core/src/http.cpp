@@ -1,20 +1,22 @@
 #include "http.hpp"
 
 HTTP::HTTP(const std::shared_ptr<Config> &config,
-           const std::shared_ptr<Log> &log, boost::asio::streambuf &buffer)
+           const std::shared_ptr<Log> &log, boost::asio::streambuf &buffer, boost::uuids::uuid uuid)
     : config_(config),
       log_(log),
       buffer_(buffer),
       parsedHttpRequest_(),
       httpType_(HTTP::HttpType::https),
-      parsedTlsRequest_{"", "", TlsTypes::TLSHandshake} {}
+      parsedTlsRequest_{"", "", TlsTypes::TLSHandshake},
+      uuid_(uuid) {}
 
 HTTP::HTTP(const HTTP &http)
     : config_(http.config_),
       log_(http.log_),
       buffer_(http.buffer_),
       parsedHttpRequest_(http.parsedHttpRequest_),
-      parsedTlsRequest_(http.parsedTlsRequest_) {}
+      parsedTlsRequest_(http.parsedTlsRequest_),
+      uuid_(http.uuid_) {}
 
 HTTP::~HTTP() {}
 
@@ -45,7 +47,7 @@ bool HTTP::parseHttp() {
     boost::beast::error_code error;
     parser.put(boost::asio::buffer(requestStr), error);
     if (error) {
-        log_->write(std::string("[HTTP parseHttp] ") + error.what(),
+        log_->write(std::string("[" + to_string(uuid_) + "] [HTTP parseHttp] ") + error.what(),
                     Log::Level::DEBUG);
         return false;
     } else {
@@ -65,7 +67,7 @@ bool HTTP::parseHttpResp() {
     boost::beast::error_code error;
     parser_.put(boost::asio::buffer(requestStr), error);
     if (error) {
-        log_->write(std::string("[HTTP parseHttpResp] ") + error.what(),
+        log_->write(std::string("[" + to_string(uuid_) + "] [HTTP parseHttpResp] ") + error.what(),
                     Log::Level::DEBUG);
         return false;
     } else {
@@ -170,7 +172,7 @@ void HTTP::setIPPort() {
                 else
                     dstPort_ = 80;
             } else {
-                log_->write("[HTTP setIPPort] wrong request", Log::Level::DEBUG);
+                log_->write("[" + to_string(uuid_) + "] [HTTP setIPPort] wrong request", Log::Level::DEBUG);
             }
             break;
         case HTTP::HttpType::connect:

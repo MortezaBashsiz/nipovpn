@@ -90,6 +90,8 @@ public:
    */
     void doRead();
 
+    boost::uuids::uuid uuid_;
+
 private:
     /*
    * Private constructor for TCPClient.

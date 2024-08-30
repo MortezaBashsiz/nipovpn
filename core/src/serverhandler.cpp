@@ -13,15 +13,16 @@ ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
                              const std::shared_ptr<Config> &config,
                              const std::shared_ptr<Log> &log,
                              const TCPClient::pointer &client,
-                             const std::string &clientConnStr)
+                             const std::string &clientConnStr,
+                             boost::uuids::uuid uuid)
     : config_(config),
       log_(log),
       client_(client),
       readBuffer_(readBuffer),
       writeBuffer_(writeBuffer),
-      request_(HTTP::create(config, log, readBuffer)),
-      clientConnStr_(clientConnStr)// Initialize client connection string
-{}
+      request_(HTTP::create(config, log, readBuffer, uuid)),
+      clientConnStr_(clientConnStr),
+      uuid_(uuid) {}
 
 /*
  * Destructor for cleanup. No specific resources to release.
@@ -38,7 +39,7 @@ void ServerHandler::handle() {
     if (request_->detectType()) {
         // Log the received request from the agent.
         log_->write(
-                "[ServerHandler handle] [Request From Agent] : " + request_->toString(),
+                "[" + to_string(uuid_) + "] [ServerHandler handle] [Request From Agent] : " + request_->toString(),
                 Log::Level::DEBUG);
 
         // Decrypt the request body using AES256.
@@ -50,7 +51,7 @@ void ServerHandler::handle() {
         if (decryption.ok) {
             // Log successful decryption and process the request.
             log_->write(
-                    "[ServerHandler handle] [Token Valid] : " + request_->toString(),
+                    "[" + to_string(uuid_) + "] [ServerHandler handle] [Token Valid] : " + request_->toString(),
                     Log::Level::DEBUG);
             auto tempHexArr = strToHexArr(decryption.message);
             std::string tempHexArrStr(tempHexArr.begin(), tempHexArr.end());
@@ -59,7 +60,7 @@ void ServerHandler::handle() {
             // Re-check the request type and process accordingly.
             if (request_->detectType()) {
                 log_->write(
-                        "[ServerHandler handle] [Request] : " + request_->toString(),
+                        "[" + to_string(uuid_) + "] [ServerHandler handle] [Request] : " + request_->toString(),
                         Log::Level::DEBUG);
                 switch (request_->httpType()) {
                     case HTTP::HttpType::connect: {
@@ -67,13 +68,13 @@ void ServerHandler::handle() {
                         boost::asio::streambuf tempBuff;
                         std::iostream os(&tempBuff);
                         if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
-                            log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
+                            log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " + clientConnStr_ + "] [DST " +
                                                 request_->dstIP() + ":" +
                                                 std::to_string(request_->dstPort()) + "]",
                                         Log::Level::INFO);
                         } else {
                             log_->write(
-                                    std::string("[CONNECT] [ERROR] [Resolving Host] [SRC ") +
+                                    std::string("[" + to_string(uuid_) + "] [CONNECT] [ERROR] [Resolving Host] [SRC ") +
                                             clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
                                             std::to_string(request_->dstPort()) + "]",
                                     Log::Level::INFO);
@@ -93,13 +94,13 @@ void ServerHandler::handle() {
                         // Handle HTTP or HTTPS requests.
                         if (request_->httpType() == HTTP::HttpType::http) {
                             if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
-                                log_->write("[CONNECT] [SRC " + clientConnStr_ + "] [DST " +
+                                log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " + clientConnStr_ + "] [DST " +
                                                     request_->dstIP() + ":" +
                                                     std::to_string(request_->dstPort()) + "]",
                                             Log::Level::INFO);
                             } else {
                                 log_->write(
-                                        std::string("[CONNECT] [ERROR] [Resolving Host] [SRC ") +
+                                        std::string("[" + to_string(uuid_) + "] [CONNECT] [ERROR] [Resolving Host] [SRC ") +
                                                 clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
                                                 std::to_string(request_->dstPort()) + "]",
                                         Log::Level::INFO);
@@ -131,11 +132,12 @@ void ServerHandler::handle() {
                             } else {
                                 // Log encryption failure and close the connection.
                                 log_->write(
-                                        "[ServerHandler handle] [Encryption "
-                                        "Failed] : [ " +
+                                        "[" + to_string(uuid_) +
+                                                "] [ServerHandler handle] [Encryption "
+                                                "Failed] : [ " +
                                                 decryption.message + "] ",
                                         Log::Level::DEBUG);
-                                log_->write("[ServerHandler handle] [Encryption Failed] : " +
+                                log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Encryption Failed] : " +
                                                     request_->toString(),
                                             Log::Level::INFO);
                                 client_->socket().close();
@@ -149,7 +151,7 @@ void ServerHandler::handle() {
                 }
             } else {
                 // Log non-HTTP requests if detected.
-                log_->write("[ServerHandler handle] [NOT HTTP Request] [Request] : " +
+                log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [NOT HTTP Request] [Request] : " +
                                     streambufToString(readBuffer_),
                             Log::Level::DEBUG);
                 // Close the socket if no data is available
@@ -158,10 +160,10 @@ void ServerHandler::handle() {
             }
         } else {
             // Log decryption failure and close the connection.
-            log_->write("[ServerHandler handle] [Decryption Failed] : [ " +
+            log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Decryption Failed] : [ " +
                                 decryption.message + "] ",
                         Log::Level::DEBUG);
-            log_->write("[ServerHandler handle] [Decryption Failed] : " +
+            log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Decryption Failed] : " +
                                 request_->toString(),
                         Log::Level::INFO);
             // Close the socket if no data is available
@@ -171,7 +173,7 @@ void ServerHandler::handle() {
     } else {
         // Log if the request is not from an agent.
         log_->write(
-                "[ServerHandler handle] [NOT HTTP Request From Agent] [Request] : " +
+                "[" + to_string(uuid_) + "] [ServerHandler handle] [NOT HTTP Request From Agent] [Request] : " +
                         streambufToString(readBuffer_),
                 Log::Level::DEBUG);
         // Close the socket if no data is available
