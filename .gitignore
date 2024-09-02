@@ -36,3 +36,8 @@ temp
 build
 .idea
 /cmake-build-debug/
+
+
+# Editor files
+.vscode
+*.swp
