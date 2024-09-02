@@ -38,3 +38,6 @@ build
 # Editor files/directories
 .vscode/*
 *.swp
+
+.idea
+/cmake-build-debug/
