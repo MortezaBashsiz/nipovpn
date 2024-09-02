@@ -15,6 +15,7 @@
 #include <boost/asio.hpp>
 #include <cstring>
 #include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -63,8 +64,8 @@ struct BoolStr {
  * @return true if the file exists, false otherwise.
  */
 inline bool fileExists(const std::string &name) {
-    std::ifstream file(name.c_str());
-    return file.good();
+    namespace fs = std::filesystem;
+    return fs::exists(fs::path{name});
 }
 
 /**
