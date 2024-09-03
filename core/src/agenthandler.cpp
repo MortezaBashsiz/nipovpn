@@ -22,6 +22,8 @@ AgentHandler::~AgentHandler() {}
 
 // Main handler function for processing requests
 void AgentHandler::handle() {
+    std::lock_guard<std::mutex> lock(mutex_);// Lock the mutex for thread safety
+
     // Initialize encryption status
     BoolStr encryption{false, std::string("FAILED")};
 

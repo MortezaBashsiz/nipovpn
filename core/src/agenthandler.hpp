@@ -97,6 +97,8 @@ private:
             &clientConnStr_;///< socket client connection string "ip:port"
 
     boost::uuids::uuid uuid_;
+
+    std::mutex mutex_;///< Mutex to make the class thread-safe
 };
 
 #endif /* AGENTHADLER_HPP */

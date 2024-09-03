@@ -22,6 +22,8 @@ boost::asio::ip::tcp::socket &TCPConnection::socket() {
 }
 
 void TCPConnection::start() {
+    std::lock_guard<std::mutex> lock(mutex_);// Lock the mutex for thread safety
+
     client_->uuid_ = uuid_;
     doRead();// Start reading from the socket
 }
@@ -134,6 +136,7 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
 }
 
 void TCPConnection::doWrite() {
+    std::lock_guard<std::mutex> lock(mutex_);// Lock the mutex for thread safety
     try {
         log_->write("[" + to_string(uuid_) + "] [TCPConnection doWrite] [DST " +
                             socket_.remote_endpoint().address().to_string() + ":" +

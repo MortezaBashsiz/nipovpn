@@ -78,6 +78,8 @@ private:
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 
     boost::uuids::uuid uuid_;
+
+    std::mutex mutex_;///< Mutex to make the class thread-safe
 };
 
 #endif /* TCPCONNECTION_HPP */

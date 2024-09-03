@@ -35,6 +35,8 @@ ServerHandler::~ServerHandler() {}
  * request.
  */
 void ServerHandler::handle() {
+    std::lock_guard<std::mutex> lock(mutex_);// Lock the mutex for thread safety
+
     // Detects the type of request (HTTP/HTTPS).
     if (request_->detectType()) {
         // Log the received request from the agent.
