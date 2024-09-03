@@ -45,7 +45,7 @@ void TCPServer::handleAccept(TCPConnection::pointer connection,
         connection->start();
     } else {
         // Log error details
-        log_->write("[TCPServer handleAccept] " + std::string(error.message()),
+        log_->write("TCPServer handleAccept] " + std::string(error.message()),
                     Log::Level::ERROR);
     }
 

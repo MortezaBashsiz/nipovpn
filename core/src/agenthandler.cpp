@@ -6,21 +6,24 @@ AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
                            const std::shared_ptr<Config> &config,
                            const std::shared_ptr<Log> &log,
                            const TCPClient::pointer &client,
-                           const std::string &clientConnStr)
+                           const std::string &clientConnStr,
+                           boost::uuids::uuid uuid)
     : config_(config),          // Initialize configuration
       log_(log),                // Initialize logging
       client_(client),          // Initialize TCP client
       readBuffer_(readBuffer),  // Reference to the read buffer
       writeBuffer_(writeBuffer),// Reference to the write buffer
-      request_(HTTP::create(config, log, readBuffer)),
-      clientConnStr_(clientConnStr)// Initialize client connection string
-{}
+      request_(HTTP::create(config, log, readBuffer, uuid)),
+      clientConnStr_(clientConnStr),// Initialize client connection string
+      uuid_(uuid) {}
 
 // Destructor for the AgentHandler class
 AgentHandler::~AgentHandler() {}
 
 // Main handler function for processing requests
 void AgentHandler::handle() {
+    std::lock_guard<std::mutex> lock(mutex_);// Lock the mutex for thread safety
+
     // Initialize encryption status
     BoolStr encryption{false, std::string("FAILED")};
 
@@ -30,7 +33,7 @@ void AgentHandler::handle() {
 
     if (encryption.ok) {
         // Log successful token validation
-        log_->write("[AgentHandler handle] [Token Valid]", Log::Level::DEBUG);
+        log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Done]", Log::Level::DEBUG);
 
         // Generate a new HTTP POST request string with the encrypted message
         std::string newReq(
@@ -39,20 +42,19 @@ void AgentHandler::handle() {
         // Check if the request type is valid
         if (request_->detectType()) {
             // Log the HTTP request details
-            log_->write("[AgentHandler handle] [Request] : " + request_->toString(),
+            log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Request] : " + request_->toString(),
                         Log::Level::DEBUG);
 
             // Log the client connention string and HTTP request target
             if (request_->parsedHttpRequest().target().length() > 0) {
-                log_->write("[CONNECT] [SRC " + clientConnStr_ + "]" + " [DST " +
+                log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " + clientConnStr_ + "]" + " [DST " +
                                     boost::lexical_cast<std::string>(
                                             request_->parsedHttpRequest().target()) +
                                     "]",
                             Log::Level::INFO);
             }
 
-            // If the client socket is not open or the request type is HTTP or
-            // CONNECT
+            // If the client socket is not open or the request type is HTTP or CONNECT
             if (!client_->socket().is_open() ||
                 request_->httpType() == HTTP::HttpType::http ||
                 request_->httpType() == HTTP::HttpType::connect) {
@@ -62,7 +64,7 @@ void AgentHandler::handle() {
 
                 if (!client_->doConnect(config_->agent().serverIp,
                                         config_->agent().serverPort)) {
-                    log_->write(std::string("[CONNECT] [ERROR] [To Server] [SRC ") +
+                    log_->write(std::string("[" + to_string(uuid_) + "] [CONNECT] [ERROR] [To Server] [SRC ") +
                                         clientConnStr_ + "] [DST " +
                                         config_->agent().serverIp + ":" +
                                         std::to_string(config_->agent().serverPort) + "]",
@@ -71,7 +73,7 @@ void AgentHandler::handle() {
 
                 // Check for connection errors
                 if (ec) {
-                    log_->write(std::string("[AgentHandler handle] Connection error: ") +
+                    log_->write(std::string("[" + to_string(uuid_) + "] [AgentHandler handle] Connection error: ") +
                                         ec.message(),
                                 Log::Level::ERROR);
                     return;
@@ -82,7 +84,7 @@ void AgentHandler::handle() {
             copyStringToStreambuf(newReq, readBuffer_);
 
             // Log the request to be sent to the server
-            log_->write("[AgentHandler handle] [Request To Server] : \n" + newReq,
+            log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Request To Server] : \n" + newReq,
                         Log::Level::DEBUG);
 
             // Write the request to the client socket and initiate a read
@@ -96,13 +98,13 @@ void AgentHandler::handle() {
                 if (request_->httpType() != HTTP::HttpType::connect) {
                     // Create an HTTP response handler
                     HTTP::pointer response =
-                            HTTP::create(config_, log_, client_->readBuffer());
+                            HTTP::create(config_, log_, client_->readBuffer(), uuid_);
 
                     // Parse the HTTP response
                     if (response->parseHttpResp()) {
                         // Log the response details
                         log_->write(
-                                "[AgentHandler handle] [Response] : " + response->restoString(),
+                                "[" + to_string(uuid_) + "] [AgentHandler handle] [Response] : " + response->restoString(),
                                 Log::Level::DEBUG);
 
                         // Decrypt the response body
@@ -116,12 +118,13 @@ void AgentHandler::handle() {
                         if (decryption.ok) {
                             // Copy the decrypted message to the write buffer
                             copyStringToStreambuf(decryption.message, writeBuffer_);
+                            log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Done]", Log::Level::DEBUG);
                         } else {
                             // Log decryption failure and close the socket
-                            log_->write("[AgentHandler handle] [Decryption Failed] : [ " +
+                            log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Failed] : [ " +
                                                 decryption.message + "] ",
                                         Log::Level::DEBUG);
-                            log_->write("[AgentHandler handle] [Decryption Failed] : " +
+                            log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Failed] : " +
                                                 request_->toString(),
                                         Log::Level::INFO);
                             client_->socket().close();
@@ -136,7 +139,7 @@ void AgentHandler::handle() {
                     }
                 } else {
                     // Log the response to a CONNECT request
-                    log_->write("[AgentHandler handle] [Response to connect] : \n" +
+                    log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Response to connect] : \n" +
                                         streambufToString(client_->readBuffer()),
                                 Log::Level::DEBUG);
 
@@ -150,7 +153,7 @@ void AgentHandler::handle() {
             }
         } else {
             // Log if the request is not a valid HTTP request
-            log_->write("[AgentHandler handle] [NOT HTTP Request] [Request] : " +
+            log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [NOT HTTP Request] [Request] : " +
                                 streambufToString(readBuffer_),
                         Log::Level::DEBUG);
             // Close the socket if no data is available
@@ -159,7 +162,7 @@ void AgentHandler::handle() {
         }
     } else {
         // Log encryption failure and close the socket
-        log_->write("[AgentHandler handle] [Encryption Failed] : [ " +
+        log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Failed] : [ " +
                             encryption.message + "] ",
                     Log::Level::DEBUG);
         log_->write(

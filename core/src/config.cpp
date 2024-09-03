@@ -30,7 +30,7 @@ Config::Config(const RunMode &mode, const std::string &filePath)
               configYaml_["agent"]["token"].as<std::string>(),
               configYaml_["agent"]["httpVersion"].as<std::string>(),
               configYaml_["agent"]["userAgent"].as<std::string>()}) {
-    // Set specific parameters based on the operational mode.
+    std::lock_guard<std::mutex> lock(configMutex_);
     switch (runMode_) {
         case RunMode::server:
             threads_ = server_.threads;
@@ -69,6 +69,7 @@ Config::~Config() = default;
  * @return A string describing the configuration settings.
  */
 std::string Config::toString() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
     std::stringstream ss;
     ss << "\nConfig :\n"
        << " General :\n"
@@ -95,96 +96,68 @@ std::string Config::toString() const {
     return ss.str();
 }
 
-/**
- * @brief Returns the general configuration settings.
- *
- * @return A constant reference to the general configuration.
- */
-const Config::General &Config::general() const { return general_; }
+const Config::General &Config::general() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return general_;
+}
 
-/**
- * @brief Returns the logging configuration settings.
- *
- * @return A constant reference to the logging configuration.
- */
-const Config::Log &Config::log() const { return log_; }
+const Config::Log &Config::log() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return log_;
+}
 
-/**
- * @brief Returns the server configuration settings.
- *
- * @return A constant reference to the server configuration.
- */
-const Config::Server &Config::server() const { return server_; }
+const Config::Server &Config::server() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return server_;
+}
 
-/**
- * @brief Returns the agent configuration settings.
- *
- * @return A constant reference to the agent configuration.
- */
-const Config::Agent &Config::agent() const { return agent_; }
+const Config::Agent &Config::agent() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return agent_;
+}
 
-/**
- * @brief Returns the number of threads specified in the configuration.
- *
- * @return A constant reference to the number of threads.
- */
-const unsigned short &Config::threads() const { return threads_; }
+const unsigned short &Config::threads() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return threads_;
+}
 
-/**
- * @brief Sets the number of threads in the configuration.
- *
- * @param threads The number of threads to set.
- */
-void Config::threads(unsigned short threads) { threads_ = threads; }
+void Config::threads(unsigned short threads) {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    threads_ = threads;
+}
 
-/**
- * @brief Returns the IP address on which the server listens.
- *
- * @return A constant reference to the IP address.
- */
-const std::string &Config::listenIp() const { return listenIp_; }
+const std::string &Config::listenIp() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return listenIp_;
+}
 
-/**
- * @brief Sets the IP address on which the server listens.
- *
- * @param ip The IP address to set.
- */
-void Config::listenIp(const std::string &ip) { listenIp_ = ip; }
+void Config::listenIp(const std::string &ip) {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    listenIp_ = ip;
+}
 
-/**
- * @brief Returns the port on which the server listens.
- *
- * @return A constant reference to the port number.
- */
-const unsigned short &Config::listenPort() const { return listenPort_; }
+const unsigned short &Config::listenPort() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return listenPort_;
+}
 
-/**
- * @brief Sets the port on which the server listens.
- *
- * @param port The port number to set.
- */
-void Config::listenPort(unsigned short port) { listenPort_ = port; }
+void Config::listenPort(unsigned short port) {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    listenPort_ = port;
+}
 
-/**
- * @brief Returns the current operational mode of the application.
- *
- * @return A constant reference to the operational mode.
- */
-const RunMode &Config::runMode() const { return runMode_; }
+const RunMode &Config::runMode() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return runMode_;
+}
 
-/**
- * @brief Returns the file path to the configuration file.
- *
- * @return A constant reference to the file path.
- */
-const std::string &Config::filePath() const { return filePath_; }
+const std::string &Config::filePath() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return filePath_;
+}
 
-/**
- * @brief Converts the run mode to a string representation.
- *
- * @return A string describing the operational mode.
- */
 std::string Config::modeToString() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
     switch (runMode_) {
         case RunMode::server:
             return "server";

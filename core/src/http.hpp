@@ -24,8 +24,9 @@ public:
 
     static pointer create(const std::shared_ptr<Config> &config,
                           const std::shared_ptr<Log> &log,
-                          boost::asio::streambuf &buffer) {
-        return pointer(new HTTP(config, log, buffer));
+                          boost::asio::streambuf &buffer,
+                          boost::uuids::uuid uuid) {
+        return pointer(new HTTP(config, log, buffer, uuid));
     }
 
     /*
@@ -123,7 +124,8 @@ private:
    */
     explicit HTTP(const std::shared_ptr<Config> &config,
                   const std::shared_ptr<Log> &log,
-                  boost::asio::streambuf &buffer);
+                  boost::asio::streambuf &buffer,
+                  boost::uuids::uuid uuid);
 
     /*
    * This function returns map of dst IP and Port for request
@@ -142,6 +144,7 @@ private:
     std::string dstIP_;
     unsigned short dstPort_;
     TlsRequest parsedTlsRequest_;
+    boost::uuids::uuid uuid_;
 };
 
 #endif /* HTTP_HPP */

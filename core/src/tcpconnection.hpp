@@ -44,6 +44,8 @@ public:
         return std::move(readBuffer_);
     }
 
+    inline boost::uuids::uuid uuid() { return uuid_; }
+
     // Starts the reading process
     void start();
 
@@ -74,6 +76,10 @@ private:
     boost::asio::deadline_timer timer_;// Timer used for managing timeouts
 
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
+
+    boost::uuids::uuid uuid_;
+
+    std::mutex mutex_;///< Mutex to make the class thread-safe
 };
 
 #endif /* TCPCONNECTION_HPP */

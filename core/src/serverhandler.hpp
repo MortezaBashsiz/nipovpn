@@ -36,9 +36,10 @@ public:
                           const std::shared_ptr<Config> &config,
                           const std::shared_ptr<Log> &log,
                           const TCPClient::pointer &client,
-                          const std::string &clientConnStr) {
+                          const std::string &clientConnStr,
+                          boost::uuids::uuid uuid) {
         return pointer(new ServerHandler(readBuffer, writeBuffer, config, log,
-                                         client, clientConnStr));
+                                         client, clientConnStr, uuid));
     }
 
     /*
@@ -79,7 +80,8 @@ private:
                            const std::shared_ptr<Config> &config,
                            const std::shared_ptr<Log> &log,
                            const TCPClient::pointer &client,
-                           const std::string &clientConnStr);
+                           const std::string &clientConnStr,
+                           boost::uuids::uuid uuid);
 
     const std::shared_ptr<Config>
             &config_;                 // Reference to the configuration object.
@@ -90,6 +92,10 @@ private:
     HTTP::pointer request_;// Shared pointer to the HTTP request object.
     const std::string
             &clientConnStr_;///< socket client connection string "ip:port"
+
+    boost::uuids::uuid uuid_;
+
+    std::mutex mutex_;///< Mutex to make the class thread-safe
 };
 
 #endif /* SERVERHANDLER_HPP */

@@ -38,9 +38,10 @@ public:
                           const std::shared_ptr<Config> &config,
                           const std::shared_ptr<Log> &log,
                           const TCPClient::pointer &client,
-                          const std::string &clientConnStr) {
+                          const std::string &clientConnStr,
+                          boost::uuids::uuid uuid) {
         return pointer(new AgentHandler(readBuffer, writeBuffer, config, log,
-                                        client, clientConnStr));
+                                        client, clientConnStr, uuid));
     }
 
     ~AgentHandler();///< Destructor for AgentHandler
@@ -83,7 +84,8 @@ private:
                  const std::shared_ptr<Config> &config,
                  const std::shared_ptr<Log> &log,
                  const TCPClient::pointer &client,
-                 const std::string &clientConnStr);
+                 const std::string &clientConnStr,
+                 boost::uuids::uuid uuid);
 
     const std::shared_ptr<Config> &config_;///< Shared configuration object
     const std::shared_ptr<Log> &log_;      ///< Shared logging object
@@ -93,6 +95,10 @@ private:
     HTTP::pointer request_;///< HTTP request object
     const std::string
             &clientConnStr_;///< socket client connection string "ip:port"
+
+    boost::uuids::uuid uuid_;
+
+    std::mutex mutex_;///< Mutex to make the class thread-safe
 };
 
 #endif /* AGENTHADLER_HPP */
