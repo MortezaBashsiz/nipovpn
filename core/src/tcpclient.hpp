@@ -6,7 +6,7 @@
 #include <boost/bind/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
-#include <mutex>// Include mutex header
+#include <mutex>
 
 #include "config.hpp"
 #include "general.hpp"
