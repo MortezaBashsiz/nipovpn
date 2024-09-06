@@ -13,6 +13,7 @@ TCPConnection::TCPConnection(boost::asio::io_context &io_context,
       io_context_(io_context),// Store the I/O context
       client_(client),        // Store the TCP client pointer
       timer_(io_context),     // Initialize the deadline timer with the I/O context
+      timeout_(io_context),   // Initialize the deadline timer with the I/O context
       strand_(boost::asio::make_strand(io_context_)) {
     uuid_ = boost::uuids::random_generator()();
 }
@@ -32,6 +33,7 @@ void TCPConnection::doRead() {
     try {
         readBuffer_.consume(readBuffer_.size());  // Clear the read buffer
         writeBuffer_.consume(writeBuffer_.size());// Clear the write buffer
+        resetTimeout();
         boost::asio::async_read(
                 socket_, readBuffer_, boost::asio::transfer_exactly(1),
                 boost::asio::bind_executor(
@@ -50,6 +52,11 @@ void TCPConnection::doRead() {
 
 void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
     try {
+
+        // Getting called means a successful read operation in doRead(),
+        // so cancel the timeout, and reset it before next I/O
+        cancelTimeout();
+
         if (error) {
             if (error == boost::asio::error::eof) {
                 log_->write(
@@ -71,8 +78,10 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
                     if (socket_.available() == 0)
                         break;// Exit if no more data is available
                     boost::system::error_code read_error;
+                    resetTimeout();
                     boost::asio::read(socket_, readBuffer_,
                                       boost::asio::transfer_exactly(1), read_error);
+                    cancelTimeout();
                     if (read_error == boost::asio::error::eof) {
                         log_->write(
                                 "[" + to_string(uuid_) + "] [TCPConnection handleRead] [EOF] Connection closed by peer.",
@@ -149,8 +158,10 @@ void TCPConnection::doWrite() {
                             "] [Bytes " + std::to_string(writeBuffer_.size()) + "] ",
                     Log::Level::TRACE);// Log the details of the write operation
         boost::system::error_code error;
+        resetTimeout();
         boost::asio::write(socket_, writeBuffer_,
                            error);// Write data to the socket
+        cancelTimeout();
         if (error) {
             log_->write(
                     std::string("[" + to_string(uuid_) + "] [TCPConnection doWrite] [error] ") + error.message(),
@@ -165,4 +176,37 @@ void TCPConnection::doWrite() {
                 Log::Level::ERROR);// Log any exceptions during the write operation
         socket_.close();           // Ensure socket closure on exception
     }
+}
+
+void TCPConnection::resetTimeout() {
+    // indicates no timeout
+    if (!config_->general().timeout)
+        return;
+
+    // Start/Reset the timer and cancel old handlers
+    timeout_.expires_from_now(boost::posix_time::milliseconds(config_->general().timeout));
+    timeout_.async_wait(boost::bind(&TCPConnection::onTimeout,
+                                    shared_from_this(),
+                                    boost::asio::placeholders::error));
+}
+
+void TCPConnection::cancelTimeout() {
+    // If timeout is enabled, cancel the handlers
+    if (config_->general().timeout)
+        timeout_.cancel();
+}
+
+void TCPConnection::onTimeout(const boost::system::error_code &e) {
+    // Ignore cancellation and only handle timer expiration.
+    if (e /* No Error */ || e == boost::asio::error::operation_aborted) return;
+
+    // Timeout has expired, do necessary actions
+    log_->write(
+            std::string("[" + to_string(uuid_) + "] [TCPConnection onTimeout] [expiration] ") +
+                    std::to_string(+config_->general().timeout) +
+                    " miliseconds has passed, and the timeout has expired",
+            Log::Level::DEBUG);
+
+    // Stop further I/O operations
+    socket_.close();
 }

@@ -108,6 +108,13 @@ private:
                        const std::shared_ptr<Config> &config,
                        const std::shared_ptr<Log> &log);
 
+    // If the timeout is enabled, start/reset it
+    void resetTimeout();
+    // Cancel the timeout
+    void cancelTimeout();
+    // Handler in case of a timeout expiration
+    void onTimeout(const boost::system::error_code &e);
+
     // Members
     const std::shared_ptr<Config>
             &config_;                        // Reference to the configuration object
@@ -117,7 +124,7 @@ private:
     boost::asio::streambuf writeBuffer_;     // Buffer for data to be written
     boost::asio::streambuf readBuffer_;      // Buffer for data to be read
     boost::asio::ip::tcp::resolver resolver_;// Resolver for endpoint resolution
-    boost::asio::deadline_timer timer_;      // Timer for managing timeouts
+    boost::asio::deadline_timer timeout_;    // Timer for managing timeouts
 
     // Mutex for protecting access to the socket and buffers
     mutable std::mutex mutex_;
