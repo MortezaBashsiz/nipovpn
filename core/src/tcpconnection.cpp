@@ -12,7 +12,6 @@ TCPConnection::TCPConnection(boost::asio::io_context &io_context,
       log_(log),              // Store the logging object
       io_context_(io_context),// Store the I/O context
       client_(client),        // Store the TCP client pointer
-      timer_(io_context),     // Initialize the deadline timer with the I/O context
       timeout_(io_context),   // Initialize the deadline timer with the I/O context
       strand_(boost::asio::make_strand(io_context_)) {
     uuid_ = boost::uuids::random_generator()();
@@ -184,7 +183,7 @@ void TCPConnection::resetTimeout() {
         return;
 
     // Start/Reset the timer and cancel old handlers
-    timeout_.expires_from_now(boost::posix_time::milliseconds(config_->general().timeout));
+    timeout_.expires_from_now(boost::posix_time::seconds(config_->general().timeout));
     timeout_.async_wait(boost::bind(&TCPConnection::onTimeout,
                                     shared_from_this(),
                                     boost::asio::placeholders::error));
@@ -196,15 +195,15 @@ void TCPConnection::cancelTimeout() {
         timeout_.cancel();
 }
 
-void TCPConnection::onTimeout(const boost::system::error_code &e) {
+void TCPConnection::onTimeout(const boost::system::error_code &error) {
     // Ignore cancellation and only handle timer expiration.
-    if (e /* No Error */ || e == boost::asio::error::operation_aborted) return;
+    if (error /* No Error */ || error == boost::asio::error::operation_aborted) return;
 
     // Timeout has expired, do necessary actions
     log_->write(
             std::string("[" + to_string(uuid_) + "] [TCPConnection onTimeout] [expiration] ") +
                     std::to_string(+config_->general().timeout) +
-                    " miliseconds has passed, and the timeout has expired",
+                    " seconds has passed, and the timeout has expired",
             Log::Level::DEBUG);
 
     // Stop further I/O operations

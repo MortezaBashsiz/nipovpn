@@ -18,7 +18,7 @@ private:
         std::string fakeUrl;
         std::string method;
         unsigned int timeWait;
-        unsigned int timeout;
+        unsigned short timeout;
         unsigned short repeatWait;
     };
 

@@ -212,7 +212,7 @@ void TCPClient::resetTimeout() {
         return;
 
     // Start/Reset the timer and cancel old handlers
-    timeout_.expires_from_now(boost::posix_time::milliseconds(config_->general().timeout));
+    timeout_.expires_from_now(boost::posix_time::seconds(config_->general().timeout));
     timeout_.async_wait(boost::bind(&TCPClient::onTimeout,
                                     shared_from_this(),
                                     boost::asio::placeholders::error));
@@ -224,15 +224,15 @@ void TCPClient::cancelTimeout() {
         timeout_.cancel();
 }
 
-void TCPClient::onTimeout(const boost::system::error_code &e) {
+void TCPClient::onTimeout(const boost::system::error_code &error) {
     // Ignore cancellation and only handle timer expiration.
-    if (e /* No Error */ || e == boost::asio::error::operation_aborted) return;
+    if (error /* No Error */ || error == boost::asio::error::operation_aborted) return;
 
     // Timeout has expired, do necessary actions
     log_->write(
             std::string("[" + to_string(uuid_) + "] [TCPClient onTimeout] [expiration] ") +
                     std::to_string(+config_->general().timeout) +
-                    " miliseconds has passed, and the timeout has expired",
+                    " seconds has passed, and the timeout has expired",
             Log::Level::DEBUG);
 
     // Stop further I/O operations

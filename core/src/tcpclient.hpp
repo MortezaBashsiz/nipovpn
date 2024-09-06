@@ -113,7 +113,7 @@ private:
     // Cancel the timeout
     void cancelTimeout();
     // Handler in case of a timeout expiration
-    void onTimeout(const boost::system::error_code &e);
+    void onTimeout(const boost::system::error_code &error);
 
     // Members
     const std::shared_ptr<Config>

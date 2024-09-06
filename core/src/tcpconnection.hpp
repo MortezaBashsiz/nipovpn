@@ -71,7 +71,7 @@ private:
     // Cancel the timeout
     void cancelTimeout();
     // Handler in case of a timeout expiration
-    void onTimeout(const boost::system::error_code &e);
+    void onTimeout(const boost::system::error_code &error);
 
     boost::asio::ip::tcp::socket socket_;  // The TCP socket for this connection
     const std::shared_ptr<Config> &config_;// Configuration settings
@@ -80,7 +80,6 @@ private:
     const TCPClient::pointer &client_;     // Pointer to the associated TCP client
     boost::asio::streambuf readBuffer_,
             writeBuffer_;                // Buffers for reading and writing data
-    boost::asio::deadline_timer timer_;  // Timer used for managing timeouts
     boost::asio::deadline_timer timeout_;// Connections timeout
 
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
