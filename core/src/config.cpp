@@ -16,6 +16,7 @@ Config::Config(const RunMode &mode, const std::string &filePath)
       general_({configYaml_["general"]["fakeUrl"].as<std::string>(),
                 configYaml_["general"]["method"].as<std::string>(),
                 configYaml_["general"]["timeWait"].as<unsigned int>(),
+                configYaml_["general"]["timeout"].as<unsigned short>(),
                 configYaml_["general"]["repeatWait"].as<unsigned short>()}),
       log_({configYaml_["log"]["logLevel"].as<std::string>(),
             configYaml_["log"]["logFile"].as<std::string>()}),
@@ -76,6 +77,7 @@ std::string Config::toString() const {
        << "   fakeUrl: " << general_.fakeUrl << "\n"
        << "   method: " << general_.method << "\n"
        << "   timeWait: " << general_.timeWait << "\n"
+       << "   timeout: " << general_.timeout << "\n"
        << "   repeatWait: " << general_.repeatWait << "\n"
        << " Log :\n"
        << "   logLevel: " << log_.level << "\n"
