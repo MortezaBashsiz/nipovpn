@@ -105,8 +105,7 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
             if (error) {
                 log_->write(std::string("[" + to_string(uuid_) + "] [TCPClient doWrite] [error] ") + error.message(),
                             Log::Level::DEBUG);
-                socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
-                socket_.close();// Close socket on write error
+                socketShutdown();
                 return;
             }
         } else {
@@ -115,16 +114,14 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
                                 std::to_string(socket_.remote_endpoint().port()) + "] " +
                                 "[Bytes " + std::to_string(writeBuffer_.size()) + "] ",
                         Log::Level::DEBUG);
-            socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
-            socket_.close();// Close socket on write error
+            socketShutdown();
             return;
         }
     } catch (std::exception &error) {
         // Log exceptions during the write operation
         log_->write(std::string("[" + to_string(uuid_) + "] [TCPClient doWrite] [catch] ") + error.what(),
                     Log::Level::DEBUG);
-        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
-        socket_.close();// Ensure socket closure on exception
+        socketShutdown();
     }
 }
 
@@ -151,8 +148,7 @@ void TCPClient::doRead() {
                 if (!socket_.is_open()) {
                     log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] Socket is not OPEN",
                                 Log::Level::DEBUG);
-                    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
-                    socket_.close();
+                    socketShutdown();
                     return;
                 }
                 if (socket_.available() == 0) break;
@@ -163,15 +159,13 @@ void TCPClient::doRead() {
                 if (error == boost::asio::error::eof) {
                     log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [EOF] Connection closed by peer.",
                                 Log::Level::TRACE);
-                    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
-                    socket_.close();
+                    socketShutdown();
                     return;// Exit after closing the socket
                 } else if (error) {
                     log_->write(
                             std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [error] ") + error.message(),
                             Log::Level::ERROR);
-                    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
-                    socket_.close();
+                    socketShutdown();
                     return;// Exit after closing the socket
                 }
             }
@@ -200,17 +194,15 @@ void TCPClient::doRead() {
                         Log::Level::DEBUG);
             }
         } else {
-            socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
-            socket_.close();// Close socket if no data is read
-            return;         // Exit after closing the socket
+            socketShutdown();
+            return;// Exit after closing the socket
         }
     } catch (std::exception &error) {
         // Log exceptions during the read operation
         log_->write(std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [catch read] ") + error.what(),
                     Log::Level::DEBUG);
-        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
-        socket_.close();// Ensure socket closure on error
-        return;         // Exit after closing the socket
+        socketShutdown();
+        return;// Exit after closing the socket
     }
 }
 
@@ -242,8 +234,15 @@ void TCPClient::onTimeout(const boost::system::error_code &error) {
                     std::to_string(+config_->general().timeout) +
                     " seconds has passed, and the timeout has expired",
             Log::Level::DEBUG);
+}
 
-    // Stop further I/O operations
-    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
-    socket_.close();
+void TCPClient::socketShutdown() {
+    try {
+        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
+        socket_.close();
+    } catch (std::exception &error) {
+        log_->write(
+                std::string("[" + to_string(uuid_) + "] [TCPClient socketShutdown] [catch] ") + error.what(),
+                Log::Level::DEBUG);
+    }
 }

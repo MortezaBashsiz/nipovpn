@@ -91,6 +91,8 @@ public:
    */
     void doRead();
 
+    void socketShutdown();
+
     boost::uuids::uuid uuid_;
 
 private:
