@@ -45,6 +45,7 @@ void TCPConnection::doRead() {
     } catch (std::exception &error) {
         log_->write(std::string("[" + to_string(uuid_) + "] [TCPConnection doRead] [catch] ") + error.what(),
                     Log::Level::ERROR);// Log any exceptions
+        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
         socket_.close();
     }
 }
@@ -61,6 +62,7 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
                 log_->write(
                         "[" + to_string(uuid_) + "] [TCPConnection handleRead] [EOF] Connection closed by peer.",
                         Log::Level::TRACE);
+                socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
                 socket_.close();// Close the socket on error or EOF
                 return;
             } else {
@@ -79,18 +81,20 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
                     boost::system::error_code read_error;
                     resetTimeout();
                     boost::asio::read(socket_, readBuffer_,
-                                      boost::asio::transfer_exactly(1), read_error);
+                                      boost::asio::transfer_at_least(1), read_error);
                     cancelTimeout();
                     if (read_error == boost::asio::error::eof) {
                         log_->write(
                                 "[" + to_string(uuid_) + "] [TCPConnection handleRead] [EOF] Connection closed by peer.",
                                 Log::Level::DEBUG);
+                        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
                         socket_.close();// Close the socket on EOF
                         return;
                     } else if (read_error) {
                         log_->write(std::string("[" + to_string(uuid_) + "] [TCPConnection handleRead] [error] ") +
                                             read_error.message(),
                                     Log::Level::ERROR);
+                        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
                         socket_.close();// Close the socket on any other errors
                         return;
                     }
@@ -132,6 +136,7 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
                 doWrite();// Write to the socket if there is data in the write
                           // buffer
             } else {
+                socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
                 socket_.close();// Close the socket if no data to write
             }
         }
@@ -139,6 +144,7 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
         log_->write(
                 std::string("[" + to_string(uuid_) + "] [TCPConnection handleRead] [catch read] ") + error.what(),
                 Log::Level::DEBUG);
+        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
         socket_.close();// Ensure socket closure on exception
     }
 }
@@ -165,7 +171,8 @@ void TCPConnection::doWrite() {
             log_->write(
                     std::string("[" + to_string(uuid_) + "] [TCPConnection doWrite] [error] ") + error.message(),
                     Log::Level::ERROR);// Log any errors during the write operation
-            socket_.close();           // Close the socket on error
+            socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
+            socket_.close();// Close the socket on error
             return;
         }
         doRead();// Continue reading after writing
@@ -173,7 +180,8 @@ void TCPConnection::doWrite() {
         log_->write(
                 std::string("[" + to_string(uuid_) + "] [TCPConnection doWrite] [catch] ") + error.what(),
                 Log::Level::ERROR);// Log any exceptions during the write operation
-        socket_.close();           // Ensure socket closure on exception
+        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
+        socket_.close();// Ensure socket closure on exception
     }
 }
 
@@ -207,5 +215,6 @@ void TCPConnection::onTimeout(const boost::system::error_code &error) {
             Log::Level::DEBUG);
 
     // Stop further I/O operations
+    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
     socket_.close();
 }
