@@ -59,6 +59,8 @@ public:
     // Initiates an asynchronous write operation
     void doWrite();
 
+    void socketShutdown();
+
 private:
     // Private constructor to enforce use of the factory method
     explicit TCPConnection(boost::asio::io_context &io_context,
