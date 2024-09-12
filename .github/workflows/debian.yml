@@ -3,8 +3,8 @@ name: build debian
 on:
   push:
     branches: [ "morteza/debian" ]
-    paths:
-    - 'core/**'
+    # paths:
+    # - 'core/**'
 
 jobs:
   build:
