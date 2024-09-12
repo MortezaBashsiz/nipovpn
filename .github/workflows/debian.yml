@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    runs-on: ubuntu-latest
     steps:
       - name: build-deb-action
         uses: jiro4989/build-deb-action@v3.1.0
