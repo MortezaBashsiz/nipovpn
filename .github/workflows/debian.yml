@@ -12,4 +12,6 @@ jobs:
     steps:
       - name: build-deb-action
         uses: jiro4989/build-deb-action@v3.1.0
+        with:
+          package_root: nipovpn
             
