@@ -49,7 +49,7 @@ Create the log directory and log file
 
 Run it
 ```bash
-sudo build/core/nipovpn_core server nipovpn/etc/nipovpn/config.yaml
+sudo build/core/nipovpn server nipovpn/etc/nipovpn/config.yaml
 2024-08-02_15:30:07 [INFO] Config initialized in server mode 
 2024-08-02_15:30:07 [INFO] 
 Config :
