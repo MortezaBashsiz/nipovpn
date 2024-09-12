@@ -1,0 +1,14 @@
+name: build debian
+
+on:
+  push:
+    branches: [ "morteza/debian" ]
+    paths:
+    - 'core/**'
+
+jobs:
+  build:
+    steps:
+      - name: build-deb-action
+        uses: jiro4989/build-deb-action@v3.1.0
+            
