@@ -1,6 +1,4 @@
 #pragma once
-#ifndef TCPCONNECTION_HPP
-#define TCPCONNECTION_HPP
 
 #include <boost/asio.hpp>
 #include <boost/bind/bind.hpp>
@@ -90,5 +88,3 @@ private:
 
     std::mutex mutex_;///< Mutex to make the class thread-safe
 };
-
-#endif /* TCPCONNECTION_HPP */

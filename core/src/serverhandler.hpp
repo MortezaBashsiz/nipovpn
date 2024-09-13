@@ -1,6 +1,4 @@
 #pragma once
-#ifndef SERVERHANDLER_HPP
-#define SERVERHANDLER_HPP
 
 #include <memory>
 
@@ -97,5 +95,3 @@ private:
 
     std::mutex mutex_;///< Mutex to make the class thread-safe
 };
-
-#endif /* SERVERHANDLER_HPP */

@@ -1,6 +1,4 @@
 #pragma once
-#ifndef GENERAL_HPP
-#define GENERAL_HPP
 
 #include <openssl/conf.h>
 #include <openssl/err.h>
@@ -466,5 +464,3 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
     result.message = "OK";
     return result;
 }
-
-#endif// GENERAL_HPP

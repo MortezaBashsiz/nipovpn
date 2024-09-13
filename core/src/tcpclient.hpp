@@ -1,6 +1,4 @@
 #pragma once
-#ifndef TCPCLIENT_HPP
-#define TCPCLIENT_HPP
 
 #include <boost/asio.hpp>
 #include <boost/bind/bind.hpp>
@@ -131,5 +129,3 @@ private:
     // Mutex for protecting access to the socket and buffers
     mutable std::mutex mutex_;
 };
-
-#endif /* TCPCLIENT_HPP */
