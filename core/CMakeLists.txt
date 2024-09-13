@@ -1,4 +1,4 @@
-set(CORE_TARGET nipovpn_core)
+set(CORE_TARGET nipovpn)
 set(CMAKE_CXX_STANDARD 20)
 
 set(CORE_TARGET_HEADERS

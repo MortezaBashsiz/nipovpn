@@ -204,7 +204,7 @@ void TCPConnection::onTimeout(const boost::system::error_code &error) {
             std::string("[" + to_string(uuid_) + "] [TCPConnection onTimeout] [expiration] ") +
                     std::to_string(+config_->general().timeout) +
                     " seconds has passed, and the timeout has expired",
-            Log::Level::DEBUG);
+            Log::Level::TRACE);
     socketShutdown();
 }
 
