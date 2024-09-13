@@ -3,10 +3,7 @@ name: Build and Release Debian Package
 on:
   push:
     branches:
-      - morteza/debian
-  pull_request:
-    branches:
-      - morteza/debian
+      - main
 
 jobs:
   build:
