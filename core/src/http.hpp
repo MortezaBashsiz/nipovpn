@@ -1,6 +1,4 @@
 #pragma once
-#ifndef HTTP_HPP
-#define HTTP_HPP
 
 #include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
@@ -146,5 +144,3 @@ private:
     TlsRequest parsedTlsRequest_;
     boost::uuids::uuid uuid_;
 };
-
-#endif /* HTTP_HPP */

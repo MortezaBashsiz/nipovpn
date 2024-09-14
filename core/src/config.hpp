@@ -1,5 +1,4 @@
-#ifndef CONFIG_HPP
-#define CONFIG_HPP
+#pragma once
 
 #include <yaml-cpp/yaml.h>
 
@@ -85,5 +84,3 @@ public:
     std::string modeToString() const;
     std::string toString() const;
 };
-
-#endif /* CONFIG_HPP */

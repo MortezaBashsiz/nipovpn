@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef RUNNER_HPP
-#define RUNNER_HPP
-
 #include <atomic>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
@@ -75,5 +72,3 @@ private:
     // Add strand to manage concurrency
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 };
-
-#endif /* RUNNER_HPP */

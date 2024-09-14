@@ -1,6 +1,4 @@
 #pragma once
-#ifndef TCPSERVER_HPP
-#define TCPSERVER_HPP
 
 #include <boost/asio.hpp>
 #include <boost/bind/bind.hpp>
@@ -69,5 +67,3 @@ private:
     // Strand to ensure that handler functions are not called concurrently.
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 };
-
-#endif /* TCPSERVER_HPP */
