@@ -1,0 +1,72 @@
+name: Build and Release Debian Package
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev build-essential lintian fakeroot devscripts cmake libssl-dev libboost-all-dev libyaml-cpp-dev
+
+      - name: Build the package
+        run: |
+          mkdir -p build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Debug ..
+          make -j$(nproc)
+          cd ..
+          mkdir -p nipovpn/usr/bin/
+          cp build/core/nipovpn nipovpn/usr/bin/nipovpn
+          dpkg-deb --build nipovpn/ build/nipovpn-stage.deb
+
+      - name: Upload the Debian nipovpn as an artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: nipovpn
+          path: build/nipovpn-stage.deb
+
+      - name: Show nipovpn information
+        run: |
+          dpkg -I build/nipovpn-stage.deb
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: nipovpn
+          path: ./
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        with:
+          tag_name: 'v1.0.${{ github.run_number }}'
+          release_name: Release ${{ github.run_number }}
+          draft: false
+          prerelease: true
+
+      - name: Upload Debian Package to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./nipovpn-stage.deb
+          asset_name: nipovpn-stage.deb
+          asset_content_type: application/octet-stream
