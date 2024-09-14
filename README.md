@@ -80,9 +80,8 @@ Config :
 
 #### Install
 Currently it is only available for debian based Linuxs and fully tested on ubuntu 24.04
-You can simply install the package
+You can simply down load and install the package. To download it please visit the [releases page](https://github.com/MortezaBashsiz/nipovpn/tags) and get the latest release.
 ```bash
-[~]>$ wget https://raw.githubusercontent.com/MortezaBashsiz/nipovpn/main/files/deb/nipovpn.deb
 [~]>$ sudo apt install ./nipovpn.deb
 ```
 
