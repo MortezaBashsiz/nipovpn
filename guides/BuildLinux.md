@@ -4,7 +4,7 @@
 
     C++20 or higher
     libyaml-cpp >= 0.8
-    boost-libs >= 1.75.0
+    boost-libs >= 1.83.0
     OpenSSL
 
 ### Dependencies
