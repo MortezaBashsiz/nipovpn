@@ -13,7 +13,8 @@ If you're new, we encourage you to take a look at [issues](https://github.com/Mo
 0. Create a GitHub issue proposing a new example and make sure it's substantially different from an existing one.
 1. Fork the repo and create your branch from `dev`.
 2. Make your changes.
-3. Always build and test your branch.
-4. Write proper comments
-5. Creat a pull request to dev.
-6. Wait for response
+3. Always use `scripts/format.sh` to format code.
+4. Always build and test your branch.
+5. Write proper comments
+6. Creat a pull request to dev.
+7. Wait for response
