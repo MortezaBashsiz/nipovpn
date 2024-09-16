@@ -86,8 +86,12 @@ You can simply down load and install the package. To download it please visit th
 ```
 
 #### Run
+There are systemd services to manage the nipovpn process.
+`nipovpn-server.service` to manage as server.
+`nipovpn-agent.service` to manage as agent.
 ```bash
-[~]>$ sudo nipovpn server /etc/nipovpn/config.yaml
+[~]>$ sudo systemctl start nipovpn-server.service
+[~]>$ cat /var/log/nipovpn/nipovpn.log
 2024-08-02_15:30:07 [INFO] Config initialized in server mode 
 2024-08-02_15:30:07 [INFO] 
 Config :
