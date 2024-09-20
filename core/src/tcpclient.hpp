@@ -67,7 +67,7 @@ public:
     bool doConnect(const std::string &dstIP, const unsigned short &dstPort);
 
     /**
-     * Writes data from the internal write buffer to the connected socket.
+     * @brief Writes data from the internal write buffer to the connected socket.
      *
      * @param buffer - Stream buffer containing data to be written.
      */
