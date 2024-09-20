@@ -22,7 +22,7 @@ AgentHandler::~AgentHandler() {}
 
 // Main handler function for processing requests
 void AgentHandler::handle() {
-    std::lock_guard<std::mutex> lock(mutex_);// Lock the mutex for thread safety
+    std::lock_guard<std::mutex> lock(mutex_);
 
     // Initialize encryption status
     BoolStr encryption{false, std::string("FAILED")};
@@ -55,7 +55,7 @@ void AgentHandler::handle() {
             }
 
             // If the client socket is not open or the request type is HTTP or CONNECT
-            if (!client_->socket().is_open() ||
+            if (!client_->getSocket().is_open() ||
                 request_->httpType() == HTTP::HttpType::http ||
                 request_->httpType() == HTTP::HttpType::connect) {
                 // Connect the TCP client to the server
@@ -93,12 +93,12 @@ void AgentHandler::handle() {
             client_->doRead();
 
             // Check if there is data available in the read buffer
-            if (client_->readBuffer().size() > 0) {
+            if (client_->getReadBuffer().size() > 0) {
                 // If the HTTP request type is not CONNECT
                 if (request_->httpType() != HTTP::HttpType::connect) {
                     // Create an HTTP response handler
                     HTTP::pointer response =
-                            HTTP::create(config_, log_, client_->readBuffer(), uuid_);
+                            HTTP::create(config_, log_, client_->getReadBuffer(), uuid_);
 
                     // Parse the HTTP response
                     if (response->parseHttpResp()) {
@@ -127,28 +127,28 @@ void AgentHandler::handle() {
                             log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Failed] : " +
                                                 request_->toString(),
                                         Log::Level::INFO);
-                            client_->socket().close();
+                            client_->getSocket().close();
                         }
                     } else {
                         // Log if the response is not an HTTP response
                         log_->write(
                                 "[AgentHandler handle] [NOT HTTP Response] "
                                 "[Response] : " +
-                                        streambufToString(client_->readBuffer()),
+                                        streambufToString(client_->getReadBuffer()),
                                 Log::Level::DEBUG);
                     }
                 } else {
                     // Log the response to a CONNECT request
                     log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Response to connect] : \n" +
-                                        streambufToString(client_->readBuffer()),
+                                        streambufToString(client_->getReadBuffer()),
                                 Log::Level::DEBUG);
 
                     // Move the response from the read buffer to the write buffer
-                    moveStreambuf(client_->readBuffer(), writeBuffer_);
+                    moveStreambuf(client_->getReadBuffer(), writeBuffer_);
                 }
             } else {
                 // Close the socket if no data is available
-                client_->socket().close();
+                client_->getSocket().close();
                 return;
             }
         } else {
@@ -157,7 +157,7 @@ void AgentHandler::handle() {
                                 streambufToString(readBuffer_),
                         Log::Level::DEBUG);
             // Close the socket if no data is available
-            client_->socket().close();
+            client_->getSocket().close();
             return;
         }
     } else {
@@ -167,11 +167,11 @@ void AgentHandler::handle() {
                     Log::Level::DEBUG);
         log_->write(
                 "[AgentHandler handle] [Encryption Failed] : " +
-                        client_->socket().remote_endpoint().address().to_string() + ":" +
-                        std::to_string(client_->socket().remote_endpoint().port()) + "] ",
+                        client_->getSocket().remote_endpoint().address().to_string() + ":" +
+                        std::to_string(client_->getSocket().remote_endpoint().port()) + "] ",
                 Log::Level::INFO);
         // Close the socket if no data is available
-        client_->socket().close();
+        client_->getSocket().close();
         return;
     }
 }

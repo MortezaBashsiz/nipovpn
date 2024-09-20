@@ -2,16 +2,6 @@
 
 #include <boost/asio/steady_timer.hpp>
 
-/*
- * Constructor for the TCPClient class.
- * Initializes the TCP client with given configuration and logging objects,
- * and sets up the required I/O context, socket, resolver, and timer.
- *
- * @param io_context - The Boost Asio I/O context to be used for asynchronous
- * operations.
- * @param config - Shared pointer to the configuration object.
- * @param log - Shared pointer to the logging object.
- */
 TCPClient::TCPClient(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
                      const std::shared_ptr<Log> &log)
@@ -22,12 +12,19 @@ TCPClient::TCPClient(boost::asio::io_context &io_context,
       resolver_(io_context),
       timeout_(io_context) {}
 
+TCPClient::pointer TCPClient::create(boost::asio::io_context &io_context,
+                          const std::shared_ptr<Config> &config,
+                          const std::shared_ptr<Log> &log)
+{
+    return pointer(new TCPClient(io_context, config, log));
+}
+
 /*
  * Getter for the socket.
  *
  * @return Reference to the Boost Asio TCP socket.
  */
-boost::asio::ip::tcp::socket &TCPClient::socket() {
+boost::asio::ip::tcp::socket &TCPClient::getSocket() {
     std::lock_guard<std::mutex> lock(mutex_);
     return socket_;
 }
@@ -41,6 +38,23 @@ void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
     std::lock_guard<std::mutex> lock(mutex_);
     moveStreambuf(buffer, writeBuffer_);
 }
+
+boost::asio::streambuf& TCPClient::getWriteBuffer() & {
+    return writeBuffer_;
+}
+
+boost::asio::streambuf&& TCPClient::getWriteBuffer() && {
+    return std::move(writeBuffer_);
+}
+
+boost::asio::streambuf& TCPClient::getReadBuffer() & {
+    return readBuffer_;
+}
+
+boost::asio::streambuf&& TCPClient::getReadBuffer() && {
+    return std::move(readBuffer_);
+}
+
 
 /*
  * Connects the TCP client to a specified destination IP and port.
@@ -245,4 +259,13 @@ void TCPClient::socketShutdown() {
                 std::string("[" + to_string(uuid_) + "] [TCPClient socketShutdown] [catch] ") + error.what(),
                 Log::Level::DEBUG);
     }
+}
+
+void TCPClient::setUuid(const boost::uuids::uuid& uuid)
+{
+    uuid_ = uuid;
+}
+
+boost::uuids::uuid TCPClient::getUuid() const {
+    return uuid_;
 }

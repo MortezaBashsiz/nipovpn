@@ -96,5 +96,5 @@ private:
 
     boost::uuids::uuid uuid_;
 
-    std::mutex mutex_;///< Mutex to make the class thread-safe
+    std::mutex mutex_;
 };
