@@ -20,112 +20,120 @@ public:
     // Type alias for shared pointer to TCPClient
     using pointer = boost::shared_ptr<TCPClient>;
 
-    /*
-   * Factory method to create a new TCPClient instance.
-   *
-   * @param io_context - The Boost Asio I/O context for asynchronous
-   * operations.
-   * @param config - Shared pointer to the configuration object.
-   * @param log - Shared pointer to the logging object.
-   * @return Shared pointer to a new TCPClient instance.
-   */
+    /**
+     * @brief Factory method to create a new TCPClient instance.
+     *
+     * @param io_context The Boost Asio I/O context for asynchronous
+     * operations.
+     * @param config Shared pointer to the configuration object.
+     * @param log Shared pointer to the logging object.
+     * @return Shared pointer to a new TCPClient instance.
+     */
     static pointer create(boost::asio::io_context &io_context,
                           const std::shared_ptr<Config> &config,
-                          const std::shared_ptr<Log> &log) {
-        return pointer(new TCPClient(io_context, config, log));
-    }
+                          const std::shared_ptr<Log> &log);
 
-    /*
-   * Getter for the socket.
-   *
-   * @return Reference to the Boost Asio TCP socket.
-   */
-    boost::asio::ip::tcp::socket &socket();
+    /**
+     * @brief Getter for the socket.
+     * @return Reference to the TCP socket.
+     */
+    boost::asio::ip::tcp::socket &getSocket();
 
-    /*
-   * Moves data from a given stream buffer to the internal write buffer.
-   *
-   * @param buffer - Stream buffer containing data to be written.
-   */
+    /**
+     * @brief Moves data from a given stream buffer to the internal write buffer.
+     * @param buffer Stream buffer containing data to be written.
+     */
     void writeBuffer(boost::asio::streambuf &buffer);
 
-    /*
-   * Accessors for the internal buffers.
-   *
-   * @return Reference or rvalue reference to the internal write buffer.
-   */
-    inline boost::asio::streambuf &writeBuffer() & { return writeBuffer_; }
-    inline boost::asio::streambuf &&writeBuffer() && {
-        return std::move(writeBuffer_);
-    }
+    /**
+     * @brief Accessors for the internal buffers.
+     * @return Reference or rvalue reference to the internal write buffer.
+     */
+    boost::asio::streambuf &getWriteBuffer() &;
+    boost::asio::streambuf &&getWriteBuffer() &&;
 
-    /*
-   * Accessors for the internal buffers.
-   *
-   * @return Reference or rvalue reference to the internal read buffer.
-   */
-    inline boost::asio::streambuf &readBuffer() & { return readBuffer_; }
-    inline boost::asio::streambuf &&readBuffer() && {
-        return std::move(readBuffer_);
-    }
+    /**
+     * @brief Accessors for the internal buffers.
+     * @return Reference or rvalue reference to the internal read buffer.
+     */
+    boost::asio::streambuf &getReadBuffer() &;
+    boost::asio::streambuf &&getReadBuffer() &&;
 
-    /*
-   * Initiates a connection to the specified destination IP and port.
-   *
-   * @param dstIP - Destination IP address as a string.
-   * @param dstPort - Destination port number.
-   */
+    /**
+     * @brief Initiates a connection to the specified destination IP and port.
+     * @param dstIP Destination IP address as a string.
+     * @param dstPort Destination port number.
+     */
     bool doConnect(const std::string &dstIP, const unsigned short &dstPort);
 
-    /*
-   * Writes data from the internal write buffer to the connected socket.
-   *
-   * @param buffer - Stream buffer containing data to be written.
-   */
+    /**
+     * Writes data from the internal write buffer to the connected socket.
+     *
+     * @param buffer - Stream buffer containing data to be written.
+     */
     void doWrite(boost::asio::streambuf &buffer);
 
-    /*
-   * Reads data from the connected socket into the internal read buffer.
-   */
+    /**
+     * @brief Reads data from the connected socket into the internal read buffer.
+     */
     void doRead();
 
-    void socketShutdown();
+    /**
+     * @brief Setter method for uuid instance.
+     * @param uuid The new uuid.
+     */
+    void setUuid(const boost::uuids::uuid& uuid);
 
-    boost::uuids::uuid uuid_;
+    /**
+     * @brief Getter for uuid instance.
+     * @return The uuid instance.
+     */
+    boost::uuids::uuid getUuid() const;
 
 private:
-    /*
-   * Private constructor for TCPClient.
-   * Initializes the TCP client with the given I/O context, configuration, and
-   * logging objects.
-   *
-   * @param io_context - The Boost Asio I/O context for asynchronous
-   * operations.
-   * @param config - Shared pointer to the configuration object.
-   * @param log - Shared pointer to the logging object.
-   */
+    /**
+     * @brief Initializes the TCP client with the given I/O context, configuration,
+     * and logging objects.
+     *
+     * @param io_context The Boost Asio I/O context for asynchronous
+     * operations.
+     * @param config Shared pointer to the configuration object.
+     * @param log Shared pointer to the logging object.
+     */
     explicit TCPClient(boost::asio::io_context &io_context,
-                       const std::shared_ptr<Config> &config,
-                       const std::shared_ptr<Log> &log);
+                    const std::shared_ptr<Config> &config,
+                    const std::shared_ptr<Log> &log);
 
-    // If the timeout is enabled, start/reset it
+    /**
+     * @brief This function is used to disable socket's send operations.
+     */
+    void socketShutdown();
+
+    /**
+     * @brief  If the timeout is enabled, start/reset it.
+     */
     void resetTimeout();
-    // Cancel the timeout
+
+    /**
+     * @brief Cancel the timeout.
+     */
     void cancelTimeout();
-    // Handler in case of a timeout expiration
+
+    /**
+     * @brief Handler in case of a timeout expiration.
+     */
     void onTimeout(const boost::system::error_code &error);
 
-    // Members
-    const std::shared_ptr<Config>
-            &config_;                        // Reference to the configuration object
-    const std::shared_ptr<Log> &log_;        // Reference to the logging object
-    boost::asio::io_context &io_context_;    // Reference to the I/O context
-    boost::asio::ip::tcp::socket socket_;    // TCP socket for communication
-    boost::asio::streambuf writeBuffer_;     // Buffer for data to be written
-    boost::asio::streambuf readBuffer_;      // Buffer for data to be read
-    boost::asio::ip::tcp::resolver resolver_;// Resolver for endpoint resolution
-    boost::asio::deadline_timer timeout_;    // Timer for managing timeouts
+private:
+    const std::shared_ptr<Config>& config_;
+    const std::shared_ptr<Log> &log_;
+    boost::asio::io_context &io_context_;
+    boost::asio::ip::tcp::socket socket_;
+    boost::asio::streambuf writeBuffer_;
+    boost::asio::streambuf readBuffer_;
+    boost::asio::ip::tcp::resolver resolver_;
+    boost::asio::deadline_timer timeout_;
+    boost::uuids::uuid uuid_;
 
-    // Mutex for protecting access to the socket and buffers
     mutable std::mutex mutex_;
 };
