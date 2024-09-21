@@ -16,75 +16,132 @@
  */
 class TCPConnection : public boost::enable_shared_from_this<TCPConnection> {
 public:
-    using pointer =
-            boost::shared_ptr<TCPConnection>;// Define a type alias for a shared
-                                             // pointer to TCPConnection
+    using pointer = boost::shared_ptr<TCPConnection>;
 
-    // Factory method to create a new TCPConnection instance
+    /**
+     * @brief Factory method to create a new TCPConnection instance.
+     *
+     * @param io_context The Boost Asio I/O context for asynchronous
+     * operations.
+     * @param config Shared pointer to the configuration object.
+     * @param log Shared pointer to the logging object.
+     * @return Shared pointer to a new TCPConnection instance.
+     */
     static pointer create(boost::asio::io_context &io_context,
                           const std::shared_ptr<Config> &config,
                           const std::shared_ptr<Log> &log,
-                          const TCPClient::pointer &client) {
-        return pointer(new TCPConnection(io_context, config, log, client));
-    }
+                          const TCPClient::pointer &client);
 
-    // Provides access to the TCP socket
-    boost::asio::ip::tcp::socket &socket();
+    /**
+     * @brief Return socket.
+     * @return The socket.
+     */
+    boost::asio::ip::tcp::socket &getSocket();
 
-    // Moves the content of the given buffer to the write buffer
-    inline void writeBuffer(boost::asio::streambuf &buffer) {
-        moveStreambuf(buffer, writeBuffer_);
-    }
+    /**
+     * @brief Moves the content of the given buffer to the write buffer.
+     * @param buffer The buffer that will be moved.
+     */
+    void writeBuffer(boost::asio::streambuf &buffer);
 
-    // Accessors for the read buffer
-    inline const boost::asio::streambuf &readBuffer() & { return readBuffer_; }
-    inline const boost::asio::streambuf &&readBuffer() && {
-        return std::move(readBuffer_);
-    }
+    /**
+     * @brief Return read buffer instance.
+     * @return Lvalue reference of read buffer.
+     */
+    boost::asio::streambuf &getReadBuffer() &;
 
-    inline boost::uuids::uuid uuid() { return uuid_; }
+    /**
+     * @brief Return read buffer instance.
+     * @return Rvalue const reference of read buffer.
+     * @note This method is reference qualified.
+     */
+    boost::asio::streambuf &&getReadBuffer() &&;
 
-    // Starts the reading process
+    /**
+     * @brief Setter method for uuid instance.
+     * @param uuid The new uuid.
+     */
+    void setUuid(const boost::uuids::uuid& uuid);
+
+    /**
+     * @brief Getter for uuid instance.
+     * @return The uuid instance.
+     */
+    boost::uuids::uuid getUuid() const;
+
+    /**
+     * @brief Start reading asyncronously from the socket.
+     */
     void start();
 
-    // Initiates an asynchronous read operation
-    void doRead();
-
-    // Handles the completion of an asynchronous read operation
-    void handleRead(const boost::system::error_code &error,
-                    size_t bytes_transferred);
-
-    // Initiates an asynchronous write operation
-    void doWrite();
-
-    void socketShutdown();
-
 private:
-    // Private constructor to enforce use of the factory method
-    explicit TCPConnection(boost::asio::io_context &io_context,
+    /**
+     * @brief Initializes the TCP connection.
+     *
+     * @param io_context The Boost Asio I/O context for asynchronous
+     * operations.
+     * @param config Shared pointer to the configuration object.
+     * @param log Shared pointer to the logging object.
+     */
+    TCPConnection(boost::asio::io_context &io_context,
                            const std::shared_ptr<Config> &config,
                            const std::shared_ptr<Log> &log,
                            const TCPClient::pointer &client);
 
-    // If the timeout is enabled, start/reset it
+    /**
+     * @brief Initiates an asynchronous write operation
+     */
+    void doWrite();
+
+
+    /**
+     * @brief This function is used to disable socket's send operations.
+     */
+    void socketShutdown();
+
+    /**
+     * @brief Start reading from the socket.
+     */
+    void doRead();
+
+    /**
+     * @brief Handles the completion of an asynchronous read operation.
+     * @param error If error occured in reading process, this variable
+     * will contain the error's code.
+     * @param bytes_transferred Number of the read bytes.
+     */
+    void handleRead(const boost::system::error_code &error,
+                    size_t bytes_transferred);
+
+    /**
+     * @brief If the timeout is enabled, start/restart it.
+     */
     void resetTimeout();
-    // Cancel the timeout
+
+    /**
+     * @brief Cancel the timeout.
+     */
     void cancelTimeout();
-    // Handler in case of a timeout expiration
+
+    /**
+     * @brief Handler in case of a timeout expiration.
+     * @param error The error code (if any error occured).
+     */
     void onTimeout(const boost::system::error_code &error);
 
-    boost::asio::ip::tcp::socket socket_;  // The TCP socket for this connection
-    const std::shared_ptr<Config> &config_;// Configuration settings
-    const std::shared_ptr<Log> &log_;      // Logging object
-    boost::asio::io_context &io_context_;  // The I/O context
-    const TCPClient::pointer &client_;     // Pointer to the associated TCP client
-    boost::asio::streambuf readBuffer_,
-            writeBuffer_;                // Buffers for reading and writing data
-    boost::asio::deadline_timer timeout_;// Connections timeout
+private:
+    boost::asio::ip::tcp::socket socket_;
+    const std::shared_ptr<Config> &config_;
+    const std::shared_ptr<Log> &log_;
+    boost::asio::io_context &io_context_;
+    const TCPClient::pointer &client_;
+    boost::asio::streambuf readBuffer_;
+    boost::asio::streambuf writeBuffer_;
+    boost::asio::deadline_timer timeout_;
 
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 
     boost::uuids::uuid uuid_;
 
-    std::mutex mutex_;///< Mutex to make the class thread-safe
+    std::mutex mutex_;
 };
