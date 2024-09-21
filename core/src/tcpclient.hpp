@@ -60,6 +60,7 @@ public:
     boost::asio::streambuf &&getReadBuffer() &&;
 
     /**
+     * 
      * @brief Initiates a connection to the specified destination IP and port.
      * @param dstIP Destination IP address as a string.
      * @param dstPort Destination port number.
@@ -92,15 +93,14 @@ public:
 
 private:
     /**
-     * @brief Initializes the TCP client with the given I/O context, configuration,
-     * and logging objects.
+     * @brief Initializes the TCP client.
      *
      * @param io_context The Boost Asio I/O context for asynchronous
      * operations.
      * @param config Shared pointer to the configuration object.
      * @param log Shared pointer to the logging object.
      */
-    explicit TCPClient(boost::asio::io_context &io_context,
+    TCPClient(boost::asio::io_context &io_context,
                     const std::shared_ptr<Config> &config,
                     const std::shared_ptr<Log> &log);
 

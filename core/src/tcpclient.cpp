@@ -203,7 +203,7 @@ void TCPClient::resetTimeout() {
     if (config_->general().timeout == 0)
         return;
 
-    // Start or restart the timer and cancel old handlers
+    // Start/Reset the timer and cancel old handlers
     timeout_.expires_from_now(boost::posix_time::seconds(config_->general().timeout));
     timeout_.async_wait(boost::bind(&TCPClient::onTimeout,
                                     shared_from_this(),
