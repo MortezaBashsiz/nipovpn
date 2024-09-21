@@ -120,10 +120,10 @@ void TCPClient::doRead() {
     try {
         readBuffer_.consume(readBuffer_.size());
 
-        boost::system::error_code error;
         resetTimeout();
 
         // Read at least 39 bytes from the socket
+        boost::system::error_code error;
         boost::asio::read(socket_, readBuffer_, boost::asio::transfer_at_least(1),
                           error);
 

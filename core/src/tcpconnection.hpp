@@ -93,16 +93,15 @@ private:
      */
     void doWrite();
 
+    /**
+     * @brief Start reading from the socket.
+     */
+    void doRead();
 
     /**
      * @brief This function is used to disable socket's send operations.
      */
     void socketShutdown();
-
-    /**
-     * @brief Start reading from the socket.
-     */
-    void doRead();
 
     /**
      * @brief Handles the completion of an asynchronous read operation.
