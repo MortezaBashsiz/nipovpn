@@ -49,6 +49,7 @@ bool TCPClient::doConnect(const std::string &dstIP,
                           const unsigned short &dstPort) {
     std::lock_guard<std::mutex> lock(mutex_);
     try {
+        // Log connection attempt
         log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " + dstIP + ":" +
                             std::to_string(dstPort) + "]",
                     Log::Level::DEBUG);
