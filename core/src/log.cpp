@@ -7,7 +7,7 @@ Log::Log(const std::shared_ptr<Config> &config)
     else if (config_->runMode() == RunMode::agent)
         mode_ = std::string("AGENT");
 
-    // Open the log file for appending.
+
     std::ofstream logFile(config_->log().file, std::ios::out | std::ios::app);
     if (!logFile.is_open()) {
         std::cerr << "Error opening log file: " << config_->log().file
@@ -33,7 +33,7 @@ Log::Log(const std::shared_ptr<Log> &log)
 Log::~Log() {}
 
 void Log::write(const std::string &message, Level level) const {
-    std::lock_guard<std::mutex> lock(logMutex_);// Lock the mutex before writing
+    std::lock_guard<std::mutex> lock(logMutex_);
 
     if (level <= level_ || level == Level::ERROR) {
         std::ofstream logFile(config_->log().file, std::ios::out | std::ios::app);

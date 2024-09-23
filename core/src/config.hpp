@@ -3,7 +3,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <memory>
-#include <mutex>// Include mutex header for thread safety
+#include <mutex>
 #include <sstream>
 
 #include "general.hpp"
@@ -50,7 +50,7 @@ private:
     std::string listenIp_;
     unsigned short listenPort_;
 
-    mutable std::mutex configMutex_;// Mutex for thread safety
+    mutable std::mutex configMutex_;
 
     explicit Config(const RunMode &mode, const std::string &filePath);
 
