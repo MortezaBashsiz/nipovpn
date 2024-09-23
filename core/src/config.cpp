@@ -1,11 +1,5 @@
 #include "config.hpp"
 
-/**
- * @brief Constructs a Config instance with specified mode and file path.
- *
- * @param mode The operational mode of the application (server or agent).
- * @param filePath The path to the configuration file.
- */
 Config::Config(const RunMode &mode, const std::string &filePath)
     : runMode_(mode),
       filePath_(filePath),
@@ -46,11 +40,7 @@ Config::Config(const RunMode &mode, const std::string &filePath)
     }
 }
 
-/**
- * @brief Copy constructor for Config.
- *
- * @param config A shared pointer to another Config instance.
- */
+
 Config::Config(const Config::pointer &config)
     : runMode_(config->runMode()),
       configYaml_(YAML::LoadFile(config->filePath())),
@@ -59,16 +49,9 @@ Config::Config(const Config::pointer &config)
       server_(config->server()),
       agent_(config->agent()) {}
 
-/**
- * @brief Destructor for Config.
- */
+
 Config::~Config() = default;
 
-/**
- * @brief Returns a string representation of the current configuration.
- *
- * @return A string describing the configuration settings.
- */
 std::string Config::toString() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     std::stringstream ss;
