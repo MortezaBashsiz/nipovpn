@@ -40,7 +40,7 @@ public:
     void handleRead(const boost::system::error_code &error,
                     size_t bytes_transferred);
     void doWrite();
-    void handleWrite(const boost::system::error_code &error, std::size_t bytes_transferred);
+    void handleWrite(const boost::system::error_code &error);
     void socketShutdown();
 
 private:

@@ -147,9 +147,9 @@ void TCPConnection::doWrite() {
         resetTimeout();
         boost::asio::async_write(socket_, writeBuffer_,
                                  boost::asio::bind_executor(strand_,
-                                                            boost::bind(&TCPConnection::handleWrite, shared_from_this(),
-                                                                        boost::asio::placeholders::error,
-                                                                        boost::asio::placeholders::bytes_transferred)));
+                                                            [self = shared_from_this()](const boost::system::error_code &error, std::size_t /*bytes_transferred*/) {
+                                                                self->handleWrite(error);
+                                                            }));
     } catch (std::exception &error) {
         log_->write(
                 std::string("[" + to_string(uuid_) + "] [TCPConnection doWrite] [catch] ") + error.what(),
@@ -158,7 +158,7 @@ void TCPConnection::doWrite() {
     }
 }
 
-void TCPConnection::handleWrite(const boost::system::error_code &error, std::size_t bytes_transferred) {
+void TCPConnection::handleWrite(const boost::system::error_code &error) {
     cancelTimeout();
     if (!error) {
         doRead();
