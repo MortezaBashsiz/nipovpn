@@ -14,8 +14,7 @@ TCPClient::TCPClient(boost::asio::io_context &io_context,
 
 TCPClient::pointer TCPClient::create(boost::asio::io_context &io_context,
                           const std::shared_ptr<Config> &config,
-                          const std::shared_ptr<Log> &log)
-{
+                          const std::shared_ptr<Log> &log) {
     return pointer(new TCPClient(io_context, config, log));
 }
 
@@ -49,12 +48,12 @@ bool TCPClient::doConnect(const std::string &dstIP,
                           const unsigned short &dstPort) {
     std::lock_guard<std::mutex> lock(mutex_);
     try {
-        // Log connection attempt
+
         log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " + dstIP + ":" +
                             std::to_string(dstPort) + "]",
                     Log::Level::DEBUG);
 
-        // Resolve the endpoint and connect
+
         boost::system::error_code error_code;
         auto endpoint = resolver_.resolve(dstIP.c_str(), std::to_string(dstPort).c_str(), error_code);
         if (error_code) {
@@ -75,7 +74,6 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
     try {
         moveStreambuf(buffer, writeBuffer_);
 
-        // Log details of the write operation
         log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [DST " +
                             socket_.remote_endpoint().address().to_string() + ":" +
                             std::to_string(socket_.remote_endpoint().port()) + "] " +
@@ -87,7 +85,6 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
                             "[Bytes " + std::to_string(writeBuffer_.size()) + "] ",
                     Log::Level::TRACE);
 
-        // Perform the write operation
         boost::system::error_code error;
         if (writeBuffer_.size() > 0) {
             resetTimeout();
@@ -122,8 +119,9 @@ void TCPClient::doRead() {
 
         resetTimeout();
 
-        // Read at least 39 bytes from the socket
         boost::system::error_code error;
+
+        // Read at least 39 bytes from the socket
         boost::asio::read(socket_, readBuffer_, boost::asio::transfer_at_least(1),
                           error);
 
@@ -168,7 +166,7 @@ void TCPClient::doRead() {
 
         if (readBuffer_.size() > 0) {
             try {
-                // Log the successful read operation
+
                 log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
@@ -181,7 +179,7 @@ void TCPClient::doRead() {
                                     "] ",
                             Log::Level::TRACE);
             } catch (std::exception &error) {
-                // Log exceptions during logging
+
                 log_->write(
                         std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [catch log] ") + error.what(),
                         Log::Level::DEBUG);
@@ -191,7 +189,7 @@ void TCPClient::doRead() {
             return;
         }
     } catch (std::exception &error) {
-        // Log exceptions during the read operation
+
         log_->write(std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [catch read] ") + error.what(),
                     Log::Level::DEBUG);
         socketShutdown();
@@ -203,7 +201,7 @@ void TCPClient::resetTimeout() {
     if (config_->general().timeout == 0)
         return;
 
-    // Start/Reset the timer and cancel old handlers
+
     timeout_.expires_from_now(boost::posix_time::seconds(config_->general().timeout));
     timeout_.async_wait(boost::bind(&TCPClient::onTimeout,
                                     shared_from_this(),
@@ -219,7 +217,9 @@ void TCPClient::onTimeout(const boost::system::error_code &error) {
     // Ignore cancellation and only handle timer expiration.
     if (error || error == boost::asio::error::operation_aborted) return;
 
-    // Timeout has expired, do necessary actions
+    if (error || error == boost::asio::error::operation_aborted) return;
+
+
     log_->write(
             std::string("[" + to_string(uuid_) + "] [TCPClient onTimeout] [expiration] ") +
                     std::to_string(+config_->general().timeout) +

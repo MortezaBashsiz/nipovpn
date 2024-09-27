@@ -11,13 +11,8 @@
 #include "http.hpp"
 #include "log.hpp"
 
-/*
- * TCPClient is a class for managing a TCP client connection.
- * It handles connecting to an endpoint, sending data, and receiving data.
- */
 class TCPClient : public boost::enable_shared_from_this<TCPClient> {
 public:
-    // Type alias for shared pointer to TCPClient
     using pointer = boost::shared_ptr<TCPClient>;
 
     /**

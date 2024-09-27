@@ -10,14 +10,6 @@
 #include "config.hpp"
 #include "general.hpp"
 
-/**
- * @brief A class for logging messages with different levels (INFO, TRACE,
- * ERROR, DEBUG).
- *
- * The Log class handles logging messages to a file and/or console based on the
- * configured log level. It provides facilities to create log instances, set
- * the log level, and write log messages.
- */
 class Log : private Uncopyable {
 public:
     enum class Level { INFO,
@@ -47,5 +39,5 @@ private:
     Level level_;
     std::string mode_;
 
-    mutable std::mutex logMutex_;// Mutex to protect write operations
+    mutable std::mutex logMutex_;
 };

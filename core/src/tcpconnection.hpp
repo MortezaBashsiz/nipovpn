@@ -9,11 +9,6 @@
 #include "general.hpp"
 #include "serverhandler.hpp"
 
-/*
- * This class handles a single TCP connection.
- * It is responsible for managing the TCP socket and its associated
- * buffers, and it processes incoming and outgoing data.
- */
 class TCPConnection : public boost::enable_shared_from_this<TCPConnection> {
 public:
     using pointer = boost::shared_ptr<TCPConnection>;
@@ -112,6 +107,9 @@ private:
     void handleRead(const boost::system::error_code &error,
                     size_t bytes_transferred);
 
+    /// TODO: Add doxygen comment
+    void handleWrite(const boost::system::error_code &error);
+
     /**
      * @brief If the timeout is enabled, start/restart it.
      */
@@ -137,10 +135,7 @@ private:
     boost::asio::streambuf readBuffer_;
     boost::asio::streambuf writeBuffer_;
     boost::asio::deadline_timer timeout_;
-
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
-
     boost::uuids::uuid uuid_;
-
     std::mutex mutex_;
 };
