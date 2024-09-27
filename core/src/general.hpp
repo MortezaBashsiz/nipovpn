@@ -14,6 +14,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+
 #include <cstring>
 #include <ctime>
 #include <fstream>
@@ -23,6 +24,13 @@
 #include <string>
 #include <vector>
 
+/** TODO:
+ *  Add implementations into source file to avoid unnecessary recompilation in
+ *  source files (the source files that included this header) after every little
+ *  change.
+*/
+
+/// TODO: Use boost::noncopyable.
 class Uncopyable {
 public:
     Uncopyable() = default;
@@ -59,6 +67,12 @@ inline void copyStringToStreambuf(const std::string &inputStr,
     os << inputStr;
 }
 
+/**
+ * @brief Moves data from source `boost::asio::streambuf` to the target.
+ *
+ * @param source The source streambuf.
+ * @param target The target streambuf.
+ */
 inline void moveStreambuf(boost::asio::streambuf &source,
                           boost::asio::streambuf &target) {
     auto bytes_copied =

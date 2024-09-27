@@ -22,6 +22,13 @@ HTTP::~HTTP() {}
 
 bool HTTP::detectType() {
     std::string requestStr(hexStreambufToStr(buffer_));
+
+    ////////// DEBUGGING //////////
+    std::cout << "******************** buffer :\n";
+    (std::cout << "").write(boost::asio::buffer_cast<char const*>(buffer_.data()), buffer_.data().size()) << std::endl;
+    std::cout << "****************************************************\n";
+    ////////// DEBUGGING //////////
+
     std::string tmpStr;
     unsigned short pos = 0;
     tmpStr = requestStr.substr(pos, 2);

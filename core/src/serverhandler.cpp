@@ -21,9 +21,7 @@ ServerHandler::~ServerHandler() {}
 void ServerHandler::handle() {
     std::lock_guard<std::mutex> lock(mutex_);
 
-
     if (request_->detectType()) {
-
         log_->write(
                 "[" + to_string(uuid_) + "] [ServerHandler handle] [Request From Agent] : " + request_->toString(),
                 Log::Level::DEBUG);
@@ -98,7 +96,7 @@ void ServerHandler::handle() {
                         client_->doWrite(readBuffer_);
                         client_->doRead();
                         if (client_->getReadBuffer().size() > 0) {
-
+                            // Encrypt the response and send it back.
                             BoolStr encryption{false, std::string("FAILED")};
                             encryption =
                                     aes256Encrypt(streambufToString(client_->getReadBuffer()),
@@ -129,18 +127,15 @@ void ServerHandler::handle() {
                                 client_->getSocket().close();
                             }
                         } else {
-
                             client_->getSocket().close();
                             return;
                         }
                     } break;
                 }
             } else {
-
                 log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [NOT HTTP Request] [Request] : " +
                                     streambufToString(readBuffer_),
                             Log::Level::DEBUG);
-
                 client_->getSocket().close();
                 return;
             }
@@ -152,7 +147,6 @@ void ServerHandler::handle() {
             log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Decryption Failed] : " +
                                 request_->toString(),
                         Log::Level::INFO);
-
             client_->getSocket().close();
             return;
         }
@@ -162,7 +156,6 @@ void ServerHandler::handle() {
                 "[" + to_string(uuid_) + "] [ServerHandler handle] [NOT HTTP Request From Agent] [Request] : " +
                         streambufToString(readBuffer_),
                 Log::Level::DEBUG);
-
         client_->getSocket().close();
         return;
     }

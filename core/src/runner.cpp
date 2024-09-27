@@ -14,11 +14,12 @@ Runner::~Runner() {
     running_.store(
             false);
     io_context_.stop();
-    for (auto &thread: threadPool_) {
-        if (thread.joinable()) {
-            thread.join();
-        }
-    }
+    /// TODO: Since we are using std::jthread, joining is done automatically.
+    // for (auto &thread: threadPool_) {// Wait for all threads to complete
+    //     if (thread.joinable()) {
+    //         thread.join();
+    //     }
+    // }
 }
 
 void Runner::run() {
