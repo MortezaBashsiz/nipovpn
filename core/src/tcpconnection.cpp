@@ -86,7 +86,7 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
 
         if (socket_.available() > 0) {
             boost::asio::deadline_timer timer{io_context_};
-            for (auto i = 0; i <= config_->general().repeatWait; i++) {
+            for (auto i = 0; i <= config_->getGeneralConfigs().repeatWait; i++) {
                 while (socket_.available()) {
 
                     resetTimeout();
@@ -114,7 +114,7 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
                 }
 
                 timer.expires_from_now(
-                        boost::posix_time::milliseconds(config_->general().timeWait));
+                        boost::posix_time::milliseconds(config_->getGeneralConfigs().timeWait));
                 timer.wait();
             }
 
@@ -130,14 +130,14 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
                         Log::Level::TRACE);
 
             // Handle the request based on the running mode
-            if (config_->runMode() == RunMode::agent) {
+            if (config_->getRunMode() == RunMode::agent) {
                 AgentHandler::pointer agentHandler_ = AgentHandler::create(
                         readBuffer_, writeBuffer_, config_, log_, client_,
                         socket_.remote_endpoint().address().to_string() + ":" +
                                 std::to_string(socket_.remote_endpoint().port()),
                         uuid_);
                 agentHandler_->handle();
-            } else if (config_->runMode() == RunMode::server) {
+            } else if (config_->getRunMode() == RunMode::server) {
                 ServerHandler::pointer serverHandler_ = ServerHandler::create(
                         readBuffer_, writeBuffer_, config_, log_, client_,
                         socket_.remote_endpoint().address().to_string() + ":" +
@@ -196,16 +196,16 @@ void TCPConnection::handleWrite(const boost::system::error_code &error) {
 }
 
 void TCPConnection::resetTimeout() {
-    if (config_->general().timeout == 0)
+    if (config_->getGeneralConfigs().timeout == 0)
         return;
-    timeout_.expires_from_now(boost::posix_time::seconds(config_->general().timeout));
+    timeout_.expires_from_now(boost::posix_time::seconds(config_->getGeneralConfigs().timeout));
     timeout_.async_wait(boost::bind(&TCPConnection::onTimeout,
                                     shared_from_this(),
                                     boost::asio::placeholders::error));
 }
 
 void TCPConnection::cancelTimeout() {
-    if (config_->general().timeout != 0)
+    if (config_->getGeneralConfigs().timeout != 0)
         timeout_.cancel();
 }
 
@@ -216,7 +216,7 @@ void TCPConnection::onTimeout(const boost::system::error_code &error) {
     // Timeout has expired, do necessary actions
     log_->write(
             std::string("[" + to_string(uuid_) + "] [TCPConnection onTimeout] [expiration] ") +
-                    std::to_string(+config_->general().timeout) +
+                    std::to_string(+config_->getGeneralConfigs().timeout) +
                     " seconds has passed, and the timeout has expired",
             Log::Level::TRACE);
 

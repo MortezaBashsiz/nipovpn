@@ -30,7 +30,7 @@ void ServerHandler::handle() {
         BoolStr decryption{false, std::string("FAILED")};
         decryption = aes256Decrypt(decode64(boost::lexical_cast<std::string>(
                                            request_->parsedHttpRequest().body())),
-                                   config_->agent().token);
+                                   config_->getAgentConfigs().token);
 
         if (decryption.ok) {
 
@@ -100,7 +100,7 @@ void ServerHandler::handle() {
                             BoolStr encryption{false, std::string("FAILED")};
                             encryption =
                                     aes256Encrypt(streambufToString(client_->getReadBuffer()),
-                                                  config_->agent().token);
+                                                  config_->getAgentConfigs().token);
                             if (encryption.ok) {
                                 std::string newRes(
                                         request_->genHttpOkResString(encode64(encryption.message)));

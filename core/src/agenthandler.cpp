@@ -24,7 +24,7 @@ void AgentHandler::handle() {
     BoolStr encryption{false, std::string("FAILED")};
 
     encryption =
-            aes256Encrypt(hexStreambufToStr(readBuffer_), config_->agent().token);
+            aes256Encrypt(hexStreambufToStr(readBuffer_), config_->getAgentConfigs().token);
 
     if (encryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Done]", Log::Level::DEBUG);
@@ -51,12 +51,12 @@ void AgentHandler::handle() {
                 boost::system::error_code ec;
                 ;
 
-                if (!client_->doConnect(config_->agent().serverIp,
-                                        config_->agent().serverPort)) {
+                if (!client_->doConnect(config_->getAgentConfigs().serverIp,
+                                        config_->getAgentConfigs().serverPort)) {
                     log_->write(std::string("[" + to_string(uuid_) + "] [CONNECT] [ERROR] [To Server] [SRC ") +
                                         clientConnStr_ + "] [DST " +
-                                        config_->agent().serverIp + ":" +
-                                        std::to_string(config_->agent().serverPort) + "]",
+                                        config_->getAgentConfigs().serverIp + ":" +
+                                        std::to_string(config_->getAgentConfigs().serverPort) + "]",
                                 Log::Level::INFO);
                 }
 
@@ -97,7 +97,7 @@ void AgentHandler::handle() {
                         decryption =
                                 aes256Decrypt(decode64(boost::lexical_cast<std::string>(
                                                       response->parsedHttpResponse().body())),
-                                              config_->agent().token);
+                                              config_->getAgentConfigs().token);
 
 
                         if (decryption.ok) {

@@ -129,7 +129,7 @@ void TCPClient::doRead() {
 
         // Implement retry mechanism if data is still available
         boost::asio::steady_timer timer(io_context_);
-        for (auto i = 0; i <= config_->general().repeatWait; i++) {
+        for (auto i = 0; i <= config_->getGeneralConfigs().repeatWait; i++) {
             while (true) {
                 if (!socket_.is_open()) {
                     log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] Socket is not OPEN",
@@ -160,7 +160,7 @@ void TCPClient::doRead() {
                     return;
                 }
             }
-            timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
+            timer.expires_after(std::chrono::milliseconds(config_->getGeneralConfigs().timeWait));
             timer.wait();
         }
 
@@ -198,18 +198,18 @@ void TCPClient::doRead() {
 }
 
 void TCPClient::resetTimeout() {
-    if (config_->general().timeout == 0)
+    if (config_->getGeneralConfigs().timeout == 0)
         return;
 
 
-    timeout_.expires_from_now(boost::posix_time::seconds(config_->general().timeout));
+    timeout_.expires_from_now(boost::posix_time::seconds(config_->getGeneralConfigs().timeout));
     timeout_.async_wait(boost::bind(&TCPClient::onTimeout,
                                     shared_from_this(),
                                     boost::asio::placeholders::error));
 }
 
 void TCPClient::cancelTimeout() {
-    if (config_->general().timeout != 0)
+    if (config_->getGeneralConfigs().timeout != 0)
         timeout_.cancel();
 }
 
@@ -222,7 +222,7 @@ void TCPClient::onTimeout(const boost::system::error_code &error) {
 
     log_->write(
             std::string("[" + to_string(uuid_) + "] [TCPClient onTimeout] [expiration] ") +
-                    std::to_string(+config_->general().timeout) +
+                    std::to_string(+config_->getGeneralConfigs().timeout) +
                     " seconds has passed, and the timeout has expired",
             Log::Level::TRACE);
 }

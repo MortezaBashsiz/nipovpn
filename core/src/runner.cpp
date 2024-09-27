@@ -25,15 +25,15 @@ Runner::~Runner() {
 void Runner::run() {
     try {
 
-        log_->write("Config initialized in " + config_->modeToString() + " mode",
+        log_->write("Config initialized in " + config_->getRunModeString() + " mode",
                     Log::Level::INFO);
-        log_->write(config_->toString(), Log::Level::INFO);
+        log_->write(config_->getAllConfigsInStr(), Log::Level::INFO);
 
 
         auto tcpServer = TCPServer::create(io_context_, config_, log_);
 
 
-        for (auto i = 0; i < config_->threads(); ++i) {
+        for (auto i = 0; i < config_->getThreadsCount(); ++i) {
             threadPool_.emplace_back([this] { workerThread(); });
         }
 

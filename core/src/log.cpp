@@ -2,19 +2,19 @@
 
 Log::Log(const std::shared_ptr<Config> &config)
     : config_(config), level_(Level::INFO) {
-    if (config_->runMode() == RunMode::server)
+    if (config_->getRunMode() == RunMode::server)
         mode_ = std::string("SERVER");
-    else if (config_->runMode() == RunMode::agent)
+    else if (config_->getRunMode() == RunMode::agent)
         mode_ = std::string("AGENT");
 
 
-    std::ofstream logFile(config_->log().file, std::ios::out | std::ios::app);
+    std::ofstream logFile(config_->getLogConfigs().file, std::ios::out | std::ios::app);
     if (!logFile.is_open()) {
-        std::cerr << "Error opening log file: " << config_->log().file
+        std::cerr << "Error opening log file: " << config_->getLogConfigs().file
                   << ". Make sure the directory and file exist.\n";
     }
 
-    const auto &logLevel = config_->log().level;
+    const auto &logLevel = config_->getLogConfigs().level;
     if (logLevel == "INFO") {
         level_ = Level::INFO;
     } else if (logLevel == "TRACE") {
@@ -36,7 +36,7 @@ void Log::write(const std::string &message, Level level) const {
     std::lock_guard<std::mutex> lock(logMutex_);
 
     if (level <= level_ || level == Level::ERROR) {
-        std::ofstream logFile(config_->log().file, std::ios::out | std::ios::app);
+        std::ofstream logFile(config_->getLogConfigs().file, std::ios::out | std::ios::app);
         if (logFile.is_open()) {
             auto now = std::time(nullptr);
             auto localTime = *std::localtime(&now);
@@ -49,7 +49,7 @@ void Log::write(const std::string &message, Level level) const {
             logFile << line;
             std::cout << line;
         } else {
-            std::cerr << "Error opening log file: " << config_->log().file
+            std::cerr << "Error opening log file: " << config_->getLogConfigs().file
                       << ". Make sure the directory and file exist.\n";
         }
     }

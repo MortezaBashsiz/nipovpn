@@ -9,8 +9,8 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
       client_(TCPClient::create(io_context, config, log)),
       io_context_(io_context),
       acceptor_(io_context,
-                boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(config->listenIp()),
-                                               config->listenPort())) {
+                boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(config->getListenIp()),
+                                               config->getListenPort())) {
     startAccept();
 }
 
