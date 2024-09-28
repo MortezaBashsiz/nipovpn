@@ -14,9 +14,33 @@ AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
       writeBuffer_(writeBuffer),
       request_(HTTP::create(config, log, readBuffer, uuid)),
       clientConnStr_(clientConnStr),
-      uuid_(uuid) {}
+      uuid_(uuid)
+{
+}
 
-AgentHandler::~AgentHandler() {}
+AgentHandler::pointer AgentHandler::create(boost::asio::streambuf &readBuffer,
+        boost::asio::streambuf &writeBuffer,
+        const std::shared_ptr<Config> &config,
+        const std::shared_ptr<Log> &log,
+        const TCPClient::pointer &client,
+        const std::string &clientConnStr,
+        boost::uuids::uuid uuid)
+{
+    return pointer(new AgentHandler(readBuffer, writeBuffer, config, log,
+                                    client, clientConnStr, uuid));
+}
+
+AgentHandler::~AgentHandler() = default;
+
+const HTTP::pointer& AgentHandler::getRequest() const&
+{
+    return request_;
+}
+
+const HTTP::pointer&& AgentHandler::getRequest() const&&
+{
+    return std::move(request_);
+}
 
 void AgentHandler::handle() {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -44,7 +68,6 @@ void AgentHandler::handle() {
                             Log::Level::INFO);
             }
 
-            // If the client socket is not open or the request type is HTTP or CONNECT
             if (!client_->getSocket().is_open() ||
                 request_->httpType() == HTTP::HttpType::http ||
                 request_->httpType() == HTTP::HttpType::connect) {
