@@ -1,6 +1,5 @@
 #include "tcpserver.hpp"
 
-
 TCPServer::TCPServer(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
                      const std::shared_ptr<Log> &log)
@@ -12,6 +11,13 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
                 boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(config->getListenIp()),
                                                config->getListenPort())) {
     startAccept();
+}
+
+TCPServer::pointer TCPServer::create(boost::asio::io_context &io_context,
+    const std::shared_ptr<Config> &config,
+    const std::shared_ptr<Log> &log)
+{
+    return pointer(new TCPServer(io_context, config, log));
 }
 
 void TCPServer::startAccept() {
