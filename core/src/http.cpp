@@ -22,6 +22,13 @@ HTTP::~HTTP() {}
 
 bool HTTP::detectType() {
     std::string requestStr(hexStreambufToStr(buffer_));
+
+    ////////// DEBUGGING //////////
+    std::cout << "******************** buffer :\n";
+    (std::cout << "").write(boost::asio::buffer_cast<char const*>(buffer_.data()), buffer_.data().size()) << std::endl;
+    std::cout << "****************************************************\n";
+    ////////// DEBUGGING //////////
+
     std::string tmpStr;
     unsigned short pos = 0;
     tmpStr = requestStr.substr(pos, 2);
@@ -128,11 +135,11 @@ bool HTTP::parseTls() {
 }
 
 const std::string HTTP::genHttpPostReqString(const std::string &body) const {
-    return std::string(config_->general().method + " " +
-                       config_->general().fakeUrl + " HTTP/" +
-                       config_->agent().httpVersion + "\r\n") +
-           "Host: " + config_->general().fakeUrl + "\r\n" +
-           "User-Agent: " + config_->agent().userAgent + "\r\n" +
+    return std::string(config_->getGeneralConfigs().method + " " +
+                       config_->getGeneralConfigs().fakeUrl + " HTTP/" +
+                       config_->getAgentConfigs().httpVersion + "\r\n") +
+           "Host: " + config_->getGeneralConfigs().fakeUrl + "\r\n" +
+           "User-Agent: " + config_->getAgentConfigs().userAgent + "\r\n" +
            "Accept: */*\r\n" + "Connection: keep-alive\r\n" +
            "Content-Length: " + std::to_string(body.length()) + "\r\n" +
            "Content-Type: application/x-www-form-urlencoded\r\n" + "\r\n" + body;

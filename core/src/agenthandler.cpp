@@ -14,9 +14,33 @@ AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
       writeBuffer_(writeBuffer),
       request_(HTTP::create(config, log, readBuffer, uuid)),
       clientConnStr_(clientConnStr),
-      uuid_(uuid) {}
+      uuid_(uuid)
+{
+}
 
-AgentHandler::~AgentHandler() {}
+AgentHandler::pointer AgentHandler::create(boost::asio::streambuf &readBuffer,
+        boost::asio::streambuf &writeBuffer,
+        const std::shared_ptr<Config> &config,
+        const std::shared_ptr<Log> &log,
+        const TCPClient::pointer &client,
+        const std::string &clientConnStr,
+        boost::uuids::uuid uuid)
+{
+    return pointer(new AgentHandler(readBuffer, writeBuffer, config, log,
+                                    client, clientConnStr, uuid));
+}
+
+AgentHandler::~AgentHandler() = default;
+
+const HTTP::pointer& AgentHandler::getRequest() const&
+{
+    return request_;
+}
+
+const HTTP::pointer&& AgentHandler::getRequest() const&&
+{
+    return std::move(request_);
+}
 
 void AgentHandler::handle() {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -24,7 +48,7 @@ void AgentHandler::handle() {
     BoolStr encryption{false, std::string("FAILED")};
 
     encryption =
-            aes256Encrypt(hexStreambufToStr(readBuffer_), config_->agent().token);
+            aes256Encrypt(hexStreambufToStr(readBuffer_), config_->getAgentConfigs().token);
 
     if (encryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Done]", Log::Level::DEBUG);
@@ -44,18 +68,18 @@ void AgentHandler::handle() {
                             Log::Level::INFO);
             }
 
-            if (!client_->socket().is_open() ||
+            if (!client_->getSocket().is_open() ||
                 request_->httpType() == HTTP::HttpType::http ||
                 request_->httpType() == HTTP::HttpType::connect) {
                 boost::system::error_code ec;
                 ;
 
-                if (!client_->doConnect(config_->agent().serverIp,
-                                        config_->agent().serverPort)) {
+                if (!client_->doConnect(config_->getAgentConfigs().serverIp,
+                                        config_->getAgentConfigs().serverPort)) {
                     log_->write(std::string("[" + to_string(uuid_) + "] [CONNECT] [ERROR] [To Server] [SRC ") +
                                         clientConnStr_ + "] [DST " +
-                                        config_->agent().serverIp + ":" +
-                                        std::to_string(config_->agent().serverPort) + "]",
+                                        config_->getAgentConfigs().serverIp + ":" +
+                                        std::to_string(config_->getAgentConfigs().serverPort) + "]",
                                 Log::Level::INFO);
                 }
 
@@ -77,12 +101,12 @@ void AgentHandler::handle() {
             client_->doRead();
 
 
-            if (client_->readBuffer().size() > 0) {
+            if (client_->getReadBuffer().size() > 0) {
 
                 if (request_->httpType() != HTTP::HttpType::connect) {
 
                     HTTP::pointer response =
-                            HTTP::create(config_, log_, client_->readBuffer(), uuid_);
+                            HTTP::create(config_, log_, client_->getReadBuffer(), uuid_);
 
 
                     if (response->parseHttpResp()) {
@@ -96,7 +120,7 @@ void AgentHandler::handle() {
                         decryption =
                                 aes256Decrypt(decode64(boost::lexical_cast<std::string>(
                                                       response->parsedHttpResponse().body())),
-                                              config_->agent().token);
+                                              config_->getAgentConfigs().token);
 
 
                         if (decryption.ok) {
@@ -111,28 +135,26 @@ void AgentHandler::handle() {
                             log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Failed] : " +
                                                 request_->toString(),
                                         Log::Level::INFO);
-                            client_->socket().close();
+                            client_->getSocket().close();
                         }
                     } else {
 
                         log_->write(
                                 "[AgentHandler handle] [NOT HTTP Response] "
                                 "[Response] : " +
-                                        streambufToString(client_->readBuffer()),
+                                        streambufToString(client_->getReadBuffer()),
                                 Log::Level::DEBUG);
                     }
                 } else {
 
                     log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Response to connect] : \n" +
-                                        streambufToString(client_->readBuffer()),
+                                        streambufToString(client_->getReadBuffer()),
                                 Log::Level::DEBUG);
 
-
-                    moveStreambuf(client_->readBuffer(), writeBuffer_);
+                    moveStreambuf(client_->getReadBuffer(), writeBuffer_);
                 }
             } else {
-
-                client_->socket().close();
+                client_->getSocket().close();
                 return;
             }
         } else {
@@ -141,7 +163,7 @@ void AgentHandler::handle() {
                                 streambufToString(readBuffer_),
                         Log::Level::DEBUG);
 
-            client_->socket().close();
+            client_->getSocket().close();
             return;
         }
     } else {
@@ -151,11 +173,11 @@ void AgentHandler::handle() {
                     Log::Level::DEBUG);
         log_->write(
                 "[AgentHandler handle] [Encryption Failed] : " +
-                        client_->socket().remote_endpoint().address().to_string() + ":" +
-                        std::to_string(client_->socket().remote_endpoint().port()) + "] ",
+                        client_->getSocket().remote_endpoint().address().to_string() + ":" +
+                        std::to_string(client_->getSocket().remote_endpoint().port()) + "] ",
                 Log::Level::INFO);
 
-        client_->socket().close();
+        client_->getSocket().close();
         return;
     }
 }

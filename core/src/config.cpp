@@ -1,58 +1,68 @@
 #include "config.hpp"
 
+Config::pointer Config::create(const RunMode& mode, const std::string& filePath)
+{
+    return pointer(new Config(mode, filePath));
+}
+
 Config::Config(const RunMode &mode, const std::string &filePath)
     : runMode_(mode),
       filePath_(filePath),
       configYaml_(YAML::LoadFile(filePath)),
-      threads_(0),
+      threadsCount_(0),
       listenIp_("127.0.0.1"),
       listenPort_(0),
-      general_({configYaml_["general"]["fakeUrl"].as<std::string>(),
-                configYaml_["general"]["method"].as<std::string>(),
-                configYaml_["general"]["timeWait"].as<unsigned int>(),
-                configYaml_["general"]["timeout"].as<unsigned short>(),
-                configYaml_["general"]["repeatWait"].as<unsigned short>()}),
-      log_({configYaml_["log"]["logLevel"].as<std::string>(),
-            configYaml_["log"]["logFile"].as<std::string>()}),
-      server_({configYaml_["server"]["threads"].as<unsigned short>(),
-               configYaml_["server"]["listenIp"].as<std::string>(),
-               configYaml_["server"]["listenPort"].as<unsigned short>()}),
-      agent_({configYaml_["agent"]["threads"].as<unsigned short>(),
-              configYaml_["agent"]["listenIp"].as<std::string>(),
-              configYaml_["agent"]["listenPort"].as<unsigned short>(),
-              configYaml_["agent"]["serverIp"].as<std::string>(),
-              configYaml_["agent"]["serverPort"].as<unsigned short>(),
-              configYaml_["agent"]["token"].as<std::string>(),
-              configYaml_["agent"]["httpVersion"].as<std::string>(),
-              configYaml_["agent"]["userAgent"].as<std::string>()}) {
+      general_{
+        configYaml_["general"]["fakeUrl"].as<std::string>(),
+        configYaml_["general"]["method"].as<std::string>(),
+        configYaml_["general"]["timeWait"].as<std::uint32_t>(),
+        configYaml_["general"]["timeout"].as<std::uint16_t>(),
+        configYaml_["general"]["repeatWait"].as<std::uint16_t>()},
+      log_{
+        configYaml_["log"]["logLevel"].as<std::string>(),
+        configYaml_["log"]["logFile"].as<std::string>()},
+      server_{
+        configYaml_["server"]["threads"].as<std::uint16_t>(),
+        configYaml_["server"]["listenPort"].as<std::uint16_t>(),
+        configYaml_["server"]["listenIp"].as<std::string>()},
+      agent_{
+        configYaml_["agent"]["threads"].as<std::uint16_t>(),
+        configYaml_["agent"]["listenPort"].as<std::uint16_t>(),
+        configYaml_["agent"]["serverPort"].as<std::uint16_t>(),
+        configYaml_["agent"]["listenIp"].as<std::string>(),
+        configYaml_["agent"]["serverIp"].as<std::string>(),
+        configYaml_["agent"]["token"].as<std::string>(),
+        configYaml_["agent"]["httpVersion"].as<std::string>(),
+        configYaml_["agent"]["userAgent"].as<std::string>()} {
     std::lock_guard<std::mutex> lock(configMutex_);
     switch (runMode_) {
         case RunMode::server:
-            threads_ = server_.threads;
+            threadsCount_ = server_.threads;
             listenIp_ = server_.listenIp;
             listenPort_ = server_.listenPort;
             break;
         case RunMode::agent:
-            threads_ = agent_.threads;
+            threadsCount_ = agent_.threads;
             listenIp_ = agent_.listenIp;
             listenPort_ = agent_.listenPort;
             break;
     }
 }
 
-
 Config::Config(const Config::pointer &config)
-    : runMode_(config->runMode()),
-      configYaml_(YAML::LoadFile(config->filePath())),
-      general_(config->general()),
-      log_(config->log()),
-      server_(config->server()),
-      agent_(config->agent()) {}
+    : runMode_(config->getRunMode()),
+      configYaml_(YAML::LoadFile(config->getFilePath())),
+      general_(config->getGeneralConfigs()),
+      log_(config->getLogConfigs()),
+      server_(config->getServerConfigs()),
+      agent_(config->getAgentConfigs())
+{
+}
 
 
 Config::~Config() = default;
 
-std::string Config::toString() const {
+std::string Config::getAllConfigsInStr() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     std::stringstream ss;
     ss << "\nConfig :\n"
@@ -81,67 +91,67 @@ std::string Config::toString() const {
     return ss.str();
 }
 
-const Config::General &Config::general() const {
+const Config::General& Config::getGeneralConfigs() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return general_;
 }
 
-const Config::Log &Config::log() const {
+const Config::Log& Config::getLogConfigs() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return log_;
 }
 
-const Config::Server &Config::server() const {
+const Config::Server& Config::getServerConfigs() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return server_;
 }
 
-const Config::Agent &Config::agent() const {
+const Config::Agent& Config::getAgentConfigs() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return agent_;
 }
 
-const unsigned short &Config::threads() const {
+void Config::setThreadsCount(std::uint16_t threads) {
     std::lock_guard<std::mutex> lock(configMutex_);
-    return threads_;
+    threadsCount_ = threads;
 }
 
-void Config::threads(unsigned short threads) {
+std::uint16_t Config::getThreadsCount() const {
     std::lock_guard<std::mutex> lock(configMutex_);
-    threads_ = threads;
+    return threadsCount_;
 }
 
-const std::string &Config::listenIp() const {
-    std::lock_guard<std::mutex> lock(configMutex_);
-    return listenIp_;
-}
-
-void Config::listenIp(const std::string &ip) {
+void Config::setListenIp(const std::string &ip) {
     std::lock_guard<std::mutex> lock(configMutex_);
     listenIp_ = ip;
 }
 
-const unsigned short &Config::listenPort() const {
+const std::string &Config::getListenIp() const {
     std::lock_guard<std::mutex> lock(configMutex_);
-    return listenPort_;
+    return listenIp_;
 }
 
-void Config::listenPort(unsigned short port) {
+void Config::setListenPort(std::uint16_t port) {
     std::lock_guard<std::mutex> lock(configMutex_);
     listenPort_ = port;
 }
 
-const RunMode &Config::runMode() const {
+std::uint16_t Config::getListenPort() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return listenPort_;
+}
+
+RunMode Config::getRunMode() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return runMode_;
 }
 
-const std::string &Config::filePath() const {
+const std::string& Config::getFilePath() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return filePath_;
 }
 
-std::string Config::modeToString() const {
+std::string Config::getRunModeString() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     switch (runMode_) {
         case RunMode::server:

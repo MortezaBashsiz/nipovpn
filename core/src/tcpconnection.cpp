@@ -14,14 +14,34 @@ TCPConnection::TCPConnection(boost::asio::io_context &io_context,
     uuid_ = boost::uuids::random_generator()();
 }
 
-boost::asio::ip::tcp::socket &TCPConnection::socket() {
+TCPConnection::pointer TCPConnection::create(
+    boost::asio::io_context &io_context,
+    const std::shared_ptr<Config> &config,
+    const std::shared_ptr<Log> &log,
+    const TCPClient::pointer &client) {
+    return pointer(new TCPConnection(io_context, config, log, client));
+}
+
+boost::asio::ip::tcp::socket &TCPConnection::getSocket() {
     return socket_;
+}
+
+boost::asio::streambuf& TCPConnection::getReadBuffer() & {
+    return readBuffer_;
+}
+
+boost::asio::streambuf&& TCPConnection::getReadBuffer() && {
+    return std::move(readBuffer_);
+}
+
+void TCPConnection::writeBuffer(boost::asio::streambuf &buffer) {
+    moveStreambuf(buffer, writeBuffer_);
 }
 
 void TCPConnection::start() {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    client_->uuid_ = uuid_;
+    client_->setUuid(uuid_);
     doRead();
 }
 
@@ -30,15 +50,13 @@ void TCPConnection::doRead() {
         readBuffer_.consume(readBuffer_.size());
         writeBuffer_.consume(writeBuffer_.size());
         resetTimeout();
-        boost::asio::async_read(
-                socket_, readBuffer_, boost::asio::transfer_exactly(1),
-                boost::asio::bind_executor(
-                        strand_,
-                        boost::bind(&TCPConnection::handleRead, shared_from_this(),
-                                    boost::asio::placeholders::error,
-                                    boost::asio::placeholders::
-                                            bytes_transferred)));
 
+        // Start an asynchronous read operation
+        auto bind_res = boost::bind(&TCPConnection::handleRead, shared_from_this(),
+                                    boost::asio::placeholders::error,
+                                    boost::asio::placeholders::bytes_transferred);
+        auto bind_ex = boost::asio::bind_executor(strand_, bind_res);
+        boost::asio::async_read(socket_, readBuffer_, boost::asio::transfer_exactly(1), bind_ex);
     } catch (std::exception &error) {
         log_->write(std::string("[" + to_string(uuid_) + "] [TCPConnection doRead] [catch] ") + error.what(),
                     Log::Level::ERROR);
@@ -48,7 +66,8 @@ void TCPConnection::doRead() {
 
 void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
     try {
-
+        // Getting called means a successful read operation in doRead(),
+        // so cancel the timeout, and reset it before next I/O
         cancelTimeout();
 
         if (error) {
@@ -67,15 +86,18 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
 
         if (socket_.available() > 0) {
             boost::asio::deadline_timer timer{io_context_};
-            for (auto i = 0; i <= config_->general().repeatWait; i++) {
-                while (true) {
-                    if (socket_.available() == 0)
-                        break;
-                    boost::system::error_code read_error;
+            for (auto i = 0; i <= config_->getGeneralConfigs().repeatWait; i++) {
+                while (socket_.available()) {
+
                     resetTimeout();
+
+                    // Read data from the socket.
+                    boost::system::error_code read_error;
                     boost::asio::read(socket_, readBuffer_,
                                       boost::asio::transfer_at_least(1), read_error);
+
                     cancelTimeout();
+
                     if (read_error == boost::asio::error::eof) {
                         log_->write(
                                 "[" + to_string(uuid_) + "] [TCPConnection handleRead] [EOF] Connection closed by peer.",
@@ -90,8 +112,9 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
                         return;
                     }
                 }
+
                 timer.expires_from_now(
-                        boost::posix_time::milliseconds(config_->general().timeWait));
+                        boost::posix_time::milliseconds(config_->getGeneralConfigs().timeWait));
                 timer.wait();
             }
 
@@ -106,14 +129,15 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
                                 "[Bytes " + std::to_string(readBuffer_.size()) + "] ",
                         Log::Level::TRACE);
 
-            if (config_->runMode() == RunMode::agent) {
+            // Handle the request based on the running mode
+            if (config_->getRunMode() == RunMode::agent) {
                 AgentHandler::pointer agentHandler_ = AgentHandler::create(
                         readBuffer_, writeBuffer_, config_, log_, client_,
                         socket_.remote_endpoint().address().to_string() + ":" +
                                 std::to_string(socket_.remote_endpoint().port()),
                         uuid_);
                 agentHandler_->handle();
-            } else if (config_->runMode() == RunMode::server) {
+            } else if (config_->getRunMode() == RunMode::server) {
                 ServerHandler::pointer serverHandler_ = ServerHandler::create(
                         readBuffer_, writeBuffer_, config_, log_, client_,
                         socket_.remote_endpoint().address().to_string() + ":" +
@@ -123,6 +147,7 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
             }
 
             if (writeBuffer_.size() > 0) {
+                // Write to the socket if there is data in the write buffer
                 doWrite();
             } else {
                 socketShutdown();
@@ -139,6 +164,7 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
 void TCPConnection::doWrite() {
     std::lock_guard<std::mutex> lock(mutex_);
     try {
+        // Log the details of the write operation.
         log_->write("[" + to_string(uuid_) + "] [TCPConnection doWrite] [DST " +
                             socket_.remote_endpoint().address().to_string() + ":" +
                             std::to_string(socket_.remote_endpoint().port()) +
@@ -170,26 +196,30 @@ void TCPConnection::handleWrite(const boost::system::error_code &error) {
 }
 
 void TCPConnection::resetTimeout() {
-    if (!config_->general().timeout)
+    if (config_->getGeneralConfigs().timeout == 0)
         return;
-    timeout_.expires_from_now(boost::posix_time::seconds(config_->general().timeout));
+    timeout_.expires_from_now(boost::posix_time::seconds(config_->getGeneralConfigs().timeout));
     timeout_.async_wait(boost::bind(&TCPConnection::onTimeout,
                                     shared_from_this(),
                                     boost::asio::placeholders::error));
 }
 
 void TCPConnection::cancelTimeout() {
-    if (config_->general().timeout)
+    if (config_->getGeneralConfigs().timeout != 0)
         timeout_.cancel();
 }
 
 void TCPConnection::onTimeout(const boost::system::error_code &error) {
-    if (error /* No Error */ || error == boost::asio::error::operation_aborted) return;
+    // Ignore cancellation and only handle timer expiration.
+    if (error || error == boost::asio::error::operation_aborted) return;
+
+    // Timeout has expired, do necessary actions
     log_->write(
             std::string("[" + to_string(uuid_) + "] [TCPConnection onTimeout] [expiration] ") +
-                    std::to_string(+config_->general().timeout) +
+                    std::to_string(+config_->getGeneralConfigs().timeout) +
                     " seconds has passed, and the timeout has expired",
             Log::Level::TRACE);
+
     socketShutdown();
 }
 
@@ -202,4 +232,12 @@ void TCPConnection::socketShutdown() {
                 std::string("[" + to_string(uuid_) + "] [TCPClient socketShutdown] [catch] ") + error.what(),
                 Log::Level::DEBUG);
     }
+}
+
+void TCPConnection::setUuid(const boost::uuids::uuid& uuid) {
+    uuid_ = uuid;
+}
+
+boost::uuids::uuid TCPConnection::getUuid() const {
+    return uuid_;
 }

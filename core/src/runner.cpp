@@ -14,25 +14,26 @@ Runner::~Runner() {
     running_.store(
             false);
     io_context_.stop();
-    for (auto &thread: threadPool_) {
-        if (thread.joinable()) {
-            thread.join();
-        }
-    }
+    /// TODO: Since we are using std::jthread, joining is done automatically.
+    // for (auto &thread: threadPool_) {// Wait for all threads to complete
+    //     if (thread.joinable()) {
+    //         thread.join();
+    //     }
+    // }
 }
 
 void Runner::run() {
     try {
 
-        log_->write("Config initialized in " + config_->modeToString() + " mode",
+        log_->write("Config initialized in " + config_->getRunModeString() + " mode",
                     Log::Level::INFO);
-        log_->write(config_->toString(), Log::Level::INFO);
+        log_->write(config_->getAllConfigsInStr(), Log::Level::INFO);
 
 
         auto tcpServer = TCPServer::create(io_context_, config_, log_);
 
 
-        for (auto i = 0; i < config_->threads(); ++i) {
+        for (auto i = 0; i < config_->getThreadsCount(); ++i) {
             threadPool_.emplace_back([this] { workerThread(); });
         }
 

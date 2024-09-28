@@ -12,7 +12,13 @@ TCPClient::TCPClient(boost::asio::io_context &io_context,
       resolver_(io_context),
       timeout_(io_context) {}
 
-boost::asio::ip::tcp::socket &TCPClient::socket() {
+TCPClient::pointer TCPClient::create(boost::asio::io_context &io_context,
+                          const std::shared_ptr<Config> &config,
+                          const std::shared_ptr<Log> &log) {
+    return pointer(new TCPClient(io_context, config, log));
+}
+
+boost::asio::ip::tcp::socket &TCPClient::getSocket() {
     std::lock_guard<std::mutex> lock(mutex_);
     return socket_;
 }
@@ -20,6 +26,22 @@ boost::asio::ip::tcp::socket &TCPClient::socket() {
 void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
     std::lock_guard<std::mutex> lock(mutex_);
     moveStreambuf(buffer, writeBuffer_);
+}
+
+boost::asio::streambuf& TCPClient::getWriteBuffer() & {
+    return writeBuffer_;
+}
+
+boost::asio::streambuf&& TCPClient::getWriteBuffer() && {
+    return std::move(writeBuffer_);
+}
+
+boost::asio::streambuf& TCPClient::getReadBuffer() & {
+    return readBuffer_;
+}
+
+boost::asio::streambuf&& TCPClient::getReadBuffer() && {
+    return std::move(readBuffer_);
 }
 
 bool TCPClient::doConnect(const std::string &dstIP,
@@ -41,7 +63,6 @@ bool TCPClient::doConnect(const std::string &dstIP,
             return true;
         }
     } catch (std::exception &error) {
-
         log_->write(std::string("[" + to_string(uuid_) + "] [TCPClient doConnect] ") + error.what(),
                     Log::Level::ERROR);
         return false;
@@ -85,7 +106,6 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
             return;
         }
     } catch (std::exception &error) {
-
         log_->write(std::string("[" + to_string(uuid_) + "] [TCPClient doWrite] [catch] ") + error.what(),
                     Log::Level::DEBUG);
         socketShutdown();
@@ -95,17 +115,21 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
 void TCPClient::doRead() {
     std::lock_guard<std::mutex> lock(mutex_);
     try {
-
         readBuffer_.consume(readBuffer_.size());
-        boost::system::error_code error;
+
         resetTimeout();
 
+        boost::system::error_code error;
+
+        // Read at least 39 bytes from the socket
         boost::asio::read(socket_, readBuffer_, boost::asio::transfer_at_least(1),
                           error);
+
         cancelTimeout();
 
+        // Implement retry mechanism if data is still available
         boost::asio::steady_timer timer(io_context_);
-        for (auto i = 0; i <= config_->general().repeatWait; i++) {
+        for (auto i = 0; i <= config_->getGeneralConfigs().repeatWait; i++) {
             while (true) {
                 if (!socket_.is_open()) {
                     log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] Socket is not OPEN",
@@ -113,11 +137,16 @@ void TCPClient::doRead() {
                     socketShutdown();
                     return;
                 }
+
                 if (socket_.available() == 0) break;
+
                 resetTimeout();
-                boost::asio::read(socket_, readBuffer_,
-                                  boost::asio::transfer_at_least(1), error);
+
+                boost::asio::read(socket_, readBuffer_, boost::asio::transfer_at_least(1),
+                        error);
+
                 cancelTimeout();
+
                 if (error == boost::asio::error::eof) {
                     log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [EOF] Connection closed by peer.",
                                 Log::Level::TRACE);
@@ -131,7 +160,7 @@ void TCPClient::doRead() {
                     return;
                 }
             }
-            timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
+            timer.expires_after(std::chrono::milliseconds(config_->getGeneralConfigs().timeWait));
             timer.wait();
         }
 
@@ -169,31 +198,31 @@ void TCPClient::doRead() {
 }
 
 void TCPClient::resetTimeout() {
-
-    if (!config_->general().timeout)
+    if (config_->getGeneralConfigs().timeout == 0)
         return;
 
 
-    timeout_.expires_from_now(boost::posix_time::seconds(config_->general().timeout));
+    timeout_.expires_from_now(boost::posix_time::seconds(config_->getGeneralConfigs().timeout));
     timeout_.async_wait(boost::bind(&TCPClient::onTimeout,
                                     shared_from_this(),
                                     boost::asio::placeholders::error));
 }
 
 void TCPClient::cancelTimeout() {
-
-    if (config_->general().timeout)
+    if (config_->getGeneralConfigs().timeout != 0)
         timeout_.cancel();
 }
 
 void TCPClient::onTimeout(const boost::system::error_code &error) {
+    // Ignore cancellation and only handle timer expiration.
+    if (error || error == boost::asio::error::operation_aborted) return;
 
     if (error || error == boost::asio::error::operation_aborted) return;
 
 
     log_->write(
             std::string("[" + to_string(uuid_) + "] [TCPClient onTimeout] [expiration] ") +
-                    std::to_string(+config_->general().timeout) +
+                    std::to_string(+config_->getGeneralConfigs().timeout) +
                     " seconds has passed, and the timeout has expired",
             Log::Level::TRACE);
 }
@@ -207,4 +236,12 @@ void TCPClient::socketShutdown() {
                 std::string("[" + to_string(uuid_) + "] [TCPClient socketShutdown] [catch] ") + error.what(),
                 Log::Level::DEBUG);
     }
+}
+
+void TCPClient::setUuid(const boost::uuids::uuid& uuid) {
+    uuid_ = uuid;
+}
+
+boost::uuids::uuid TCPClient::getUuid() const {
+    return uuid_;
 }
