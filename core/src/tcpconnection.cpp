@@ -3,7 +3,7 @@
 TCPConnection::TCPConnection(boost::asio::io_context &io_context,
                              const std::shared_ptr<Config> &config,
                              const std::shared_ptr<Log> &log,
-                             const TCPClient::pointer &client)
+                             TCPClient::pointer client)
     : socket_(io_context),
       config_(config),
       log_(log),

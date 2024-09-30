@@ -6,7 +6,6 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
                      const std::shared_ptr<Log> &log)
     : config_(config),
       log_(log),
-      client_(TCPClient::create(io_context, config, log)),
       io_context_(io_context),
       acceptor_(io_context,
                 boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(config->listenIp()),
@@ -15,7 +14,8 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
 }
 
 void TCPServer::startAccept() {
-    auto connection = TCPConnection::create(io_context_, config_, log_, client_);
+    TCPClient::pointer client = TCPClient::create(io_context_, config_, log_);
+    auto connection = TCPConnection::create(io_context_, config_, log_, client);
 
     acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
     acceptor_.async_accept(

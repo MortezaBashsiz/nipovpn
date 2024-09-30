@@ -31,7 +31,6 @@ private:
 
     const std::shared_ptr<Config> &config_;
     const std::shared_ptr<Log> &log_;
-    TCPClient::pointer client_;
     boost::asio::io_context &io_context_;
     boost::asio::ip::tcp::acceptor acceptor_;
 };

@@ -18,7 +18,7 @@ public:
     static pointer create(boost::asio::io_context &io_context,
                           const std::shared_ptr<Config> &config,
                           const std::shared_ptr<Log> &log,
-                          const TCPClient::pointer &client) {
+                          TCPClient::pointer client) {
         return pointer(new TCPConnection(io_context, config, log, client));
     }
 
@@ -47,7 +47,7 @@ private:
     explicit TCPConnection(boost::asio::io_context &io_context,
                            const std::shared_ptr<Config> &config,
                            const std::shared_ptr<Log> &log,
-                           const TCPClient::pointer &client);
+                           TCPClient::pointer client);
     void resetTimeout();
     void cancelTimeout();
     void onTimeout(const boost::system::error_code &error);
@@ -56,7 +56,7 @@ private:
     const std::shared_ptr<Config> &config_;
     const std::shared_ptr<Log> &log_;
     boost::asio::io_context &io_context_;
-    const TCPClient::pointer &client_;
+    TCPClient::pointer client_;
     boost::asio::streambuf readBuffer_,
             writeBuffer_;
     boost::asio::deadline_timer timeout_;
