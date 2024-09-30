@@ -14,7 +14,7 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
 }
 
 void TCPServer::startAccept() {
-    TCPClient::pointer client = TCPClient::create(io_context_, config_, log_);
+    auto client = TCPClient::create(io_context_, config_, log_);
     auto connection = TCPConnection::create(io_context_, config_, log_, client);
 
     acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
