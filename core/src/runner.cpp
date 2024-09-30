@@ -28,14 +28,11 @@ void Runner::run() {
                     Log::Level::INFO);
         log_->write(config_->toString(), Log::Level::INFO);
 
-
         auto tcpServer = TCPServer::create(io_context_, config_, log_);
-
 
         for (auto i = 0; i < config_->threads(); ++i) {
             threadPool_.emplace_back([this] { workerThread(); });
         }
-
 
         for (auto &thread: threadPool_) {
             if (thread.joinable()) {
