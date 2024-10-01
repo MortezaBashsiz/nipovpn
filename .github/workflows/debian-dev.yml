@@ -6,6 +6,7 @@ on:
       - dev
     paths:
       - 'core/src/**'
+      - '.github/workflows/**'
 
 jobs:
   build:
