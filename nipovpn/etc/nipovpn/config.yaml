@@ -18,11 +18,14 @@ general:
   # Defines the loop count which will try to repeat read from socket.
   #   Same as timeWait
   repeatWait: 10
+  # chunkSize: unsigned short(1-65,635)
+  # Defines the chunk size that you want to read from socket.
+  chunkSize: 512
 
 # This block is to define log directives
 log:
   # logLevel: "INFO|TRACE|DEBUG"
-  logLevel: "INFO"
+  logLevel: "DEBUG"
   # logFile: "/var/log/nipo/nipo.log"
   #   Path of log file
   logFile: "/var/log/nipovpn/nipovpn.log"

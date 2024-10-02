@@ -310,6 +310,18 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
     }
 
     try {
+        configYaml["general"]["fakeUrl"].as<std::string>();
+        configYaml["general"]["method"].as<std::string>();
+        configYaml["general"]["timeWait"].as<unsigned int>();
+        configYaml["general"]["timeout"].as<unsigned short>();
+        configYaml["general"]["repeatWait"].as<unsigned short>();
+        configYaml["general"]["chunkSize"].as<unsigned short>();
+    } catch (const std::exception &e) {
+        result.message = std::string("Error in 'general' block: ") + e.what() + "\n";
+        return result;
+    }
+
+    try {
         configYaml["log"]["logFile"].as<std::string>();
         configYaml["log"]["logLevel"].as<std::string>();
     } catch (const std::exception &e) {

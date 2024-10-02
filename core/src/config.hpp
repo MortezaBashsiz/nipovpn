@@ -19,6 +19,7 @@ private:
         unsigned int timeWait;
         unsigned short timeout;
         unsigned short repeatWait;
+        unsigned short chunkSize;
     };
 
     struct Log {
