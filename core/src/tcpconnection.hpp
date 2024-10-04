@@ -39,9 +39,10 @@ public:
     void doRead();
     void handleRead(const boost::system::error_code &error,
                     size_t bytes_transferred);
+    void doWrite(auto handlerPointer);
     void doWrite();
-    void handleWrite(const boost::system::error_code &error);
     void socketShutdown();
+    bool end_;
 
 private:
     explicit TCPConnection(boost::asio::io_context &io_context,

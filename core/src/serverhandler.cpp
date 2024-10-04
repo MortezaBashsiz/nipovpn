@@ -14,28 +14,22 @@ ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
       writeBuffer_(writeBuffer),
       request_(HTTP::create(config, log, readBuffer, uuid)),
       clientConnStr_(clientConnStr),
-      uuid_(uuid) {}
+      uuid_(uuid) { end_ = false; }
 
 ServerHandler::~ServerHandler() {}
 
 void ServerHandler::handle() {
     std::lock_guard<std::mutex> lock(mutex_);
-
-
     if (request_->detectType()) {
-
         log_->write(
                 "[" + to_string(uuid_) + "] [ServerHandler handle] [Request From Agent] : " + request_->toString(),
                 Log::Level::DEBUG);
-
-
         BoolStr decryption{false, std::string("FAILED")};
         decryption = aes256Decrypt(decode64(boost::lexical_cast<std::string>(
                                            request_->parsedHttpRequest().body())),
                                    config_->agent().token);
 
         if (decryption.ok) {
-
             log_->write(
                     "[" + to_string(uuid_) + "] [ServerHandler handle] [Token Valid] : " + request_->toString(),
                     Log::Level::DEBUG);
@@ -43,14 +37,13 @@ void ServerHandler::handle() {
             std::string tempHexArrStr(tempHexArr.begin(), tempHexArr.end());
             copyStringToStreambuf(tempHexArrStr, readBuffer_);
 
-
             if (request_->detectType()) {
                 log_->write(
                         "[" + to_string(uuid_) + "] [ServerHandler handle] [Request] : " + request_->toString(),
                         Log::Level::DEBUG);
                 switch (request_->httpType()) {
                     case HTTP::HttpType::connect: {
-
+                        end_ = true;
                         boost::asio::streambuf tempBuff;
                         std::iostream os(&tempBuff);
                         if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
@@ -77,7 +70,6 @@ void ServerHandler::handle() {
                     } break;
                     case HTTP::HttpType::http:
                     case HTTP::HttpType::https: {
-
                         if (request_->httpType() == HTTP::HttpType::http) {
                             if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
                                 log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " + clientConnStr_ + "] [DST " +
@@ -97,13 +89,17 @@ void ServerHandler::handle() {
                         }
                         client_->doWrite(readBuffer_);
                         client_->doRead();
+                        end_ = client_->end_;
                         if (client_->readBuffer().size() > 0) {
-
                             BoolStr encryption{false, std::string("FAILED")};
                             encryption =
                                     aes256Encrypt(streambufToString(client_->readBuffer()),
                                                   config_->agent().token);
                             if (encryption.ok) {
+                                if (end_) {
+                                    FUCK("serverHandler END");
+                                    request_->chunkHeader_ = "yes";
+                                }
                                 std::string newRes(
                                         request_->genHttpOkResString(encode64(encryption.message)));
                                 copyStringToStreambuf(newRes, writeBuffer_);
@@ -116,12 +112,11 @@ void ServerHandler::handle() {
                                     }
                                 }
                             } else {
-
                                 log_->write(
                                         "[" + to_string(uuid_) +
                                                 "] [ServerHandler handle] [Encryption "
                                                 "Failed] : [ " +
-                                                decryption.message + "] ",
+                                                encryption.message + "] ",
                                         Log::Level::DEBUG);
                                 log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Encryption Failed] : " +
                                                     request_->toString(),
@@ -129,14 +124,12 @@ void ServerHandler::handle() {
                                 client_->socket().close();
                             }
                         } else {
-
                             client_->socket().close();
                             return;
                         }
                     } break;
                 }
             } else {
-
                 log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [NOT HTTP Request] [Request] : " +
                                     streambufToString(readBuffer_),
                             Log::Level::DEBUG);
@@ -145,7 +138,6 @@ void ServerHandler::handle() {
                 return;
             }
         } else {
-
             log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Decryption Failed] : [ " +
                                 decryption.message + "] ",
                         Log::Level::DEBUG);
@@ -157,12 +149,55 @@ void ServerHandler::handle() {
             return;
         }
     } else {
-
         log_->write(
                 "[" + to_string(uuid_) + "] [ServerHandler handle] [NOT HTTP Request From Agent] [Request] : " +
                         streambufToString(readBuffer_),
                 Log::Level::DEBUG);
 
+        client_->socket().close();
+        return;
+    }
+}
+
+void ServerHandler::continueRead() {
+    FUCK("ServerHandler::continueRead");
+    std::lock_guard<std::mutex> lock(mutex_);
+    client_->doRead();
+    end_ = client_->end_;
+    if (client_->readBuffer().size() > 0) {
+        BoolStr encryption{false, std::string("FAILED")};
+        encryption =
+                aes256Encrypt(streambufToString(client_->readBuffer()),
+                              config_->agent().token);
+        if (encryption.ok) {
+            if (end_) {
+                FUCK("serverHandler continueRead END");
+                request_->chunkHeader_ = "yes";
+            }
+            std::string newRes(
+                    request_->genHttpOkResString(encode64(encryption.message)));
+            copyStringToStreambuf(newRes, writeBuffer_);
+            if (request_->httpType() == HTTP::HttpType::http) {
+                client_->socket().close();
+            } else {
+                if (request_->parsedTlsRequest().type ==
+                    HTTP::TlsTypes::ApplicationData) {
+                    client_->socket().close();
+                }
+            }
+        } else {
+            log_->write(
+                    "[" + to_string(uuid_) +
+                            "] [ServerHandler handle] [Encryption "
+                            "Failed] : [ " +
+                            encryption.message + "] ",
+                    Log::Level::DEBUG);
+            log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Encryption Failed] : " +
+                                request_->toString(),
+                        Log::Level::INFO);
+            client_->socket().close();
+        }
+    } else {
         client_->socket().close();
         return;
     }

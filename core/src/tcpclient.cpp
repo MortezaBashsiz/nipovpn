@@ -10,7 +10,9 @@ TCPClient::TCPClient(boost::asio::io_context &io_context,
       io_context_(io_context),
       socket_(io_context),
       resolver_(io_context),
-      timeout_(io_context) {}
+      timeout_(io_context) {
+    end_ = false;
+}
 
 boost::asio::ip::tcp::socket &TCPClient::socket() {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -26,11 +28,9 @@ bool TCPClient::doConnect(const std::string &dstIP,
                           const unsigned short &dstPort) {
     std::lock_guard<std::mutex> lock(mutex_);
     try {
-
         log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " + dstIP + ":" +
                             std::to_string(dstPort) + "]",
                     Log::Level::DEBUG);
-
 
         boost::system::error_code error_code;
         auto endpoint = resolver_.resolve(dstIP.c_str(), std::to_string(dstPort).c_str(), error_code);
@@ -93,8 +93,13 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
 }
 
 void TCPClient::doRead() {
+    FUCK("TCPClient::doRead");
+    end_ = false;
     std::lock_guard<std::mutex> lock(mutex_);
     try {
+        unsigned short headerSize{0};
+        if (config_->runMode() == RunMode::agent)
+            headerSize = 512;
 
         readBuffer_.consume(readBuffer_.size());
         boost::system::error_code error;
@@ -112,6 +117,9 @@ void TCPClient::doRead() {
                                 Log::Level::DEBUG);
                     socketShutdown();
                     return;
+                }
+                if (readBuffer_.size() >= config_->general().chunkSize + headerSize) {
+                    break;
                 }
                 if (socket_.available() == 0) break;
                 resetTimeout();
@@ -133,6 +141,18 @@ void TCPClient::doRead() {
             }
             timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
             timer.wait();
+            if (readBuffer_.size() >= config_->general().chunkSize + headerSize) {
+                FUCK(readBuffer_.size());
+                FUCK("CHUNK END");
+                break;
+            }
+        }
+
+        FUCK(readBuffer_.size());
+
+        if (socket_.available() == 0) {
+            FUCK("TCPClient END");
+            end_ = true;
         }
 
         if (readBuffer_.size() > 0) {

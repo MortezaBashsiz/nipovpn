@@ -8,7 +8,9 @@ HTTP::HTTP(const std::shared_ptr<Config> &config,
       parsedHttpRequest_(),
       httpType_(HTTP::HttpType::https),
       parsedTlsRequest_{"", "", TlsTypes::TLSHandshake},
-      uuid_(uuid) {}
+      uuid_(uuid) {
+    chunkHeader_ = "no";
+}
 
 HTTP::HTTP(const HTTP &http)
     : config_(http.config_),
@@ -16,7 +18,9 @@ HTTP::HTTP(const HTTP &http)
       buffer_(http.buffer_),
       parsedHttpRequest_(http.parsedHttpRequest_),
       parsedTlsRequest_(http.parsedTlsRequest_),
-      uuid_(http.uuid_) {}
+      uuid_(http.uuid_) {
+    chunkHeader_ = "no";
+}
 
 HTTP::~HTTP() {}
 
@@ -138,10 +142,21 @@ const std::string HTTP::genHttpPostReqString(const std::string &body) const {
            "Content-Type: application/x-www-form-urlencoded\r\n" + "\r\n" + body;
 }
 
+const std::string HTTP::genHttpRestPostReqString() const {
+    return std::string(config_->general().method + " " +
+                       config_->general().fakeUrl + " HTTP/" +
+                       config_->agent().httpVersion + "\r\n") +
+           "Host: " + config_->general().fakeUrl + "\r\n" +
+           "User-Agent: " + config_->agent().userAgent + "\r\n" +
+           "Accept: */*\r\n" + "Connection: keep-alive\r\n" +
+           "Rest: yes\r\n";
+}
+
 const std::string HTTP::genHttpOkResString(const std::string &body) const {
     return std::string("HTTP/1.1 200 OK\r\n") +
            "Content-Type: application/x-www-form-urlencoded\r\n" +
            "Content-Length: " + std::to_string(body.length()) + "\r\n" +
+           config_->general().chunkHeader + ": " + chunkHeader_ + "\r\n" +
            "Connection: keep-alive\r\n" + "Cache-Control: no-cache\r\n" +
            "Pragma: no-cache\r\n" + "\r\n" + body;
 }

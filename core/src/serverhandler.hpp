@@ -28,10 +28,12 @@ public:
     ~ServerHandler();
 
     void handle();
+    void continueRead();
 
     inline const HTTP::pointer &request() & { return request_; }
 
     inline const HTTP::pointer &&request() && { return std::move(request_); }
+    bool end_;
 
 private:
     explicit ServerHandler(boost::asio::streambuf &readBuffer,
@@ -51,8 +53,6 @@ private:
     HTTP::pointer request_;
     const std::string
             &clientConnStr_;
-
     boost::uuids::uuid uuid_;
-
     std::mutex mutex_;
 };
