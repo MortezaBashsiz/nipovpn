@@ -33,7 +33,7 @@ public:
     inline const HTTP::pointer &request() & { return request_; }
 
     inline const HTTP::pointer &&request() && { return std::move(request_); }
-    bool end_;
+    bool end_, connect_;
 
 private:
     explicit ServerHandler(boost::asio::streambuf &readBuffer,

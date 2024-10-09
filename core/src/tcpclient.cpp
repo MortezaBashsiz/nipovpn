@@ -93,7 +93,7 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
 }
 
 void TCPClient::doRead() {
-    FUCK("TCPClient::doRead");
+    FUCK("TCPClient::doRead()");
     end_ = false;
     std::lock_guard<std::mutex> lock(mutex_);
     try {
@@ -142,16 +142,11 @@ void TCPClient::doRead() {
             timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
             timer.wait();
             if (readBuffer_.size() >= config_->general().chunkSize + headerSize) {
-                FUCK(readBuffer_.size());
-                FUCK("CHUNK END");
                 break;
             }
         }
 
-        FUCK(readBuffer_.size());
-
         if (socket_.available() == 0) {
-            FUCK("TCPClient END");
             end_ = true;
         }
 

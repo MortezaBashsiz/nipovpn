@@ -14,7 +14,10 @@ ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
       writeBuffer_(writeBuffer),
       request_(HTTP::create(config, log, readBuffer, uuid)),
       clientConnStr_(clientConnStr),
-      uuid_(uuid) { end_ = false; }
+      uuid_(uuid) {
+    end_ = false;
+    connect_ = false;
+}
 
 ServerHandler::~ServerHandler() {}
 
@@ -43,7 +46,7 @@ void ServerHandler::handle() {
                         Log::Level::DEBUG);
                 switch (request_->httpType()) {
                     case HTTP::HttpType::connect: {
-                        end_ = true;
+                        connect_ = true;
                         boost::asio::streambuf tempBuff;
                         std::iostream os(&tempBuff);
                         if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
@@ -97,7 +100,6 @@ void ServerHandler::handle() {
                                                   config_->agent().token);
                             if (encryption.ok) {
                                 if (end_) {
-                                    FUCK("serverHandler END");
                                     request_->chunkHeader_ = "yes";
                                 }
                                 std::string newRes(
@@ -160,7 +162,7 @@ void ServerHandler::handle() {
 }
 
 void ServerHandler::continueRead() {
-    FUCK("ServerHandler::continueRead");
+    FUCK("ServerHandler::continueRead()");
     std::lock_guard<std::mutex> lock(mutex_);
     client_->doRead();
     end_ = client_->end_;
@@ -171,7 +173,6 @@ void ServerHandler::continueRead() {
                               config_->agent().token);
         if (encryption.ok) {
             if (end_) {
-                FUCK("serverHandler continueRead END");
                 request_->chunkHeader_ = "yes";
             }
             std::string newRes(

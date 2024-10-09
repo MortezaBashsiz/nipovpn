@@ -34,7 +34,7 @@ public:
 
     inline const HTTP::pointer &&request() && { return std::move(request_); }
 
-    bool end_;
+    bool end_, connect_;
 
 private:
     AgentHandler(boost::asio::streambuf &readBuffer,

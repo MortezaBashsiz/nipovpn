@@ -12,8 +12,7 @@
 class TCPConnection : public boost::enable_shared_from_this<TCPConnection> {
 public:
     using pointer =
-            boost::shared_ptr<TCPConnection>;// Define a type alias for a shared
-                                             // pointer to TCPConnection
+            boost::shared_ptr<TCPConnection>;
 
     static pointer create(boost::asio::io_context &io_context,
                           const std::shared_ptr<Config> &config,
@@ -39,10 +38,11 @@ public:
     void doRead();
     void handleRead(const boost::system::error_code &error,
                     size_t bytes_transferred);
+    void doReadRest();
     void doWrite(auto handlerPointer);
     void doWrite();
     void socketShutdown();
-    bool end_;
+    bool end_, connect_;
 
 private:
     explicit TCPConnection(boost::asio::io_context &io_context,

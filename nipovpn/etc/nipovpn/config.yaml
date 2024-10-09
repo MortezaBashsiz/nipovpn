@@ -13,7 +13,7 @@ general:
   # timeout: unsigned short
   # Defines the timeout for I/O Operation in seconds. 0 indicates no timeout.
   #   Useful to automatically close stalled connections.
-  timeout: 500
+  timeout: 10
   # repeatWait: unsigned short(1-65,635)
   # Defines the loop count which will try to repeat read from socket.
   #   Same as timeWait
@@ -23,7 +23,7 @@ general:
   chunkHeader: "END"
   # chunkSize: unsigned short(512-65,635)
   # Defines the chunk size that you want to read from socket.
-  chunkSize: 5120
+  chunkSize: 512
 
 # This block is to define log directives
 log:

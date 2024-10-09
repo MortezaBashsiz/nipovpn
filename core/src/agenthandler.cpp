@@ -15,8 +15,8 @@ AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
       request_(HTTP::create(config, log, readBuffer, uuid)),
       clientConnStr_(clientConnStr),
       uuid_(uuid) {
-    FUCK("TCPClient END");
     end_ = false;
+    connect_ = false;
 }
 
 AgentHandler::~AgentHandler() {}
@@ -47,6 +47,7 @@ void AgentHandler::handle() {
             if (!client_->socket().is_open() ||
                 request_->httpType() == HTTP::HttpType::http ||
                 request_->httpType() == HTTP::HttpType::connect) {
+                connect_ = true;
                 boost::system::error_code ec;
                 if (!client_->doConnect(config_->agent().serverIp,
                                         config_->agent().serverPort)) {
@@ -85,7 +86,6 @@ void AgentHandler::handle() {
                                                       response->parsedHttpResponse().body())),
                                               config_->agent().token);
                         if (boost::lexical_cast<std::string>(response->parsedHttpResponse()[config_->general().chunkHeader]) == "yes") {
-                            FUCK("AgentHandler END");
                             end_ = true;
                         }
                         if (decryption.ok) {
@@ -108,7 +108,7 @@ void AgentHandler::handle() {
                                 Log::Level::DEBUG);
                     }
                 } else {
-                    end_ = true;
+                    connect_ = true;
                     log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Response to connect] : \n" +
                                         streambufToString(client_->readBuffer()),
                                 Log::Level::DEBUG);
@@ -141,8 +141,12 @@ void AgentHandler::handle() {
 }
 
 void AgentHandler::continueRead() {
-    FUCK("AgentHandler::continueRead");
+    FUCK("gentHandler::continueRead()");
     std::lock_guard<std::mutex> lock(mutex_);
+    std::string newReq(
+            request_->genHttpRestPostReqString());
+    copyStringToStreambuf(newReq, readBuffer_);
+    client_->doWrite(readBuffer_);
     client_->doRead();
     if (client_->readBuffer().size() > 0) {
         if (request_->httpType() != HTTP::HttpType::connect) {
@@ -150,7 +154,7 @@ void AgentHandler::continueRead() {
                     HTTP::create(config_, log_, client_->readBuffer(), uuid_);
             if (response->parseHttpResp()) {
                 log_->write(
-                        "[" + to_string(uuid_) + "] [AgentHandler handle] [Response] : " + response->restoString(),
+                        "[" + to_string(uuid_) + "] [AgentHandler continueRead handle] [Response] : " + response->restoString(),
                         Log::Level::DEBUG);
                 BoolStr decryption{false, std::string("FAILED")};
                 decryption =
@@ -158,30 +162,30 @@ void AgentHandler::continueRead() {
                                               response->parsedHttpResponse().body())),
                                       config_->agent().token);
                 if (boost::lexical_cast<std::string>(response->parsedHttpResponse()[config_->general().chunkHeader]) == "yes") {
-                    FUCK("AgentHandler continueRead END");
                     end_ = true;
                 }
                 if (decryption.ok) {
                     copyStringToStreambuf(decryption.message, writeBuffer_);
-                    log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Done]", Log::Level::DEBUG);
+                    log_->write("[" + to_string(uuid_) + "] [AgentHandler continueRead handle] [Decryption Done]", Log::Level::DEBUG);
                 } else {
-                    log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Failed] : [ " +
+                    log_->write("[" + to_string(uuid_) + "] [AgentHandler continueRead handle] [Decryption Failed] : [ " +
                                         decryption.message + "] ",
                                 Log::Level::DEBUG);
-                    log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Failed] : " +
+                    log_->write("[" + to_string(uuid_) + "] [AgentHandler continueRead handle] [Decryption Failed] : " +
                                         request_->toString(),
                                 Log::Level::INFO);
                     client_->socket().close();
                 }
             } else {
                 log_->write(
-                        "[AgentHandler handle] [NOT HTTP Response] "
+                        "[AgentHandler continueRead handle] [NOT HTTP Response] "
                         "[Response] : " +
                                 streambufToString(client_->readBuffer()),
                         Log::Level::DEBUG);
             }
         } else {
-            log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Response to connect] : \n" +
+            connect_ = true;
+            log_->write("[" + to_string(uuid_) + "] [AgentHandler continueRead handle] [Response to connect] : \n" +
                                 streambufToString(client_->readBuffer()),
                         Log::Level::DEBUG);
             moveStreambuf(client_->readBuffer(), writeBuffer_);
