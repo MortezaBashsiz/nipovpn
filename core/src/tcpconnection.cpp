@@ -29,22 +29,17 @@ void TCPConnection::start() {
 
 void TCPConnection::doRead() {
     try {
-        if (!end_) {
-            readBuffer_.consume(readBuffer_.size());
-            writeBuffer_.consume(writeBuffer_.size());
-            resetTimeout();
-            boost::asio::async_read(
-                    socket_, readBuffer_, boost::asio::transfer_exactly(1),
-                    boost::asio::bind_executor(
-                            strand_,
-                            boost::bind(&TCPConnection::handleRead, shared_from_this(),
-                                        boost::asio::placeholders::error,
-                                        boost::asio::placeholders::
-                                                bytes_transferred)));
-        } else {
-            FUCK("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEND");
-            socketShutdown();
-        }
+        readBuffer_.consume(readBuffer_.size());
+        writeBuffer_.consume(writeBuffer_.size());
+        resetTimeout();
+        boost::asio::async_read(
+                socket_, readBuffer_, boost::asio::transfer_exactly(1),
+                boost::asio::bind_executor(
+                        strand_,
+                        boost::bind(&TCPConnection::handleRead, shared_from_this(),
+                                    boost::asio::placeholders::error,
+                                    boost::asio::placeholders::
+                                            bytes_transferred)));
     } catch (std::exception &error) {
         log_->write(std::string("[" + to_string(uuid_) + "] [TCPConnection doRead] [catch] ") + error.what(),
                     Log::Level::ERROR);
@@ -239,6 +234,7 @@ void TCPConnection::doWrite(auto handlerPointer) {
                 if (config_->runMode() == RunMode::server)
                     doReadRest();
                 handlerPointer->continueRead();
+                end_ = handlerPointer->end_;
                 doWrite(handlerPointer);
             }
         } else {
