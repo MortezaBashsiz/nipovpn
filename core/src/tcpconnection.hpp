@@ -40,7 +40,6 @@ public:
                     size_t bytes_transferred);
     void doReadRest();
     void doWrite(auto handlerPointer);
-    void doWrite();
     void socketShutdown();
     bool end_, connect_;
 

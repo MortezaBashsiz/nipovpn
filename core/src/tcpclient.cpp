@@ -96,6 +96,12 @@ void TCPClient::doRead() {
     end_ = false;
     std::lock_guard<std::mutex> lock(mutex_);
     try {
+        if (!socket_.is_open()) {
+            log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] Socket is not OPEN",
+                        Log::Level::DEBUG);
+            return;
+        }
+
         readBuffer_.consume(readBuffer_.size());
         boost::system::error_code error;
         resetTimeout();
@@ -107,12 +113,6 @@ void TCPClient::doRead() {
         boost::asio::steady_timer timer(io_context_);
         for (auto i = 0; i <= config_->general().repeatWait; i++) {
             while (true) {
-                if (!socket_.is_open()) {
-                    log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] Socket is not OPEN",
-                                Log::Level::DEBUG);
-                    socketShutdown();
-                    return;
-                }
                 if (config_->runMode() == RunMode::server && readBuffer_.size() >= config_->general().chunkSize) {
                     break;
                 }

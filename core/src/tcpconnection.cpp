@@ -218,6 +218,11 @@ void TCPConnection::doReadRest() {
 void TCPConnection::doWrite(auto handlerPointer) {
     boost::system::error_code error;
     try {
+        if (!socket_.is_open()) {
+            log_->write("[" + to_string(uuid_) + "] [TCPConnection doWrite] Socket is not OPEN",
+                        Log::Level::DEBUG);
+            return;
+        }
         resetTimeout();
         if (writeBuffer_.size() > 0) {
             log_->write("[" + to_string(uuid_) + "] [TCPConnection doWrite] [DST " +
