@@ -139,7 +139,7 @@ const std::string HTTP::genHttpPostReqString(const std::string &body) const {
            "User-Agent: " + config_->agent().userAgent + "\r\n" +
            "Accept: */*\r\n" + "Connection: keep-alive\r\n" +
            "Content-Length: " + std::to_string(body.length()) + "\r\n" +
-           "Content-Type: application/x-www-form-urlencoded\r\n" + "\r\n" + body;
+           "Content-Type: application/x-www-form-urlencoded\r\n" + "\r\n" + body + "\r\n";
 }
 
 const std::string HTTP::genHttpRestPostReqString() const {
@@ -158,7 +158,7 @@ const std::string HTTP::genHttpOkResString(const std::string &body) const {
            "Content-Length: " + std::to_string(body.length()) + "\r\n" +
            config_->general().chunkHeader + ": " + chunkHeader_ + "\r\n" +
            "Connection: keep-alive\r\n" + "Cache-Control: no-cache\r\n" +
-           "Pragma: no-cache\r\n" + "\r\n" + body;
+           "Pragma: no-cache\r\n" + "\r\n" + body + "\r\n";
 }
 
 void HTTP::setIPPort() {
