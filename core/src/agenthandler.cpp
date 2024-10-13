@@ -141,7 +141,6 @@ void AgentHandler::handle() {
 }
 
 void AgentHandler::continueRead() {
-    FUCK("gentHandler::continueRead()");
     std::lock_guard<std::mutex> lock(mutex_);
     std::string newReq(
             request_->genHttpRestPostReqString());

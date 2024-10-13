@@ -145,7 +145,6 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
 
 void TCPConnection::doReadRest() {
     try {
-        FUCK("TCPConnection::doReadRest()");
         readBuffer_.consume(readBuffer_.size());
         boost::system::error_code error;
         resetTimeout();
@@ -219,28 +218,33 @@ void TCPConnection::doReadRest() {
 void TCPConnection::doWrite(auto handlerPointer) {
     boost::system::error_code error;
     try {
-        log_->write("[" + to_string(uuid_) + "] [TCPConnection doWrite] [DST " +
-                            socket_.remote_endpoint().address().to_string() + ":" +
-                            std::to_string(socket_.remote_endpoint().port()) +
-                            "] [Bytes " + std::to_string(writeBuffer_.size()) + "] ",
-                    Log::Level::DEBUG);
         resetTimeout();
-        boost::asio::write(socket_, writeBuffer_, error);
-        cancelTimeout();
-        if (!error) {
-            if (end_ || connect_) {
-                doRead();
+        if (writeBuffer_.size() > 0) {
+            log_->write("[" + to_string(uuid_) + "] [TCPConnection doWrite] [DST " +
+                                socket_.remote_endpoint().address().to_string() + ":" +
+                                std::to_string(socket_.remote_endpoint().port()) +
+                                "] [Bytes " + std::to_string(writeBuffer_.size()) + "] ",
+                        Log::Level::DEBUG);
+            boost::asio::write(socket_, writeBuffer_, error);
+            cancelTimeout();
+            if (!error) {
+                if (end_ || connect_) {
+                    doRead();
+                } else {
+                    if (config_->runMode() == RunMode::server)
+                        doReadRest();
+                    handlerPointer->continueRead();
+                    end_ = handlerPointer->end_;
+                    doWrite(handlerPointer);
+                }
             } else {
-                if (config_->runMode() == RunMode::server)
-                    doReadRest();
-                handlerPointer->continueRead();
-                end_ = handlerPointer->end_;
-                doWrite(handlerPointer);
+                log_->write("[" + to_string(uuid_) + "] [TCPConnection doWrite] [error] " + error.message(),
+                            Log::Level::ERROR);
+                socketShutdown();
             }
         } else {
-            log_->write("[" + to_string(uuid_) + "] [TCPConnection doWrite] [error] " + error.message(),
-                        Log::Level::ERROR);
             socketShutdown();
+            return;
         }
     } catch (std::exception &error) {
         log_->write(

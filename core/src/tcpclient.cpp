@@ -93,14 +93,9 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
 }
 
 void TCPClient::doRead() {
-    FUCK("TCPClient::doRead()");
     end_ = false;
     std::lock_guard<std::mutex> lock(mutex_);
     try {
-        unsigned short headerSize{0};
-        if (config_->runMode() == RunMode::agent)
-            headerSize = 512;
-
         readBuffer_.consume(readBuffer_.size());
         boost::system::error_code error;
         resetTimeout();
@@ -118,7 +113,7 @@ void TCPClient::doRead() {
                     socketShutdown();
                     return;
                 }
-                if (readBuffer_.size() >= config_->general().chunkSize + headerSize) {
+                if (config_->runMode() == RunMode::server && readBuffer_.size() >= config_->general().chunkSize) {
                     break;
                 }
                 if (socket_.available() == 0) break;
@@ -141,12 +136,12 @@ void TCPClient::doRead() {
             }
             timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
             timer.wait();
-            if (readBuffer_.size() >= config_->general().chunkSize + headerSize) {
+            if (config_->runMode() == RunMode::server && readBuffer_.size() >= config_->general().chunkSize) {
                 break;
             }
         }
 
-        if (socket_.available() == 0) {
+        if (config_->runMode() == RunMode::server && socket_.available() == 0) {
             end_ = true;
         }
 

@@ -162,7 +162,6 @@ void ServerHandler::handle() {
 }
 
 void ServerHandler::continueRead() {
-    FUCK("ServerHandler::continueRead()");
     std::lock_guard<std::mutex> lock(mutex_);
     client_->doRead();
     end_ = client_->end_;
