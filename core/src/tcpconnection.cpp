@@ -225,6 +225,11 @@ void TCPConnection::doWrite(auto handlerPointer) {
                                 std::to_string(socket_.remote_endpoint().port()) +
                                 "] [Bytes " + std::to_string(writeBuffer_.size()) + "] ",
                         Log::Level::DEBUG);
+            log_->write("[" + to_string(uuid_) + "] [Write To] [DST " +
+                                socket_.remote_endpoint().address().to_string() + ":" +
+                                std::to_string(socket_.remote_endpoint().port()) +
+                                "] [Bytes " + std::to_string(writeBuffer_.size()) + "] ",
+                        Log::Level::TRACE);
             boost::asio::write(socket_, writeBuffer_, error);
             cancelTimeout();
             if (!error) {
