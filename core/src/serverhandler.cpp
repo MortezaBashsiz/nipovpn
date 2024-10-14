@@ -30,7 +30,7 @@ void ServerHandler::handle() {
         BoolStr decryption{false, std::string("FAILED")};
         decryption = aes256Decrypt(decode64(boost::lexical_cast<std::string>(
                                            request_->parsedHttpRequest().body())),
-                                   config_->agent().token);
+                                   config_->general().token);
 
         if (decryption.ok) {
             log_->write(
@@ -97,7 +97,7 @@ void ServerHandler::handle() {
                             BoolStr encryption{false, std::string("FAILED")};
                             encryption =
                                     aes256Encrypt(streambufToString(client_->readBuffer()),
-                                                  config_->agent().token);
+                                                  config_->general().token);
                             if (encryption.ok) {
                                 if (end_) {
                                     request_->chunkHeader_ = "yes";
@@ -169,7 +169,7 @@ void ServerHandler::continueRead() {
         BoolStr encryption{false, std::string("FAILED")};
         encryption =
                 aes256Encrypt(streambufToString(client_->readBuffer()),
-                              config_->agent().token);
+                              config_->general().token);
         if (encryption.ok) {
             if (end_) {
                 request_->chunkHeader_ = "yes";
