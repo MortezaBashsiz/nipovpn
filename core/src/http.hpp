@@ -52,6 +52,8 @@ public:
 
     const std::string genHttpPostReqString(const std::string &body) const;
 
+    const std::string genHttpRestPostReqString() const;
+
     const std::string genHttpOkResString(const std::string &body) const;
 
     inline const boost::beast::http::request<boost::beast::http::string_body> &
@@ -76,6 +78,7 @@ public:
 
     const std::string toString() const;
     const std::string restoString() const;
+    std::string chunkHeader_;
 
 private:
     explicit HTTP(const std::shared_ptr<Config> &config,
