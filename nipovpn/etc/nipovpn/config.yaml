@@ -1,6 +1,10 @@
 ---
 # This block contains general and global configuration which is in both modes
 general:
+  # token: 32 bytes of string. this will be used on agent and server side to encryption
+  token: "af445adb-2434-4975-9445-2c1b2231"
+  # fakeUrl: string
+  # Defines the fake url and endpoint between agent and server
   fakeUrl: "http://www.adas.com/api01"
   # method: "HEAD|GET|POST|PUT|DELETE"
   # Defines with which method
@@ -54,8 +58,6 @@ agent:
   serverIp: "127.0.0.1"
   # serverPort: port number of the nipoServer
   serverPort: 443
-  # token: 32 bytes of string. this will be used on agent and server side to encryption
-  token: "af445adb-2434-4975-9445-2c1b2231"
   # httpVersion: This version will be used between agent and server
   httpVersion: "1.1"
   # userAgent: This is the http user agent which will be used between agent and server
