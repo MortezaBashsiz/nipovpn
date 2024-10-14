@@ -17,7 +17,7 @@ general:
   # repeatWait: unsigned short(1-65,635)
   # Defines the loop count which will try to repeat read from socket.
   #   Same as timeWait
-  repeatWait: 10
+  repeatWait: 3
   # chunkHeader: String
   # Defines the chunk header that you want to inform Agent/Server if it is end or not.
   chunkHeader: "END"
@@ -28,7 +28,7 @@ general:
 # This block is to define log directives
 log:
   # logLevel: "INFO|TRACE|DEBUG"
-  logLevel: "DEBUG"
+  logLevel: "TRACE"
   # logFile: "/var/log/nipo/nipo.log"
   #   Path of log file
   logFile: "/var/log/nipovpn/nipovpn.log"
