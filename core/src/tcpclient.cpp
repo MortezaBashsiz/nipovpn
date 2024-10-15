@@ -112,7 +112,9 @@ void TCPClient::doRead() {
         else {
             boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(3),
                               error);
-            if (hexStreambufToStr(readBuffer_) == "170303") {
+            if (hexStreambufToStr(readBuffer_) == "140303" ||
+                hexStreambufToStr(readBuffer_) == "160303" ||
+                hexStreambufToStr(readBuffer_) == "170303") {
                 unsigned int tempSize{0};
                 boost::asio::streambuf tempBuff_;
                 boost::asio::read(socket_, tempBuff_, boost::asio::transfer_exactly(2),
@@ -159,7 +161,6 @@ void TCPClient::doRead() {
 
         if (readBuffer_.size() > 0) {
             try {
-
                 log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
@@ -221,6 +222,7 @@ void TCPClient::onTimeout(const boost::system::error_code &error) {
 }
 
 void TCPClient::socketShutdown() {
+    FUCK("TCPClient::socketShutdown");
     try {
         socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
         socket_.close();

@@ -149,7 +149,7 @@ const std::string HTTP::genHttpRestPostReqString() const {
            "Host: " + config_->general().fakeUrl + "\r\n" +
            "User-Agent: " + config_->agent().userAgent + "\r\n" +
            "Accept: */*\r\n" + "Connection: keep-alive\r\n" +
-           "Rest: yes\r\n";
+           "Rest: yes" + "\r\n";
 }
 
 const std::string HTTP::genHttpOkResString(const std::string &body) const {

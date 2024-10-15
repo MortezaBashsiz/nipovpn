@@ -289,6 +289,7 @@ void TCPConnection::onTimeout(const boost::system::error_code &error) {
 }
 
 void TCPConnection::socketShutdown() {
+    FUCK("TCPConnection::socketShutdown");
     try {
         socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
         socket_.close();
