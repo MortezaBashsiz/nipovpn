@@ -13,7 +13,8 @@ Config::Config(const RunMode &mode, const std::string &filePath)
                 configYaml_["general"]["timeWait"].as<unsigned int>(),
                 configYaml_["general"]["timeout"].as<unsigned short>(),
                 configYaml_["general"]["repeatWait"].as<unsigned short>(),
-                configYaml_["general"]["chunkHeader"].as<std::string>()}),
+                configYaml_["general"]["chunkHeader"].as<std::string>(),
+                configYaml_["general"]["chunkSize"].as<unsigned short>()}),
       log_({configYaml_["log"]["logLevel"].as<std::string>(),
             configYaml_["log"]["logFile"].as<std::string>()}),
       server_({configYaml_["server"]["threads"].as<unsigned short>(),
@@ -65,6 +66,7 @@ std::string Config::toString() const {
        << "   timeout: " << general_.timeout << "\n"
        << "   repeatWait: " << general_.repeatWait << "\n"
        << "   chunkHeader: " << general_.chunkHeader << "\n"
+       << "   chunkSize: " << general_.chunkSize << "\n"
        << " Log :\n"
        << "   logLevel: " << log_.level << "\n"
        << "   logFile: " << log_.file << "\n"

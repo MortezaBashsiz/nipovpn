@@ -132,6 +132,9 @@ void TCPClient::doRead() {
         if (!endApplicationData) {
             for (auto i = 0; i <= config_->general().repeatWait; i++) {
                 while (true) {
+                    if (config_->runMode() == RunMode::server && readBuffer_.size() >= config_->general().chunkSize) {
+                        break;
+                    }
                     if (socket_.available() == 0) break;
                     resetTimeout();
                     boost::asio::read(socket_, readBuffer_,

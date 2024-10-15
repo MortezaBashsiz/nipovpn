@@ -21,6 +21,7 @@ private:
         unsigned short timeout;
         unsigned short repeatWait;
         std::string chunkHeader;
+        unsigned short chunkSize;
     };
 
     struct Log {
