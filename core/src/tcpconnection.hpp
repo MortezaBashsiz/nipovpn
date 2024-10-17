@@ -24,7 +24,7 @@ public:
     boost::asio::ip::tcp::socket &socket();
 
     inline void writeBuffer(boost::asio::streambuf &buffer) {
-        moveStreambuf(buffer, writeBuffer_);
+        appendStreambuf(buffer, writeBuffer_);
     }
 
     inline const boost::asio::streambuf &readBuffer() & { return readBuffer_; }

@@ -112,7 +112,7 @@ void AgentHandler::handle() {
                     log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Response to connect] : \n" +
                                         streambufToString(client_->readBuffer()),
                                 Log::Level::DEBUG);
-                    moveStreambuf(client_->readBuffer(), writeBuffer_);
+                    appendStreambuf(client_->readBuffer(), writeBuffer_);
                 }
             } else {
                 client_->socket().close();
@@ -187,7 +187,7 @@ void AgentHandler::continueRead() {
             log_->write("[" + to_string(uuid_) + "] [AgentHandler continueRead handle] [Response to connect] : \n" +
                                 streambufToString(client_->readBuffer()),
                         Log::Level::DEBUG);
-            moveStreambuf(client_->readBuffer(), writeBuffer_);
+            appendStreambuf(client_->readBuffer(), writeBuffer_);
         }
     } else {
         client_->socket().close();

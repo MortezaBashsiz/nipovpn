@@ -21,7 +21,7 @@ boost::asio::ip::tcp::socket &TCPClient::socket() {
 
 void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
     std::lock_guard<std::mutex> lock(mutex_);
-    moveStreambuf(buffer, writeBuffer_);
+    appendStreambuf(buffer, writeBuffer_);
 }
 
 bool TCPClient::doConnect(const std::string &dstIP,
@@ -51,7 +51,7 @@ bool TCPClient::doConnect(const std::string &dstIP,
 void TCPClient::doWrite(boost::asio::streambuf &buffer) {
     std::lock_guard<std::mutex> lock(mutex_);
     try {
-        moveStreambuf(buffer, writeBuffer_);
+        appendStreambuf(buffer, writeBuffer_);
 
         log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [DST " +
                             socket_.remote_endpoint().address().to_string() + ":" +
@@ -105,31 +105,33 @@ void TCPClient::doRead() {
         readBuffer_.consume(readBuffer_.size());
         boost::system::error_code error;
         resetTimeout();
-        bool endApplicationData{false};
+        bool endTlsRecord{false};
         if (config_->runMode() == RunMode::agent)
             boost::asio::read(socket_, readBuffer_, boost::asio::transfer_at_least(1),
                               error);
         else {
-            boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(3),
+            boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(1),
                               error);
-            if (hexStreambufToStr(readBuffer_) == "140303" ||
-                hexStreambufToStr(readBuffer_) == "160303" ||
-                hexStreambufToStr(readBuffer_) == "170303") {
+            std::string firstByte = hexStreambufToStr(readBuffer_);
+            if (firstByte == "14" || firstByte == "16" || firstByte == "17") {
                 unsigned int tempSize{0};
+                boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(2),
+                                  error);
                 boost::asio::streambuf tempBuff_;
                 boost::asio::read(socket_, tempBuff_, boost::asio::transfer_exactly(2),
                                   error);
                 tempSize = hexToInt(hexStreambufToStr(tempBuff_));
                 boost::asio::read(socket_, tempBuff_, boost::asio::transfer_exactly(tempSize),
                                   error);
-                moveStreambuf(tempBuff_, readBuffer_);
-                endApplicationData = true;
+                appendStreambuf(tempBuff_, readBuffer_);
+                endTlsRecord = true;
+                FUCK(hexStreambufToStr(readBuffer_));
             }
         }
         cancelTimeout();
 
         boost::asio::steady_timer timer(io_context_);
-        if (!endApplicationData) {
+        if (!endTlsRecord) {
             for (auto i = 0; i <= config_->general().repeatWait; i++) {
                 while (true) {
                     if (config_->runMode() == RunMode::server && readBuffer_.size() >= config_->general().chunkSize) {

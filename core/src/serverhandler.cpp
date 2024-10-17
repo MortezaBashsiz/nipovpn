@@ -69,7 +69,7 @@ void ServerHandler::handle() {
                             std::string message("HTTP/1.1 500 Connection failed\r\n\r\n");
                             os << message;
                         }
-                        moveStreambuf(tempBuff, writeBuffer_);
+                        appendStreambuf(tempBuff, writeBuffer_);
                     } break;
                     case HTTP::HttpType::http:
                     case HTTP::HttpType::https: {

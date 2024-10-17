@@ -59,8 +59,8 @@ inline void copyStringToStreambuf(const std::string &inputStr,
     os << inputStr;
 }
 
-inline void moveStreambuf(boost::asio::streambuf &source,
-                          boost::asio::streambuf &target) {
+inline void appendStreambuf(boost::asio::streambuf &source,
+                            boost::asio::streambuf &target) {
     auto bytes_copied =
             boost::asio::buffer_copy(target.prepare(source.size()), source.data());
     target.commit(bytes_copied);
