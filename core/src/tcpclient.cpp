@@ -102,23 +102,22 @@ void TCPClient::doRead() {
             return;
         }
 
-        readBuffer_.consume(readBuffer_.size());
         boost::system::error_code error;
         resetTimeout();
 
-        boost::asio::read(socket_, readBuffer_, boost::asio::transfer_at_least(1),
+        boost::asio::read(socket_, buffer_, boost::asio::transfer_at_least(1),
                           error);
         cancelTimeout();
 
         boost::asio::steady_timer timer(io_context_);
         for (auto i = 0; i <= config_->general().repeatWait; i++) {
             while (true) {
-                if (config_->runMode() == RunMode::server && readBuffer_.size() >= config_->general().chunkSize) {
+                if (config_->runMode() == RunMode::server && buffer_.size() >= config_->general().chunkSize) {
                     break;
                 }
                 if (socket_.available() == 0) break;
                 resetTimeout();
-                boost::asio::read(socket_, readBuffer_,
+                boost::asio::read(socket_, buffer_,
                                   boost::asio::transfer_at_least(1), error);
                 cancelTimeout();
                 if (error == boost::asio::error::eof) {
@@ -136,7 +135,7 @@ void TCPClient::doRead() {
             }
             timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
             timer.wait();
-            if (config_->runMode() == RunMode::server && readBuffer_.size() >= config_->general().chunkSize) {
+            if (config_->runMode() == RunMode::server && buffer_.size() >= config_->general().chunkSize) {
                 break;
             }
         }
@@ -145,18 +144,18 @@ void TCPClient::doRead() {
             end_ = true;
         }
 
-        if (readBuffer_.size() > 0) {
+        if (buffer_.size() > 0) {
             try {
 
                 log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
-                                    "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
+                                    "] [Bytes " + std::to_string(buffer_.size()) + "] ",
                             Log::Level::DEBUG);
                 log_->write("[" + to_string(uuid_) + "] [Read from] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
-                                    "] " + "[Bytes " + std::to_string(readBuffer_.size()) +
+                                    "] " + "[Bytes " + std::to_string(buffer_.size()) +
                                     "] ",
                             Log::Level::TRACE);
             } catch (std::exception &error) {
@@ -175,6 +174,24 @@ void TCPClient::doRead() {
                     Log::Level::DEBUG);
         socketShutdown();
         return;
+    }
+}
+
+void TCPClient::doHandle() {
+    buffer_.consume(buffer_.size());
+    readBuffer_.consume(readBuffer_.size());
+    doRead();
+    copyStreambuf(buffer_, readBuffer_);
+    std::string bufStr{hexStreambufToStr(buffer_)};
+    std::string tmpStr;
+    unsigned short pos = 0;
+    tmpStr = bufStr.substr(pos, 2);
+    if (tmpStr == "16" || tmpStr == "14" || tmpStr == "17") {
+        pos += 4;
+        tmpStr = bufStr.substr(pos, 4);
+        long unsigned int tmpSize{hexToInt(tmpStr)};
+        FUCK(tmpSize);
+        FUCK(readBuffer_.size());
     }
 }
 

@@ -70,7 +70,7 @@ void AgentHandler::handle() {
                         Log::Level::DEBUG);
 
             client_->doWrite(readBuffer_);
-            client_->doRead();
+            client_->doHandle();
 
             if (client_->readBuffer().size() > 0) {
                 if (request_->httpType() != HTTP::HttpType::connect) {
@@ -146,7 +146,7 @@ void AgentHandler::continueRead() {
             request_->genHttpRestPostReqString());
     copyStringToStreambuf(newReq, readBuffer_);
     client_->doWrite(readBuffer_);
-    client_->doRead();
+    client_->doHandle();
     if (client_->readBuffer().size() > 0) {
         if (request_->httpType() != HTTP::HttpType::connect) {
             HTTP::pointer response =

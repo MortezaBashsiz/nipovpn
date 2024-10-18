@@ -91,7 +91,7 @@ void ServerHandler::handle() {
                             client_->doConnect(request_->dstIP(), request_->dstPort());
                         }
                         client_->doWrite(readBuffer_);
-                        client_->doRead();
+                        client_->doHandle();
                         end_ = client_->end_;
                         if (client_->readBuffer().size() > 0) {
                             BoolStr encryption{false, std::string("FAILED")};
@@ -163,7 +163,7 @@ void ServerHandler::handle() {
 
 void ServerHandler::continueRead() {
     std::lock_guard<std::mutex> lock(mutex_);
-    client_->doRead();
+    client_->doHandle();
     end_ = client_->end_;
     if (client_->readBuffer().size() > 0) {
         BoolStr encryption{false, std::string("FAILED")};

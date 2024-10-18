@@ -25,7 +25,7 @@ HTTP::HTTP(const HTTP &http)
 HTTP::~HTTP() {}
 
 bool HTTP::detectType() {
-    std::string requestStr(hexStreambufToStr(buffer_));
+    std::string requestStr{hexStreambufToStr(buffer_)};
     std::string tmpStr;
     unsigned short pos = 0;
     tmpStr = requestStr.substr(pos, 2);
