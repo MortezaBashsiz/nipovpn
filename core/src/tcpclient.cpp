@@ -95,48 +95,67 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
 void TCPClient::doRead() {
     end_ = false;
     std::lock_guard<std::mutex> lock(mutex_);
+    boost::asio::streambuf tempBuff;
+    bool endTlsRecord{false};
     try {
         if (!socket_.is_open()) {
             log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] Socket is not OPEN",
                         Log::Level::DEBUG);
             return;
         }
-
+        if (buffer_.size() >= config_->general().chunkSize) {
+            end_ = true;
+            return;
+        }
         boost::system::error_code error;
         resetTimeout();
 
-        boost::asio::read(socket_, buffer_, boost::asio::transfer_at_least(1),
-                          error);
-        cancelTimeout();
-
-        boost::asio::steady_timer timer(io_context_);
-        for (auto i = 0; i <= config_->general().repeatWait; i++) {
-            while (true) {
-                if (config_->runMode() == RunMode::server && buffer_.size() >= config_->general().chunkSize) {
-                    break;
-                }
-                if (socket_.available() == 0) break;
-                resetTimeout();
-                boost::asio::read(socket_, buffer_,
-                                  boost::asio::transfer_at_least(1), error);
-                cancelTimeout();
-                if (error == boost::asio::error::eof) {
-                    log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [EOF] Connection closed by peer.",
-                                Log::Level::TRACE);
-                    socketShutdown();
-                    return;
-                } else if (error) {
-                    log_->write(
-                            std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [error] ") + error.message(),
-                            Log::Level::ERROR);
-                    socketShutdown();
-                    return;
-                }
+        if (config_->runMode() == RunMode::agent)
+            boost::asio::read(socket_, tempBuff, boost::asio::transfer_at_least(1),
+                              error);
+        else {
+            boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(1),
+                              error);
+            std::string firstByte{hexStreambufToStr(tempBuff)};
+            if (firstByte == "14" || firstByte == "16" || firstByte == "17") {
+                boost::asio::streambuf tempBuffRecord;
+                boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(2),
+                                  error);
+                boost::asio::read(socket_, tempBuffRecord, boost::asio::transfer_exactly(2),
+                                  error);
+                unsigned long tlsRecordSize{hexToInt(hexStreambufToStr(tempBuffRecord))};
+                moveStreambuf(tempBuffRecord, tempBuff);
+                boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(tlsRecordSize),
+                                  error);
+                endTlsRecord = true;
             }
-            timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
-            timer.wait();
-            if (config_->runMode() == RunMode::server && buffer_.size() >= config_->general().chunkSize) {
-                break;
+        }
+
+        cancelTimeout();
+        if (!endTlsRecord) {
+            boost::asio::steady_timer timer(io_context_);
+            for (auto i = 0; i <= config_->general().repeatWait; i++) {
+                while (true) {
+                    if (socket_.available() == 0) break;
+                    resetTimeout();
+                    boost::asio::read(socket_, tempBuff,
+                                      boost::asio::transfer_at_least(1), error);
+                    cancelTimeout();
+                    if (error == boost::asio::error::eof) {
+                        log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [EOF] Connection closed by peer.",
+                                    Log::Level::TRACE);
+                        socketShutdown();
+                        return;
+                    } else if (error) {
+                        log_->write(
+                                std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [error] ") + error.message(),
+                                Log::Level::ERROR);
+                        socketShutdown();
+                        return;
+                    }
+                }
+                timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
+                timer.wait();
             }
         }
 
@@ -144,18 +163,19 @@ void TCPClient::doRead() {
             end_ = true;
         }
 
-        if (buffer_.size() > 0) {
+        if (tempBuff.size() > 0) {
+            copyStreambuf(tempBuff, buffer_);
             try {
 
                 log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
-                                    "] [Bytes " + std::to_string(buffer_.size()) + "] ",
+                                    "] [Bytes " + std::to_string(tempBuff.size()) + "] ",
                             Log::Level::DEBUG);
                 log_->write("[" + to_string(uuid_) + "] [Read from] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
-                                    "] " + "[Bytes " + std::to_string(buffer_.size()) +
+                                    "] " + "[Bytes " + std::to_string(tempBuff.size()) +
                                     "] ",
                             Log::Level::TRACE);
             } catch (std::exception &error) {
@@ -181,18 +201,16 @@ void TCPClient::doHandle() {
     buffer_.consume(buffer_.size());
     readBuffer_.consume(readBuffer_.size());
     doRead();
-    copyStreambuf(buffer_, readBuffer_);
     std::string bufStr{hexStreambufToStr(buffer_)};
     std::string tmpStr;
     unsigned short pos = 0;
     tmpStr = bufStr.substr(pos, 2);
-    if (tmpStr == "16" || tmpStr == "14" || tmpStr == "17") {
-        pos += 4;
-        tmpStr = bufStr.substr(pos, 4);
-        long unsigned int tmpSize{hexToInt(tmpStr)};
-        FUCK(tmpSize);
-        FUCK(readBuffer_.size());
+    if (tmpStr == "17") {
+        while (socket_.available() > 0 && buffer_.size() < config_->general().chunkSize) {
+            doRead();
+        }
     }
+    copyStreambuf(buffer_, readBuffer_);
 }
 
 void TCPClient::resetTimeout() {
