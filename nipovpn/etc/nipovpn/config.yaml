@@ -27,7 +27,7 @@ general:
   chunkHeader: "END"
   # chunkSize: unsigned short(512-65,535)
   # Defines the chunk size that you want to read from socket.
-  chunkSize: 65535
+  chunkSize: 8152
 
 # This block is to define log directives
 log:

@@ -1,6 +1,5 @@
 #include "tcpclient.hpp"
 
-#include <boost/asio/steady_timer.hpp>
 
 TCPClient::TCPClient(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
@@ -111,8 +110,8 @@ void TCPClient::doRead() {
         resetTimeout();
 
         if (config_->runMode() == RunMode::agent)
-            boost::asio::read(socket_, tempBuff, boost::asio::transfer_at_least(1),
-                              error);
+            boost::asio::read_until(socket_, tempBuff, "\r\n\r\n",
+                                    error);
         else {
             boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(1),
                               error);
