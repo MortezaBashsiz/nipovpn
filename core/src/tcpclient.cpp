@@ -113,9 +113,7 @@ void TCPClient::doRead() {
             boost::asio::read(socket_, tempBuff, boost::asio::transfer_at_least(1),
                               error);
             cancelTimeout();
-        }
-
-        else {
+        } else {
             resetTimeout();
             boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(1),
                               error);
@@ -205,8 +203,8 @@ void TCPClient::doHandle() {
     std::string bufStr{hexStreambufToStr(buffer_)};
     std::string tmpStr;
     unsigned short pos = 0;
-    tmpStr = bufStr.substr(pos, 2);
-    if (tmpStr == "17") {
+    tmpStr = bufStr.substr(pos, 4);
+    if (tmpStr == "1703" || (tmpStr != "1403" && tmpStr != "1503" && tmpStr != "1603" && tmpStr != "1703")) {
         while (socket_.available() > 0 && buffer_.size() < config_->general().chunkSize) {
             doRead();
         }
