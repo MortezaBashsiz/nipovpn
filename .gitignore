@@ -36,3 +36,4 @@ temp
 build
 .idea
 /cmake-build-debug/
+test
