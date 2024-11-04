@@ -96,6 +96,7 @@ void TCPClient::doRead() {
     end_ = false;
     std::lock_guard<std::mutex> lock(mutex_);
     boost::asio::streambuf tempBuff;
+    bool isTlsRecord{false};
     try {
         if (!socket_.is_open()) {
             log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] Socket is not OPEN",
@@ -115,8 +116,11 @@ void TCPClient::doRead() {
             cancelTimeout();
         } else {
             resetTimeout();
-            boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(1),
+            boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(2),
                               error);
+            std::string bufStr{hexStreambufToStr(tempBuff)};
+            if (bufStr == "1034" || bufStr == "1503" || bufStr == "1603" || bufStr == "1703")
+                isTlsRecord = true;
             cancelTimeout();
         }
 
@@ -158,7 +162,7 @@ void TCPClient::doRead() {
             timer.wait();
         }
 
-        if (config_->runMode() == RunMode::server && socket_.available() == 0) {
+        if (config_->runMode() == RunMode::server && isTlsRecord) {
             end_ = true;
         }
 
