@@ -1,6 +1,5 @@
 #include "tcpclient.hpp"
 
-#include <boost/asio/steady_timer.hpp>
 
 TCPClient::TCPClient(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
@@ -93,32 +92,57 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
 }
 
 void TCPClient::doRead() {
+    boost::system::error_code error;
     end_ = false;
     std::lock_guard<std::mutex> lock(mutex_);
+    boost::asio::streambuf tempBuff;
+    bool isTlsRecord{false};
     try {
         if (!socket_.is_open()) {
             log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] Socket is not OPEN",
                         Log::Level::DEBUG);
             return;
         }
+        if (buffer_.size() >= config_->general().chunkSize) {
+            end_ = true;
+            return;
+        }
 
-        readBuffer_.consume(readBuffer_.size());
-        boost::system::error_code error;
-        resetTimeout();
+        if (config_->runMode() == RunMode::agent) {
 
-        boost::asio::read(socket_, readBuffer_, boost::asio::transfer_at_least(1),
-                          error);
-        cancelTimeout();
+            resetTimeout();
+            boost::asio::read(socket_, tempBuff, boost::asio::transfer_at_least(1),
+                              error);
+            cancelTimeout();
+        } else {
+            resetTimeout();
+            boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(2),
+                              error);
+            std::string bufStr{hexStreambufToStr(tempBuff)};
+            if (bufStr == "1034" || bufStr == "1503" || bufStr == "1603" || bufStr == "1703")
+                isTlsRecord = true;
+            cancelTimeout();
+        }
+
+        if (error == boost::asio::error::eof) {
+            log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [EOF] Connection closed by peer.",
+                        Log::Level::TRACE);
+            socketShutdown();
+            return;
+        } else if (error) {
+            log_->write(
+                    std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [error] ") + error.message(),
+                    Log::Level::ERROR);
+            socketShutdown();
+            return;
+        }
 
         boost::asio::steady_timer timer(io_context_);
         for (auto i = 0; i <= config_->general().repeatWait; i++) {
             while (true) {
-                if (config_->runMode() == RunMode::server && readBuffer_.size() >= config_->general().chunkSize) {
-                    break;
-                }
                 if (socket_.available() == 0) break;
                 resetTimeout();
-                boost::asio::read(socket_, readBuffer_,
+                boost::asio::read(socket_, tempBuff,
                                   boost::asio::transfer_at_least(1), error);
                 cancelTimeout();
                 if (error == boost::asio::error::eof) {
@@ -136,27 +160,25 @@ void TCPClient::doRead() {
             }
             timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
             timer.wait();
-            if (config_->runMode() == RunMode::server && readBuffer_.size() >= config_->general().chunkSize) {
-                break;
-            }
         }
 
-        if (config_->runMode() == RunMode::server && socket_.available() == 0) {
+        if (config_->runMode() == RunMode::server && isTlsRecord) {
             end_ = true;
         }
 
-        if (readBuffer_.size() > 0) {
+        if (tempBuff.size() > 0) {
+            copyStreambuf(tempBuff, buffer_);
             try {
 
                 log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
-                                    "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
+                                    "] [Bytes " + std::to_string(tempBuff.size()) + "] ",
                             Log::Level::DEBUG);
                 log_->write("[" + to_string(uuid_) + "] [Read from] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
-                                    "] " + "[Bytes " + std::to_string(readBuffer_.size()) +
+                                    "] " + "[Bytes " + std::to_string(tempBuff.size()) +
                                     "] ",
                             Log::Level::TRACE);
             } catch (std::exception &error) {
@@ -178,12 +200,25 @@ void TCPClient::doRead() {
     }
 }
 
-void TCPClient::resetTimeout() {
+void TCPClient::doHandle() {
+    buffer_.consume(buffer_.size());
+    readBuffer_.consume(readBuffer_.size());
+    doRead();
+    std::string bufStr{hexStreambufToStr(buffer_)};
+    std::string tmpStr;
+    unsigned short pos = 0;
+    tmpStr = bufStr.substr(pos, 4);
+    if (tmpStr == "1703" || (tmpStr != "1403" && tmpStr != "1503" && tmpStr != "1603" && tmpStr != "1703")) {
+        while (socket_.available() > 0 && buffer_.size() < config_->general().chunkSize) {
+            doRead();
+        }
+    }
+    copyStreambuf(buffer_, readBuffer_);
+}
 
+void TCPClient::resetTimeout() {
     if (!config_->general().timeout)
         return;
-
-
     timeout_.expires_from_now(boost::posix_time::seconds(config_->general().timeout));
     timeout_.async_wait(boost::bind(&TCPClient::onTimeout,
                                     shared_from_this(),
@@ -197,15 +232,14 @@ void TCPClient::cancelTimeout() {
 }
 
 void TCPClient::onTimeout(const boost::system::error_code &error) {
-
     if (error || error == boost::asio::error::operation_aborted) return;
-
 
     log_->write(
             std::string("[" + to_string(uuid_) + "] [TCPClient onTimeout] [expiration] ") +
                     std::to_string(+config_->general().timeout) +
                     " seconds has passed, and the timeout has expired",
             Log::Level::TRACE);
+    socketShutdown();
 }
 
 void TCPClient::socketShutdown() {
