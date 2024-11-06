@@ -119,7 +119,7 @@ void TCPClient::doRead() {
             boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(2),
                               error);
             std::string bufStr{hexStreambufToStr(tempBuff)};
-            if (bufStr == "1034" || bufStr == "1503" || bufStr == "1603" || bufStr == "1703")
+            if (bufStr == "1403" || bufStr == "1503" || bufStr == "1603" || bufStr == "1703")
                 isTlsRecord = true;
             cancelTimeout();
         }
