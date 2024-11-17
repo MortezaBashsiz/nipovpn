@@ -109,7 +109,6 @@ void TCPClient::doRead() {
         }
 
         if (config_->runMode() == RunMode::agent) {
-
             resetTimeout();
             boost::asio::read(socket_, tempBuff, boost::asio::transfer_at_least(1),
                               error);
@@ -119,8 +118,18 @@ void TCPClient::doRead() {
             boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(2),
                               error);
             std::string bufStr{hexStreambufToStr(tempBuff)};
-            if (bufStr == "1034" || bufStr == "1503" || bufStr == "1603" || bufStr == "1703")
+            if (bufStr == "1403" || bufStr == "1503" || bufStr == "1603" || bufStr == "1703") {
                 isTlsRecord = true;
+                boost::asio::streambuf tempTempBuff;
+                boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(1),
+                                  error);
+                boost::asio::read(socket_, tempTempBuff, boost::asio::transfer_exactly(2),
+                                  error);
+                int readSize{hexToInt(hexStreambufToStr(tempTempBuff))};
+                moveStreambuf(tempTempBuff, tempBuff);
+                boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(readSize),
+                                  error);
+            }
             cancelTimeout();
         }
 
@@ -138,32 +147,38 @@ void TCPClient::doRead() {
         }
 
         boost::asio::steady_timer timer(io_context_);
-        for (auto i = 0; i <= config_->general().repeatWait; i++) {
-            while (true) {
-                if (socket_.available() == 0) break;
-                resetTimeout();
-                boost::asio::read(socket_, tempBuff,
-                                  boost::asio::transfer_at_least(1), error);
-                cancelTimeout();
-                if (error == boost::asio::error::eof) {
-                    log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [EOF] Connection closed by peer.",
-                                Log::Level::TRACE);
-                    socketShutdown();
-                    return;
-                } else if (error) {
-                    log_->write(
-                            std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [error] ") + error.message(),
-                            Log::Level::ERROR);
-                    socketShutdown();
-                    return;
+        if (!isTlsRecord) {
+            for (auto i = 0; i <= config_->general().repeatWait; i++) {
+                while (true) {
+                    if (socket_.available() == 0) break;
+                    resetTimeout();
+                    boost::asio::read(socket_, tempBuff,
+                                      boost::asio::transfer_at_least(1), error);
+                    cancelTimeout();
+                    if (error == boost::asio::error::eof) {
+                        log_->write("[" + to_string(uuid_) + "] [TCPClient doRead] [EOF] Connection closed by peer.",
+                                    Log::Level::TRACE);
+                        socketShutdown();
+                        return;
+                    } else if (error) {
+                        log_->write(
+                                std::string("[" + to_string(uuid_) + "] [TCPClient doRead] [error] ") + error.message(),
+                                Log::Level::ERROR);
+                        socketShutdown();
+                        return;
+                    }
                 }
+                timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
+                timer.wait();
             }
-            timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
-            timer.wait();
         }
 
-        if (config_->runMode() == RunMode::server && isTlsRecord) {
-            end_ = true;
+        if (config_->runMode() == RunMode::server) {
+            timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
+            timer.wait();
+            if (socket_.available() == 0) {
+                end_ = true;
+            }
         }
 
         if (tempBuff.size() > 0) {
@@ -208,7 +223,7 @@ void TCPClient::doHandle() {
     std::string tmpStr;
     unsigned short pos = 0;
     tmpStr = bufStr.substr(pos, 4);
-    if (tmpStr == "1703" || (tmpStr != "1403" && tmpStr != "1503" && tmpStr != "1603" && tmpStr != "1703")) {
+    if ((tmpStr == "1403" && tmpStr == "1503" && tmpStr == "1603" && tmpStr == "1703") || (tmpStr != "1403" && tmpStr != "1503" && tmpStr != "1603" && tmpStr != "1703")) {
         while (socket_.available() > 0 && buffer_.size() < config_->general().chunkSize) {
             doRead();
         }
