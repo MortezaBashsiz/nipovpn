@@ -219,14 +219,8 @@ void TCPClient::doHandle() {
     buffer_.consume(buffer_.size());
     readBuffer_.consume(readBuffer_.size());
     doRead();
-    std::string bufStr{hexStreambufToStr(buffer_)};
-    std::string tmpStr;
-    unsigned short pos = 0;
-    tmpStr = bufStr.substr(pos, 4);
-    if ((tmpStr == "1403" && tmpStr == "1503" && tmpStr == "1603" && tmpStr == "1703") || (tmpStr != "1403" && tmpStr != "1503" && tmpStr != "1603" && tmpStr != "1703")) {
-        while (socket_.available() > 0 && buffer_.size() < config_->general().chunkSize) {
-            doRead();
-        }
+    while (socket_.available() > 0 && buffer_.size() < config_->general().chunkSize) {
+        doRead();
     }
     copyStreambuf(buffer_, readBuffer_);
 }
