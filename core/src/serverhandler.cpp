@@ -63,10 +63,10 @@ void ServerHandler::handle() {
                         }
                         if (client_->socket().is_open()) {
                             std::string message(
-                                    "HTTP/1.1 200 Connection established\r\n\r\n");
+                                    "HTTP/1.1 200 Connection established COMP\r\n\r\n");
                             os << message;
                         } else {
-                            std::string message("HTTP/1.1 500 Connection failed\r\n\r\n");
+                            std::string message("HTTP/1.1 500 Connection failed COMP\r\n\r\n");
                             os << message;
                         }
                         moveStreambuf(tempBuff, writeBuffer_);

@@ -32,7 +32,8 @@ public:
     }
     bool doConnect(const std::string &dstIP, const unsigned short &dstPort);
     void doWrite(boost::asio::streambuf &buffer);
-    void doRead();
+    void doReadAgent();
+    void doReadServer();
     void doHandle();
     void socketShutdown();
     boost::uuids::uuid uuid_;

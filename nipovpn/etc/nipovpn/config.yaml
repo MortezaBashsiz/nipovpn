@@ -13,7 +13,7 @@ general:
   # timeWait: unsigned int(0-4,294,967,295)
   # Defines the time wait between each repeat to read from socket.
   #   This directive will be useful when you expect to read very long stream from socket
-  timeWait: 5
+  timeWait: 0
   # timeout: unsigned short
   # Defines the timeout for I/O Operation in seconds. 0 indicates no timeout.
   #   Useful to automatically close stalled connections.
@@ -21,7 +21,7 @@ general:
   # repeatWait: unsigned short(1-65,635)
   # Defines the loop count which will try to repeat read from socket.
   #   Same as timeWait
-  repeatWait: 10
+  repeatWait: 1
   # chunkHeader: String
   # Defines the chunk header that you want to inform Agent/Server if it is end or not.
   chunkHeader: "END"
