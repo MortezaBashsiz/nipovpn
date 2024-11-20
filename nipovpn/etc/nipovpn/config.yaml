@@ -13,21 +13,18 @@ general:
   # timeWait: unsigned int(0-4,294,967,295)
   # Defines the time wait between each repeat to read from socket.
   #   This directive will be useful when you expect to read very long stream from socket
-  timeWait: 0
+  timeWait: 1
   # timeout: unsigned short
   # Defines the timeout for I/O Operation in seconds. 0 indicates no timeout.
   #   Useful to automatically close stalled connections.
-  timeout: 10
+  timeout: 3
   # repeatWait: unsigned short(1-65,635)
   # Defines the loop count which will try to repeat read from socket.
   #   Same as timeWait
-  repeatWait: 1
+  repeatWait: 25
   # chunkHeader: String
   # Defines the chunk header that you want to inform Agent/Server if it is end or not.
   chunkHeader: "END"
-  # chunkSize: unsigned short(512-65,535)
-  # Defines the chunk size that you want to read from socket.
-  chunkSize: 8152
 
 # This block is to define log directives
 log:
@@ -55,7 +52,7 @@ agent:
   # listenPort: the port number which will be used on agent
   listenPort: 8080
   # serverIp: IPv4 of the nipoServer
-  serverIp: "127.0.0.1"
+  serverIp: "127.0.0.10"
   # serverPort: port number of the nipoServer
   serverPort: 443
   # httpVersion: This version will be used between agent and server

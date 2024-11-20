@@ -168,10 +168,6 @@ void TCPClient::doReadServer() {
                         Log::Level::DEBUG);
             return;
         }
-        if (buffer_.size() >= config_->general().chunkSize) {
-            end_ = true;
-            return;
-        }
 
         resetTimeout();
         boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(2),
