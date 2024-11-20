@@ -317,7 +317,6 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
         configYaml["general"]["timeout"].as<unsigned short>();
         configYaml["general"]["repeatWait"].as<unsigned short>();
         configYaml["general"]["chunkHeader"].as<std::string>();
-        configYaml["general"]["chunkSize"].as<unsigned short>();
     } catch (const std::exception &e) {
         result.message = std::string("Error in 'general' block: ") + e.what() + "\n";
         return result;
