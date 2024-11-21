@@ -14,13 +14,13 @@ enum class RunMode { server,
 class Config : private Uncopyable {
 private:
     struct General {
+        std::string token;
         std::string fakeUrl;
         std::string method;
         unsigned int timeWait;
         unsigned short timeout;
         unsigned short repeatWait;
         std::string chunkHeader;
-        unsigned short chunkSize;
     };
 
     struct Log {
@@ -40,7 +40,6 @@ private:
         unsigned short listenPort;
         std::string serverIp;
         unsigned short serverPort;
-        std::string token;
         std::string httpVersion;
         std::string userAgent;
     };

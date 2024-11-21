@@ -1,6 +1,10 @@
 ---
 # This block contains general and global configuration which is in both modes
 general:
+  # token: 32 bytes of string. this will be used on agent and server side to encryption
+  token: "af445adb-2434-4975-9445-2c1b2231"
+  # fakeUrl: string
+  # Defines the fake url and endpoint between agent and server
   fakeUrl: "http://www.adas.com/api01"
   # method: "HEAD|GET|POST|PUT|DELETE"
   # Defines with which method
@@ -13,22 +17,19 @@ general:
   # timeout: unsigned short
   # Defines the timeout for I/O Operation in seconds. 0 indicates no timeout.
   #   Useful to automatically close stalled connections.
-  timeout: 10
+  timeout: 3
   # repeatWait: unsigned short(1-65,635)
   # Defines the loop count which will try to repeat read from socket.
   #   Same as timeWait
-  repeatWait: 3
+  repeatWait: 25
   # chunkHeader: String
   # Defines the chunk header that you want to inform Agent/Server if it is end or not.
   chunkHeader: "END"
-  # chunkSize: unsigned short(512-65,535)
-  # Defines the chunk size that you want to read from socket.
-  chunkSize: 4096
 
 # This block is to define log directives
 log:
   # logLevel: "INFO|TRACE|DEBUG"
-  logLevel: "TRACE"
+  logLevel: "DEBUG"
   # logFile: "/var/log/nipo/nipo.log"
   #   Path of log file
   logFile: "/var/log/nipovpn/nipovpn.log"
@@ -36,7 +37,7 @@ log:
 # This block is to define server directives
 server:
   # threads: number of threads in server
-  threads: 16
+  threads: 8
   # listenIp: which must be IPv4 which is used on server
   listenIp: "0.0.0.0"
   # listenPort: the port number which will be used on server
@@ -51,11 +52,9 @@ agent:
   # listenPort: the port number which will be used on agent
   listenPort: 8080
   # serverIp: IPv4 of the nipoServer
-  serverIp: "127.0.0.1"
+  serverIp: "127.0.0.10"
   # serverPort: port number of the nipoServer
   serverPort: 443
-  # token: 32 bytes of string. this will be used on agent and server side to encryption
-  token: "af445adb-2434-4975-9445-2c1b2231"
   # httpVersion: This version will be used between agent and server
   httpVersion: "1.1"
   # userAgent: This is the http user agent which will be used between agent and server

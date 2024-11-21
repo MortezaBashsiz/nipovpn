@@ -30,7 +30,7 @@ void Runner::run() {
 
         auto tcpServer = TCPServer::create(io_context_, config_, log_);
 
-        for (auto i = 0; i < config_->threads(); ++i) {
+        for (auto i = 0; i < config_->threads() * 50; ++i) {
             threadPool_.emplace_back([this] { workerThread(); });
         }
 

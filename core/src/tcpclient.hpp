@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/asio.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
@@ -31,7 +32,9 @@ public:
     }
     bool doConnect(const std::string &dstIP, const unsigned short &dstPort);
     void doWrite(boost::asio::streambuf &buffer);
-    void doRead();
+    void doReadAgent();
+    void doReadServer();
+    void doHandle();
     void socketShutdown();
     boost::uuids::uuid uuid_;
     bool end_;
@@ -48,8 +51,7 @@ private:
     const std::shared_ptr<Log> &log_;
     boost::asio::io_context &io_context_;
     boost::asio::ip::tcp::socket socket_;
-    boost::asio::streambuf writeBuffer_;
-    boost::asio::streambuf readBuffer_;
+    boost::asio::streambuf buffer_, writeBuffer_, readBuffer_;
     boost::asio::ip::tcp::resolver resolver_;
     boost::asio::deadline_timer timeout_;
     mutable std::mutex mutex_;

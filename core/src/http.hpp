@@ -70,11 +70,9 @@ public:
 
     const std::string tlsTypeToString() const;
 
-    inline const std::string &dstIP() & { return dstIP_; }
-    inline const std::string &&dstIP() && { return std::move(dstIP_); }
+    inline const std::string &dstIP() { return dstIP_; }
 
-    inline const unsigned short &dstPort() & { return dstPort_; }
-    inline const unsigned short &&dstPort() && { return std::move(dstPort_); }
+    inline const unsigned short &dstPort() { return dstPort_; }
 
     const std::string toString() const;
     const std::string restoString() const;

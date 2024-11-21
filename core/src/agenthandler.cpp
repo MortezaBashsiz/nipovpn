@@ -27,7 +27,7 @@ void AgentHandler::handle() {
     BoolStr encryption{false, std::string("FAILED")};
 
     encryption =
-            aes256Encrypt(hexStreambufToStr(readBuffer_), config_->agent().token);
+            aes256Encrypt(hexStreambufToStr(readBuffer_), config_->general().token);
 
     if (encryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Done]", Log::Level::DEBUG);
@@ -70,7 +70,7 @@ void AgentHandler::handle() {
                         Log::Level::DEBUG);
 
             client_->doWrite(readBuffer_);
-            client_->doRead();
+            client_->doHandle();
 
             if (client_->readBuffer().size() > 0) {
                 if (request_->httpType() != HTTP::HttpType::connect) {
@@ -84,7 +84,7 @@ void AgentHandler::handle() {
                         decryption =
                                 aes256Decrypt(decode64(boost::lexical_cast<std::string>(
                                                       response->parsedHttpResponse().body())),
-                                              config_->agent().token);
+                                              config_->general().token);
                         if (boost::lexical_cast<std::string>(response->parsedHttpResponse()[config_->general().chunkHeader]) == "yes") {
                             end_ = true;
                         }
@@ -146,7 +146,7 @@ void AgentHandler::continueRead() {
             request_->genHttpRestPostReqString());
     copyStringToStreambuf(newReq, readBuffer_);
     client_->doWrite(readBuffer_);
-    client_->doRead();
+    client_->doHandle();
     if (client_->readBuffer().size() > 0) {
         if (request_->httpType() != HTTP::HttpType::connect) {
             HTTP::pointer response =
@@ -159,7 +159,7 @@ void AgentHandler::continueRead() {
                 decryption =
                         aes256Decrypt(decode64(boost::lexical_cast<std::string>(
                                               response->parsedHttpResponse().body())),
-                                      config_->agent().token);
+                                      config_->general().token);
                 if (boost::lexical_cast<std::string>(response->parsedHttpResponse()[config_->general().chunkHeader]) == "yes") {
                     end_ = true;
                 }

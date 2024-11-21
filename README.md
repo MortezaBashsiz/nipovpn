@@ -79,8 +79,8 @@ Config :
 ### Package
 
 #### Install
-Currently it is only available for debian based Linuxs and fully tested on ubuntu 24.04
-You can simply down load and install the package. To download it please visit the [releases page](https://github.com/MortezaBashsiz/nipovpn/tags) and get the latest release.
+Currently it is only available for debian-based Linuxes and fully tested on ubuntu 24.04
+You can simply download and install the package. To download it please visit the [releases page](https://github.com/MortezaBashsiz/nipovpn/tags) and get the latest release.
 ```bash
 [~]>$ sudo apt install ./nipovpn.deb
 ```

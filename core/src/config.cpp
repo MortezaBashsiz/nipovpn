@@ -7,13 +7,13 @@ Config::Config(const RunMode &mode, const std::string &filePath)
       threads_(0),
       listenIp_("127.0.0.1"),
       listenPort_(0),
-      general_({configYaml_["general"]["fakeUrl"].as<std::string>(),
+      general_({configYaml_["general"]["token"].as<std::string>(),
+                configYaml_["general"]["fakeUrl"].as<std::string>(),
                 configYaml_["general"]["method"].as<std::string>(),
                 configYaml_["general"]["timeWait"].as<unsigned int>(),
                 configYaml_["general"]["timeout"].as<unsigned short>(),
                 configYaml_["general"]["repeatWait"].as<unsigned short>(),
-                configYaml_["general"]["chunkHeader"].as<std::string>(),
-                configYaml_["general"]["chunkSize"].as<unsigned short>()}),
+                configYaml_["general"]["chunkHeader"].as<std::string>()}),
       log_({configYaml_["log"]["logLevel"].as<std::string>(),
             configYaml_["log"]["logFile"].as<std::string>()}),
       server_({configYaml_["server"]["threads"].as<unsigned short>(),
@@ -24,7 +24,6 @@ Config::Config(const RunMode &mode, const std::string &filePath)
               configYaml_["agent"]["listenPort"].as<unsigned short>(),
               configYaml_["agent"]["serverIp"].as<std::string>(),
               configYaml_["agent"]["serverPort"].as<unsigned short>(),
-              configYaml_["agent"]["token"].as<std::string>(),
               configYaml_["agent"]["httpVersion"].as<std::string>(),
               configYaml_["agent"]["userAgent"].as<std::string>()}) {
     std::lock_guard<std::mutex> lock(configMutex_);
@@ -59,13 +58,13 @@ std::string Config::toString() const {
     std::stringstream ss;
     ss << "\nConfig :\n"
        << " General :\n"
+       << "   token: " << general_.token << "\n"
        << "   fakeUrl: " << general_.fakeUrl << "\n"
        << "   method: " << general_.method << "\n"
        << "   timeWait: " << general_.timeWait << "\n"
        << "   timeout: " << general_.timeout << "\n"
        << "   repeatWait: " << general_.repeatWait << "\n"
        << "   chunkHeader: " << general_.chunkHeader << "\n"
-       << "   chunkSize: " << general_.chunkSize << "\n"
        << " Log :\n"
        << "   logLevel: " << log_.level << "\n"
        << "   logFile: " << log_.file << "\n"
@@ -79,7 +78,6 @@ std::string Config::toString() const {
        << "   listenPort: " << agent_.listenPort << "\n"
        << "   serverIp: " << agent_.serverIp << "\n"
        << "   serverPort: " << agent_.serverPort << "\n"
-       << "   token: " << agent_.token << "\n"
        << "   httpVersion: " << agent_.httpVersion << "\n"
        << "   userAgent: " << agent_.userAgent << "\n";
     return ss.str();

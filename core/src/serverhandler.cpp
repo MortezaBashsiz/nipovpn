@@ -30,7 +30,7 @@ void ServerHandler::handle() {
         BoolStr decryption{false, std::string("FAILED")};
         decryption = aes256Decrypt(decode64(boost::lexical_cast<std::string>(
                                            request_->parsedHttpRequest().body())),
-                                   config_->agent().token);
+                                   config_->general().token);
 
         if (decryption.ok) {
             log_->write(
@@ -63,10 +63,10 @@ void ServerHandler::handle() {
                         }
                         if (client_->socket().is_open()) {
                             std::string message(
-                                    "HTTP/1.1 200 Connection established\r\n\r\n");
+                                    "HTTP/1.1 200 Connection established COMP\r\n\r\n");
                             os << message;
                         } else {
-                            std::string message("HTTP/1.1 500 Connection failed\r\n\r\n");
+                            std::string message("HTTP/1.1 500 Connection failed COMP\r\n\r\n");
                             os << message;
                         }
                         moveStreambuf(tempBuff, writeBuffer_);
@@ -91,13 +91,13 @@ void ServerHandler::handle() {
                             client_->doConnect(request_->dstIP(), request_->dstPort());
                         }
                         client_->doWrite(readBuffer_);
-                        client_->doRead();
+                        client_->doHandle();
                         end_ = client_->end_;
                         if (client_->readBuffer().size() > 0) {
                             BoolStr encryption{false, std::string("FAILED")};
                             encryption =
                                     aes256Encrypt(streambufToString(client_->readBuffer()),
-                                                  config_->agent().token);
+                                                  config_->general().token);
                             if (encryption.ok) {
                                 if (end_) {
                                     request_->chunkHeader_ = "yes";
@@ -163,13 +163,13 @@ void ServerHandler::handle() {
 
 void ServerHandler::continueRead() {
     std::lock_guard<std::mutex> lock(mutex_);
-    client_->doRead();
+    client_->doHandle();
     end_ = client_->end_;
     if (client_->readBuffer().size() > 0) {
         BoolStr encryption{false, std::string("FAILED")};
         encryption =
                 aes256Encrypt(streambufToString(client_->readBuffer()),
-                              config_->agent().token);
+                              config_->general().token);
         if (encryption.ok) {
             if (end_) {
                 request_->chunkHeader_ = "yes";

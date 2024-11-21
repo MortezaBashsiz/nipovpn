@@ -10,14 +10,13 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
       acceptor_(io_context,
                 boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(config->listenIp()),
                                                config->listenPort())) {
+    acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
     startAccept();
 }
 
 void TCPServer::startAccept() {
     auto client = TCPClient::create(io_context_, config_, log_);
     auto connection = TCPConnection::create(io_context_, config_, log_, client);
-
-    acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
     acceptor_.async_accept(
             connection->socket(),
             [this, connection](const boost::system::error_code &error) {
@@ -27,13 +26,20 @@ void TCPServer::startAccept() {
 
 void TCPServer::handleAccept(TCPConnection::pointer connection,
                              const boost::system::error_code &error) {
-    if (!error) {
-
-        connection->start();
-    } else {
-
-        log_->write("[TCPServer handleAccept] " + std::string(error.message()),
+    try {
+        if (!error) {
+            connection->start();
+        } else {
+            log_->write("[TCPServer handleAccept] Error: " + error.message(),
+                        Log::Level::ERROR);
+        }
+    } catch (const std::exception &ex) {
+        log_->write("[TCPServer handleAccept] Exception: " + std::string(ex.what()),
+                    Log::Level::ERROR);
+    } catch (...) {
+        log_->write("[TCPServer handleAccept] Unknown exception",
                     Log::Level::ERROR);
     }
+
     startAccept();
 }

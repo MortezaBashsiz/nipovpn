@@ -310,13 +310,13 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
     }
 
     try {
+        configYaml["general"]["token"].as<std::string>();
         configYaml["general"]["fakeUrl"].as<std::string>();
         configYaml["general"]["method"].as<std::string>();
         configYaml["general"]["timeWait"].as<unsigned int>();
         configYaml["general"]["timeout"].as<unsigned short>();
         configYaml["general"]["repeatWait"].as<unsigned short>();
         configYaml["general"]["chunkHeader"].as<std::string>();
-        configYaml["general"]["chunkSize"].as<unsigned short>();
     } catch (const std::exception &e) {
         result.message = std::string("Error in 'general' block: ") + e.what() + "\n";
         return result;
@@ -343,7 +343,6 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
         configYaml["agent"]["listenPort"].as<unsigned short>();
         configYaml["agent"]["serverIp"].as<std::string>();
         configYaml["agent"]["serverPort"].as<unsigned short>();
-        configYaml["agent"]["token"].as<std::string>();
         configYaml["agent"]["httpVersion"].as<std::string>();
         configYaml["agent"]["userAgent"].as<std::string>();
     } catch (const std::exception &e) {
