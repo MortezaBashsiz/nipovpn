@@ -1,5 +1,20 @@
 #include "config.hpp"
 
+/**
+ * @brief Constructs an Config object to manage program configuration.
+ *
+ * This constructor initializes the Config with the necessary resources, 
+ * including read and write buffers, configuration, logging, client connection, 
+ * and a unique identifier for the session.
+ *
+ * @param mode Reference to the RunMode which program is running.
+ * @param filePath Reference to config file path.
+ * 
+ * @details
+ * - Initializes the config directives.
+ * - Sets the `runMode_` which defines the mode that program is running Server or Agent mode.
+ * - Initializes the `configYaml_` which will load config gile in to variables.
+ */
 Config::Config(const RunMode &mode, const std::string &filePath)
     : runMode_(mode),
       filePath_(filePath),
@@ -41,7 +56,15 @@ Config::Config(const RunMode &mode, const std::string &filePath)
     }
 }
 
-
+/**
+ * @brief Constructs an Config object from a config refrence.
+ *
+ * This constructor initializes the Config with the necessary resources, 
+ * including read and write buffers, configuration, logging, client connection, 
+ * and a unique identifier for the session.
+ *
+ * @param config Reference to the Config pointer.
+ */
 Config::Config(const Config::pointer &config)
     : runMode_(config->runMode()),
       configYaml_(YAML::LoadFile(config->filePath())),
@@ -53,6 +76,9 @@ Config::Config(const Config::pointer &config)
 
 Config::~Config() = default;
 
+/**
+ * @brief returns Config in string format to print on output.
+ */
 std::string Config::toString() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     std::stringstream ss;
@@ -83,66 +109,111 @@ std::string Config::toString() const {
     return ss.str();
 }
 
+/**
+ * @brief returns General struct from Config.
+ */
 const Config::General &Config::general() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return general_;
 }
 
+/**
+ * @brief returns Log struct from Config.
+ */
 const Config::Log &Config::log() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return log_;
 }
 
+/**
+ * @brief returns Server struct from Config.
+ */
 const Config::Server &Config::server() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return server_;
 }
 
+/**
+ * @brief returns Agent struct from Config.
+ */
 const Config::Agent &Config::agent() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return agent_;
 }
 
+/**
+ * @brief returns Threads count from Config.
+ */
 const unsigned short &Config::threads() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return threads_;
 }
 
+/**
+ * @brief sets threads count in Config to specific amount.
+ * 
+ * @param threads which is threads count.
+ */
 void Config::threads(unsigned short threads) {
     std::lock_guard<std::mutex> lock(configMutex_);
     threads_ = threads;
 }
 
+/**
+ * @brief returns listenIp_ from Config.
+ */
 const std::string &Config::listenIp() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return listenIp_;
 }
 
+/**
+ * @brief sets listenIp_ in config
+ * 
+ * @param refrence to string ip.
+ */
 void Config::listenIp(const std::string &ip) {
     std::lock_guard<std::mutex> lock(configMutex_);
     listenIp_ = ip;
 }
 
+/**
+ * @brief returns listenPort_ from Config.
+ */
 const unsigned short &Config::listenPort() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return listenPort_;
 }
 
+/**
+ * @brief sets listenPort_ in config
+ * 
+ * @param port number.
+ */
 void Config::listenPort(unsigned short port) {
     std::lock_guard<std::mutex> lock(configMutex_);
     listenPort_ = port;
 }
 
+/**
+ * @brief returns RunMode struct from Config.
+ */
 const RunMode &Config::runMode() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return runMode_;
 }
 
+/**
+ * @brief returns filePath_ in string format.
+ */
 const std::string &Config::filePath() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return filePath_;
 }
 
+/**
+ * @brief returns runMode in string format.
+ */
 std::string Config::modeToString() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     switch (runMode_) {

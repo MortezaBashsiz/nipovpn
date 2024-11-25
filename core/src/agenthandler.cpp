@@ -1,5 +1,26 @@
 #include "agenthandler.hpp"
 
+/**
+ * @brief Constructs an AgentHandler object to manage client-agent interactions.
+ *
+ * This constructor initializes the AgentHandler with the necessary resources, 
+ * including read and write buffers, configuration, logging, client connection, 
+ * and a unique identifier for the session.
+ *
+ * @param readBuffer Reference to the stream buffer used for reading data.
+ * @param writeBuffer Reference to the stream buffer used for writing data.
+ * @param config Shared pointer to the configuration object containing system settings.
+ * @param log Shared pointer to the logging object for recording events and errors.
+ * @param client Shared pointer to the TCPClient object managing the client connection.
+ * @param clientConnStr A string representing the client's connection details.
+ * @param uuid A unique identifier for the session, provided as a Boost UUID.
+ *
+ * @details
+ * - Initializes the HTTP request handler using the provided configuration, logger, 
+ *   read buffer, and UUID.
+ * - Sets the `end_` flag to `false`, indicating the handler is active and ready.
+ * - Initializes the `connect_` flag to `false`, indicating no active connection initially.
+ */
 AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
                            boost::asio::streambuf &writeBuffer,
                            const std::shared_ptr<Config> &config,
@@ -21,6 +42,26 @@ AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
 
 AgentHandler::~AgentHandler() {}
 
+/**
+ * @brief Handles the processing of incoming requests, encryption, server communication, and response handling.
+ *
+ * This function coordinates multiple tasks, including:
+ * - Encrypting the incoming data.
+ * - Generating and sending an HTTP request to the server.
+ * - Receiving and decrypting the server's response.
+ * - Managing the connection state and logging detailed information at each step.
+ *
+ * @details
+ * - The function ensures thread safety using a mutex lock.
+ * - The incoming data is encrypted using AES-256 with a token retrieved from the configuration.
+ * - If encryption is successful, the function builds an HTTP POST request and determines the request type.
+ * - It establishes a connection to the server if required and sends the encrypted request.
+ * - The server's response is parsed and decrypted. If successful, the decrypted data is copied to the write buffer.
+ * - Handles HTTP and non-HTTP responses, including error scenarios and connection cleanup.
+ * - Maintains logging for debugging and informational purposes throughout the process.
+ *
+ * @note In case of any error during encryption, connection, or response handling, the client socket is closed.
+ */
 void AgentHandler::handle() {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -140,6 +181,27 @@ void AgentHandler::handle() {
     }
 }
 
+/**
+ * @brief Continues reading and processing data from the server, handling encryption, decryption, and responses.
+ *
+ * This function performs the following tasks:
+ * - Generates a REST-based HTTP POST request and sends it to the server.
+ * - Handles the server's response, including parsing, decryption, and processing.
+ * - Logs detailed information about the request, response, and errors encountered during processing.
+ *
+ * @details
+ * - Thread safety is ensured using a mutex lock.
+ * - The request data is generated using the `genHttpRestPostReqString` method and sent to the server.
+ * - Upon receiving the server's response, the function parses it as an HTTP response.
+ * - The body of the response is decrypted using AES-256, and the decrypted content is stored in the write buffer.
+ * - If the response indicates the end of a chunked transfer (`chunkHeader` set to "yes"), the `end_` flag is set to `true`.
+ * - Handles both HTTP and non-HTTP responses, logging any issues encountered.
+ * - In case of decryption failure or an empty response, the client socket is closed.
+ *
+ * @note
+ * - This function assumes that the client connection is already established and ready for communication.
+ * - Errors in decryption, parsing, or an empty response buffer will terminate the connection.
+ */
 void AgentHandler::continueRead() {
     std::lock_guard<std::mutex> lock(mutex_);
     std::string newReq(

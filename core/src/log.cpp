@@ -1,12 +1,19 @@
 #include "log.hpp"
 
+/**
+ * @brief Constructs a `Log` object with the given configuration.
+ *
+ * Initializes the logging mode and log level based on the configuration.
+ * Also verifies if the log file is accessible.
+ *
+ * @param config Shared pointer to the configuration object.
+ */
 Log::Log(const std::shared_ptr<Config> &config)
     : config_(config), level_(Level::INFO) {
     if (config_->runMode() == RunMode::server)
         mode_ = std::string("SERVER");
     else if (config_->runMode() == RunMode::agent)
         mode_ = std::string("AGENT");
-
 
     std::ofstream logFile(config_->log().file, std::ios::out | std::ios::app);
     if (!logFile.is_open()) {
@@ -27,11 +34,32 @@ Log::Log(const std::shared_ptr<Config> &config)
     }
 }
 
+/**
+ * @brief Copy constructor for the `Log` class.
+ *
+ * Copies the configuration and log level from an existing `Log` instance.
+ *
+ * @param log Shared pointer to the source `Log` object.
+ */
 Log::Log(const std::shared_ptr<Log> &log)
     : config_(log->config_), level_(log->level_) {}
 
+/**
+ * @brief Destructor for the `Log` class.
+ *
+ * Ensures cleanup of any resources, although none are dynamically allocated here.
+ */
 Log::~Log() {}
 
+/**
+ * @brief Writes a log message to the log file and console.
+ *
+ * Ensures thread safety using a mutex. Messages are logged only if their severity
+ * level meets or exceeds the configured logging level, or if they are errors.
+ *
+ * @param message The log message to write.
+ * @param level The severity level of the message.
+ */
 void Log::write(const std::string &message, Level level) const {
     std::lock_guard<std::mutex> lock(logMutex_);
 
@@ -46,6 +74,7 @@ void Log::write(const std::string &message, Level level) const {
 
             std::string line = timestamp + " [" + mode_ + "]" + " [" +
                                levelToString(level) + "] " + message + "\n";
+
             logFile << line;
             std::cout << line;
         } else {
@@ -55,6 +84,12 @@ void Log::write(const std::string &message, Level level) const {
     }
 }
 
+/**
+ * @brief Converts a log level enum value to its string representation.
+ *
+ * @param level The log level to convert.
+ * @return The string representation of the log level.
+ */
 std::string Log::levelToString(Level level) {
     switch (level) {
         case Level::INFO:
