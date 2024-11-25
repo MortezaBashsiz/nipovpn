@@ -1,6 +1,12 @@
 #include "tcpclient.hpp"
 
-
+/**
+ * @brief Constructs a TCPClient instance with the provided IO context, configuration, and logging.
+ * 
+ * @param io_context The IO context for asynchronous operations.
+ * @param config Shared pointer to the configuration object.
+ * @param log Shared pointer to the logging object.
+ */
 TCPClient::TCPClient(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
                      const std::shared_ptr<Log> &log)
@@ -13,16 +19,33 @@ TCPClient::TCPClient(boost::asio::io_context &io_context,
     end_ = false;
 }
 
+/**
+ * @brief Returns the TCP socket object associated with the TCPClient.
+ * 
+ * @return A reference to the TCP socket.
+ */
 boost::asio::ip::tcp::socket &TCPClient::socket() {
     std::lock_guard<std::mutex> lock(mutex_);
     return socket_;
 }
 
+/**
+ * @brief Writes the provided buffer to the TCP socket.
+ * 
+ * @param buffer The buffer containing data to write.
+ */
 void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
     std::lock_guard<std::mutex> lock(mutex_);
     moveStreambuf(buffer, writeBuffer_);
 }
 
+/**
+ * @brief Attempts to establish a TCP connection to the specified destination IP and port.
+ * 
+ * @param dstIP The destination IP address.
+ * @param dstPort The destination port.
+ * @return true if the connection is successfully established, false otherwise.
+ */
 bool TCPClient::doConnect(const std::string &dstIP,
                           const unsigned short &dstPort) {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -47,6 +70,12 @@ bool TCPClient::doConnect(const std::string &dstIP,
     }
 }
 
+
+/**
+ * @brief Writes the provided buffer to the TCP socket and handles any errors during the process.
+ * 
+ * @param buffer The buffer containing data to write.
+ */
 void TCPClient::doWrite(boost::asio::streambuf &buffer) {
     std::lock_guard<std::mutex> lock(mutex_);
     try {
@@ -91,6 +120,10 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
     }
 }
 
+
+/**
+ * @brief Reads data from the agent side and processes the received data, logging errors or EOF.
+ */
 void TCPClient::doReadAgent() {
     boost::system::error_code error;
     std::lock_guard<std::mutex> lock(mutex_);
@@ -154,6 +187,9 @@ void TCPClient::doReadAgent() {
     }
 }
 
+/**
+ * @brief Reads data from the server side and processes the received data, managing retries and timeouts.
+ */
 void TCPClient::doReadServer() {
     boost::system::error_code error;
     end_ = false;
@@ -267,6 +303,7 @@ void TCPClient::doReadServer() {
         return;
     }
 }
+
 
 void TCPClient::doHandle() {
     buffer_.consume(buffer_.size());

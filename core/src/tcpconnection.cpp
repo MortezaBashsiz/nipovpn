@@ -1,5 +1,16 @@
 #include "tcpconnection.hpp"
 
+/**
+ * @brief Constructs a new TCPConnection instance.
+ * 
+ * Initializes the TCP socket, configuration, log, and client. Sets the UUID for
+ * the connection and initializes other state variables like `end_` and `connect_`.
+ * 
+ * @param io_context The IO context for asynchronous operations.
+ * @param config Shared pointer to the configuration object.
+ * @param log Shared pointer to the logging object.
+ * @param client Shared pointer to the associated TCPClient.
+ */
 TCPConnection::TCPConnection(boost::asio::io_context &io_context,
                              const std::shared_ptr<Config> &config,
                              const std::shared_ptr<Log> &log,
@@ -16,10 +27,20 @@ TCPConnection::TCPConnection(boost::asio::io_context &io_context,
     connect_ = false;
 }
 
+/**
+ * @brief Returns the TCP socket associated with this connection.
+ * 
+ * @return A reference to the TCP socket.
+ */
 boost::asio::ip::tcp::socket &TCPConnection::socket() {
     return socket_;
 }
 
+/**
+ * @brief Starts the connection by initiating a read operation.
+ * 
+ * The connection UUID is assigned to the associated client, and the first read operation is initiated.
+ */
 void TCPConnection::start() {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -27,6 +48,11 @@ void TCPConnection::start() {
     doRead();
 }
 
+/**
+ * @brief Initiates the read operation from the socket.
+ * 
+ * The method prepares the buffer and sets up asynchronous read, handling the read operation once completed.
+ */
 void TCPConnection::doRead() {
     try {
         readBuffer_.consume(readBuffer_.size());
@@ -47,6 +73,15 @@ void TCPConnection::doRead() {
     }
 }
 
+/**
+ * @brief Handles the completion of the read operation.
+ * 
+ * If there is an error or EOF, it logs the issue and closes the connection. Otherwise, it reads more data if available
+ * and processes it accordingly based on the run mode (agent or server).
+ * 
+ * @param error The error code indicating the result of the read operation.
+ * @param bytes_transferred The number of bytes read.
+ */
 void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
     try {
         cancelTimeout();
@@ -143,6 +178,11 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
     }
 }
 
+/**
+ * @brief Reads the remaining data from the socket after the initial read.
+ * 
+ * This method ensures that any remaining data is read from the socket, and it handles possible errors.
+ */
 void TCPConnection::doReadRest() {
     try {
         readBuffer_.consume(readBuffer_.size());
@@ -215,6 +255,13 @@ void TCPConnection::doReadRest() {
     }
 }
 
+/**
+ * @brief Initiates the write operation to the socket.
+ * 
+ * If the write buffer has data, this method asynchronously writes the data to the socket.
+ * 
+ * @param handler The handler that will process the write operation.
+ */
 void TCPConnection::doWrite(auto handlerPointer) {
     boost::system::error_code error;
     try {
