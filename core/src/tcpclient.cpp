@@ -180,7 +180,7 @@ void TCPClient::doReadServer() {
                               error);
             boost::asio::read(socket_, tempTempBuff, boost::asio::transfer_exactly(2),
                               error);
-            int readSize{hexToInt(hexStreambufToStr(tempTempBuff))};
+            unsigned int readSize{hexToInt(hexStreambufToStr(tempTempBuff))};
             moveStreambuf(tempTempBuff, tempBuff);
             boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(readSize),
                               error);
