@@ -127,8 +127,7 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
 void TCPClient::doReadAgent() {
     boost::system::error_code error;
     std::lock_guard<std::mutex> lock(mutex_);
-    boost::asio::streambuf tempBuff;
-
+    readBuffer_.consume(readBuffer_.size());
     try {
         if (!socket_.is_open()) {
             log_->write("[" + to_string(uuid_) + "] [TCPClient doReadAgent] Socket is not OPEN",
@@ -137,7 +136,7 @@ void TCPClient::doReadAgent() {
         }
 
         resetTimeout();
-        boost::asio::read_until(socket_, tempBuff, "COMP\r\n\r\n",
+        boost::asio::read_until(socket_, readBuffer_, "COMP\r\n\r\n",
                                 error);
         cancelTimeout();
         if (error == boost::asio::error::eof) {
@@ -153,19 +152,19 @@ void TCPClient::doReadAgent() {
             return;
         }
 
-        if (tempBuff.size() > 0) {
-            copyStreambuf(tempBuff, buffer_);
+        if (readBuffer_.size() > 0) {
+            copyStreambuf(readBuffer_, buffer_);
             try {
 
                 log_->write("[" + to_string(uuid_) + "] [TCPClient doReadAgent] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
-                                    "] [Bytes " + std::to_string(tempBuff.size()) + "] ",
+                                    "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
                             Log::Level::DEBUG);
                 log_->write("[" + to_string(uuid_) + "] [Read from] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
-                                    "] " + "[Bytes " + std::to_string(tempBuff.size()) +
+                                    "] " + "[Bytes " + std::to_string(readBuffer_.size()) +
                                     "] ",
                             Log::Level::TRACE);
             } catch (std::exception &error) {
@@ -194,7 +193,7 @@ void TCPClient::doReadServer() {
     boost::system::error_code error;
     end_ = false;
     std::lock_guard<std::mutex> lock(mutex_);
-    boost::asio::streambuf tempBuff;
+    readBuffer_.consume(readBuffer_.size());
     boost::asio::steady_timer timer(io_context_);
     bool isTlsRecord{false};
 
@@ -206,19 +205,19 @@ void TCPClient::doReadServer() {
         }
 
         resetTimeout();
-        boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(2),
+        boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(2),
                           error);
-        std::string bufStr{hexStreambufToStr(tempBuff)};
+        std::string bufStr{hexStreambufToStr(readBuffer_)};
         if (bufStr == "1403" || bufStr == "1503" || bufStr == "1603" || bufStr == "1703") {
             isTlsRecord = true;
             boost::asio::streambuf tempTempBuff;
-            boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(1),
+            boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(1),
                               error);
             boost::asio::read(socket_, tempTempBuff, boost::asio::transfer_exactly(2),
                               error);
             unsigned int readSize{hexToInt(hexStreambufToStr(tempTempBuff))};
-            moveStreambuf(tempTempBuff, tempBuff);
-            boost::asio::read(socket_, tempBuff, boost::asio::transfer_exactly(readSize),
+            moveStreambuf(tempTempBuff, readBuffer_);
+            boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(readSize),
                               error);
         }
         cancelTimeout();
@@ -242,7 +241,7 @@ void TCPClient::doReadServer() {
                 while (true) {
                     if (socket_.available() == 0) break;
                     resetTimeout();
-                    boost::asio::read(socket_, tempBuff,
+                    boost::asio::read(socket_, readBuffer_,
                                       boost::asio::transfer_at_least(1), error);
                     cancelTimeout();
                     if (error == boost::asio::error::eof) {
@@ -270,19 +269,19 @@ void TCPClient::doReadServer() {
             end_ = true;
         }
 
-        if (tempBuff.size() > 0) {
-            copyStreambuf(tempBuff, buffer_);
+        if (readBuffer_.size() > 0) {
+            copyStreambuf(readBuffer_, buffer_);
             try {
 
                 log_->write("[" + to_string(uuid_) + "] [TCPClient doReadServer] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
-                                    "] [Bytes " + std::to_string(tempBuff.size()) + "] ",
+                                    "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
                             Log::Level::DEBUG);
                 log_->write("[" + to_string(uuid_) + "] [Read from] [SRC " +
                                     socket_.remote_endpoint().address().to_string() + ":" +
                                     std::to_string(socket_.remote_endpoint().port()) +
-                                    "] " + "[Bytes " + std::to_string(tempBuff.size()) +
+                                    "] " + "[Bytes " + std::to_string(readBuffer_.size()) +
                                     "] ",
                             Log::Level::TRACE);
             } catch (std::exception &error) {
@@ -302,18 +301,6 @@ void TCPClient::doReadServer() {
         socketShutdown();
         return;
     }
-}
-
-
-void TCPClient::doHandle() {
-    buffer_.consume(buffer_.size());
-    readBuffer_.consume(readBuffer_.size());
-    if (config_->runMode() == RunMode::server) {
-        doReadServer();
-    } else {
-        doReadAgent();
-    }
-    copyStreambuf(buffer_, readBuffer_);
 }
 
 void TCPClient::resetTimeout() {
