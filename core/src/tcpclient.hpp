@@ -85,11 +85,6 @@ public:
     void doReadServer();
 
     /**
-     * @brief Handles the reading and processing of data based on the current context.
-     */
-    void doHandle();
-
-    /**
      * @brief Shuts down the socket gracefully.
      */
     void socketShutdown();
