@@ -77,12 +77,14 @@ public:
     /**
      * @brief Starts the TCP connection by initiating the reading process.
      */
-    void start();
+    void startAgent();
+    void startServer();
 
     /**
      * @brief Initiates the reading process from the TCP connection's socket.
      */
-    void doRead();
+    void doReadAgent();
+    void doReadServer();
 
     /**
      * @brief Handles the completion of a read operation from the TCP connection's socket.
@@ -90,8 +92,10 @@ public:
      * @param error The error code indicating the result of the read operation.
      * @param bytes_transferred The number of bytes read from the socket.
      */
-    void handleRead(const boost::system::error_code &error,
-                    size_t bytes_transferred);
+    void handleReadAgent(const boost::system::error_code &error,
+                         size_t bytes_transferred);
+    void handleReadServer(const boost::system::error_code &error,
+                          size_t bytes_transferred);
 
     /**
      * @brief Reads the remaining data from the TCP connection after the initial read.

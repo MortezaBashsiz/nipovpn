@@ -41,11 +41,21 @@ boost::asio::ip::tcp::socket &TCPConnection::socket() {
  * 
  * The connection UUID is assigned to the associated client, and the first read operation is initiated.
  */
-void TCPConnection::start() {
+void TCPConnection::startAgent() {
     std::lock_guard<std::mutex> lock(mutex_);
-
     client_->uuid_ = uuid_;
-    doRead();
+    doReadAgent();
+}
+
+/**
+ * @brief Starts the connection by initiating a read operation.
+ * 
+ * The connection UUID is assigned to the associated client, and the first read operation is initiated.
+ */
+void TCPConnection::startServer() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    client_->uuid_ = uuid_;
+    doReadServer();
 }
 
 /**
@@ -53,7 +63,7 @@ void TCPConnection::start() {
  * 
  * The method prepares the buffer and sets up asynchronous read, handling the read operation once completed.
  */
-void TCPConnection::doRead() {
+void TCPConnection::doReadAgent() {
     try {
         readBuffer_.consume(readBuffer_.size());
         writeBuffer_.consume(writeBuffer_.size());
@@ -62,12 +72,37 @@ void TCPConnection::doRead() {
                 socket_, readBuffer_, boost::asio::transfer_exactly(1),
                 boost::asio::bind_executor(
                         strand_,
-                        boost::bind(&TCPConnection::handleRead, shared_from_this(),
+                        boost::bind(&TCPConnection::handleReadAgent, shared_from_this(),
                                     boost::asio::placeholders::error,
                                     boost::asio::placeholders::
                                             bytes_transferred)));
     } catch (std::exception &error) {
-        log_->write(std::string("[" + to_string(uuid_) + "] [TCPConnection doRead] [catch] ") + error.what(),
+        log_->write(std::string("[" + to_string(uuid_) + "] [TCPConnection doReadAgent] [catch] ") + error.what(),
+                    Log::Level::ERROR);
+        socketShutdown();
+    }
+}
+
+/**
+ * @brief Initiates the read operation from the socket.
+ * 
+ * The method prepares the buffer and sets up asynchronous read, handling the read operation once completed.
+ */
+void TCPConnection::doReadServer() {
+    try {
+        readBuffer_.consume(readBuffer_.size());
+        writeBuffer_.consume(writeBuffer_.size());
+        resetTimeout();
+        boost::asio::async_read_until(
+                socket_, readBuffer_, "COMP\r\n\r\n",
+                boost::asio::bind_executor(
+                        strand_,
+                        boost::bind(&TCPConnection::handleReadServer, shared_from_this(),
+                                    boost::asio::placeholders::error,
+                                    boost::asio::placeholders::
+                                            bytes_transferred)));
+    } catch (std::exception &error) {
+        log_->write(std::string("[" + to_string(uuid_) + "] [TCPConnection doReadServer] [catch] ") + error.what(),
                     Log::Level::ERROR);
         socketShutdown();
     }
@@ -82,19 +117,19 @@ void TCPConnection::doRead() {
  * @param error The error code indicating the result of the read operation.
  * @param bytes_transferred The number of bytes read.
  */
-void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
+void TCPConnection::handleReadAgent(const boost::system::error_code &error, size_t) {
     try {
         cancelTimeout();
         if (error) {
             if (error == boost::asio::error::eof) {
                 log_->write(
-                        "[" + to_string(uuid_) + "] [TCPConnection handleRead] [EOF] Connection closed by peer.",
+                        "[" + to_string(uuid_) + "] [TCPConnection handleReadAgent] [EOF] Connection closed by peer.",
                         Log::Level::TRACE);
                 socketShutdown();
                 return;
             } else {
                 log_->write(
-                        std::string("[" + to_string(uuid_) + "] [TCPConnection handleRead] ") + error.message(),
+                        std::string("[" + to_string(uuid_) + "] [TCPConnection handleReadAgent] ") + error.message(),
                         Log::Level::TRACE);
             }
         }
@@ -112,12 +147,12 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
                     cancelTimeout();
                     if (read_error == boost::asio::error::eof) {
                         log_->write(
-                                "[" + to_string(uuid_) + "] [TCPConnection handleRead] [EOF] Connection closed by peer.",
+                                "[" + to_string(uuid_) + "] [TCPConnection handleReadAgent] [EOF] Connection closed by peer.",
                                 Log::Level::DEBUG);
                         socketShutdown();
                         return;
                     } else if (read_error) {
-                        log_->write(std::string("[" + to_string(uuid_) + "] [TCPConnection handleRead] [error] ") +
+                        log_->write(std::string("[" + to_string(uuid_) + "] [TCPConnection handleReadAgent] [error] ") +
                                             read_error.message(),
                                     Log::Level::ERROR);
                         socketShutdown();
@@ -129,7 +164,7 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
                 timer.wait();
             }
 
-            log_->write("[" + to_string(uuid_) + "] [TCPConnection handleRead] [SRC " +
+            log_->write("[" + to_string(uuid_) + "] [TCPConnection handleReadAgent] [SRC " +
                                 socket_.remote_endpoint().address().to_string() + ":" +
                                 std::to_string(socket_.remote_endpoint().port()) +
                                 "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
@@ -140,39 +175,83 @@ void TCPConnection::handleRead(const boost::system::error_code &error, size_t) {
                                 "[Bytes " + std::to_string(readBuffer_.size()) + "] ",
                         Log::Level::TRACE);
 
-            if (config_->runMode() == RunMode::agent) {
-                AgentHandler::pointer agentHandler_ = AgentHandler::create(
-                        readBuffer_, writeBuffer_, config_, log_, client_,
-                        socket_.remote_endpoint().address().to_string() + ":" +
-                                std::to_string(socket_.remote_endpoint().port()),
-                        uuid_);
-                agentHandler_->handle();
-                end_ = agentHandler_->end_;
-                connect_ = agentHandler_->connect_;
-                if (writeBuffer_.size() > 0) {
-                    doWrite(agentHandler_);
-                } else {
-                    socketShutdown();
-                }
-            } else if (config_->runMode() == RunMode::server) {
-                ServerHandler::pointer serverHandler_ = ServerHandler::create(
-                        readBuffer_, writeBuffer_, config_, log_, client_,
-                        socket_.remote_endpoint().address().to_string() + ":" +
-                                std::to_string(socket_.remote_endpoint().port()),
-                        uuid_);
-                serverHandler_->handle();
-                end_ = serverHandler_->end_;
-                connect_ = serverHandler_->connect_;
-                if (writeBuffer_.size() > 0) {
-                    doWrite(serverHandler_);
-                } else {
-                    socketShutdown();
-                }
+            AgentHandler::pointer agentHandler_ = AgentHandler::create(
+                    readBuffer_, writeBuffer_, config_, log_, client_,
+                    socket_.remote_endpoint().address().to_string() + ":" +
+                            std::to_string(socket_.remote_endpoint().port()),
+                    uuid_);
+            agentHandler_->handle();
+            end_ = agentHandler_->end_;
+            connect_ = agentHandler_->connect_;
+            if (writeBuffer_.size() > 0) {
+                doWrite(agentHandler_);
+            } else {
+                socketShutdown();
             }
         }
     } catch (std::exception &error) {
         log_->write(
-                std::string("[" + to_string(uuid_) + "] [TCPConnection handleRead] [catch read] ") + error.what(),
+                std::string("[" + to_string(uuid_) + "] [TCPConnection handleReadAgent] [catch read] ") + error.what(),
+                Log::Level::DEBUG);
+        socketShutdown();
+    }
+}
+
+/**
+ * @brief Handles the completion of the read operation.
+ * 
+ * If there is an error or EOF, it logs the issue and closes the connection. Otherwise, it reads more data if available
+ * and processes it accordingly based on the run mode (agent or server).
+ * 
+ * @param error The error code indicating the result of the read operation.
+ * @param bytes_transferred The number of bytes read.
+ */
+void TCPConnection::handleReadServer(const boost::system::error_code &error, size_t) {
+    try {
+        cancelTimeout();
+        if (error) {
+            if (error == boost::asio::error::eof) {
+                log_->write(
+                        "[" + to_string(uuid_) + "] [TCPConnection handleReadServer] [EOF] Connection closed by peer.",
+                        Log::Level::TRACE);
+                socketShutdown();
+                return;
+            } else {
+                log_->write(
+                        std::string("[" + to_string(uuid_) + "] [TCPConnection handleReadServer] ") + error.message(),
+                        Log::Level::TRACE);
+            }
+        }
+
+        log_->write("[" + to_string(uuid_) + "] [TCPConnection handleReadServer] [SRC " +
+                            socket_.remote_endpoint().address().to_string() + ":" +
+                            std::to_string(socket_.remote_endpoint().port()) +
+                            "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
+                    Log::Level::DEBUG);
+        log_->write("[" + to_string(uuid_) + "] [Read from] [SRC " +
+                            socket_.remote_endpoint().address().to_string() + ":" +
+                            std::to_string(socket_.remote_endpoint().port()) + "] " +
+                            "[Bytes " + std::to_string(readBuffer_.size()) + "] ",
+                    Log::Level::TRACE);
+
+
+        ServerHandler::pointer serverHandler_ = ServerHandler::create(
+                readBuffer_, writeBuffer_, config_, log_, client_,
+                socket_.remote_endpoint().address().to_string() + ":" +
+                        std::to_string(socket_.remote_endpoint().port()),
+                uuid_);
+        serverHandler_->handle();
+        end_ = serverHandler_->end_;
+        connect_ = serverHandler_->connect_;
+        if (writeBuffer_.size() > 0) {
+            doWrite(serverHandler_);
+        } else {
+            socketShutdown();
+        }
+
+    } catch (std::exception &error) {
+        log_->write(
+                std::string("[" + to_string(uuid_) + "] [TCPConnection handleReadServer] [catch read] ") + error.what(),
                 Log::Level::DEBUG);
         socketShutdown();
     }
@@ -286,7 +365,10 @@ void TCPConnection::doWrite(auto handlerPointer) {
             cancelTimeout();
             if (!error) {
                 if (end_ || connect_) {
-                    doRead();
+                    if (config_->runMode() == RunMode::server)
+                        doReadServer();
+                    else
+                        doReadAgent();
                 } else {
                     if (config_->runMode() == RunMode::server)
                         doReadRest();
