@@ -171,7 +171,6 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
                 }
             }
         }
-        OUT(hexStreambufToStr(readBuffer_));
 
         log_->write("[" + to_string(uuid_) + "] [TCPConnection handleReadAgent] [SRC " +
                             socket_.remote_endpoint().address().to_string() + ":" +
