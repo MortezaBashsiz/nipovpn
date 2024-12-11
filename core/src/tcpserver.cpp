@@ -55,7 +55,10 @@ void TCPServer::handleAccept(TCPConnection::pointer connection,
                              const boost::system::error_code &error) {
     try {
         if (!error) {
-            connection->start();
+            if (config_->runMode() == RunMode::server)
+                connection->startServer();
+            else
+                connection->startAgent();
         } else {
             log_->write("[TCPServer handleAccept] Error: " + error.message(),
                         Log::Level::ERROR);
