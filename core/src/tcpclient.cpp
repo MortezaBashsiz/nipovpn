@@ -204,20 +204,15 @@ void TCPClient::doReadServer() {
         }
 
         resetTimeout();
-        boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(2),
+        boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(3),
                           error);
-        std::string bufStr{hexStreambufToStr(readBuffer_)};
-        if (bufStr == "1403" || bufStr == "1503" || bufStr == "1603" || bufStr == "1703") {
-            boost::asio::streambuf tempTempBuff;
-            boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(1),
-                              error);
-            boost::asio::read(socket_, tempTempBuff, boost::asio::transfer_exactly(2),
-                              error);
-            unsigned int readSize{hexToInt(hexStreambufToStr(tempTempBuff))};
-            moveStreambuf(tempTempBuff, readBuffer_);
-            boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(readSize),
-                              error);
-        }
+        boost::asio::streambuf tempTempBuff;
+        boost::asio::read(socket_, tempTempBuff, boost::asio::transfer_exactly(2),
+                          error);
+        unsigned int readSize{hexToInt(hexStreambufToStr(tempTempBuff))};
+        moveStreambuf(tempTempBuff, readBuffer_);
+        boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(readSize),
+                          error);
         cancelTimeout();
 
         if (error == boost::asio::error::eof) {
@@ -233,6 +228,8 @@ void TCPClient::doReadServer() {
             return;
         }
 
+        timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
+        timer.wait();
         if (socket_.available() == 0) {
             end_ = true;
         }
