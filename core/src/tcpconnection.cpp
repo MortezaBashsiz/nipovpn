@@ -134,8 +134,10 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
             }
         }
 
-        boost::asio::deadline_timer timer{io_context_};
+        boost::asio::steady_timer timer(io_context_);
         resetTimeout();
+        timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
+        timer.wait();
         std::string bufStr{hexStreambufToStr(readBuffer_)};
         boost::system::error_code errorIn;
 
@@ -143,32 +145,11 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
             boost::asio::read_until(socket_, readBuffer_, "\r\n",
                                     errorIn);
         } else {
-            boost::asio::streambuf tempTempBuff;
-            boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(2),
-                              errorIn);
-            boost::asio::read(socket_, tempTempBuff, boost::asio::transfer_exactly(2),
-                              errorIn);
-            unsigned int readSize{hexToInt(hexStreambufToStr(tempTempBuff))};
-            moveStreambuf(tempTempBuff, readBuffer_);
-            boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(readSize),
-                              errorIn);
-            timer.expires_from_now(
-                    boost::posix_time::milliseconds(config_->general().timeWait));
-            timer.wait();
-            if (socket_.available() > 0) {
-                for (auto i = 0; i <= config_->general().repeatWait; i++) {
-                    if (socket_.available() == 0)
-                        break;
-                    boost::asio::streambuf tempTempBuff;
-                    boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(3),
-                                      errorIn);
-                    boost::asio::read(socket_, tempTempBuff, boost::asio::transfer_exactly(2),
-                                      errorIn);
-                    unsigned int readSize{hexToInt(hexStreambufToStr(tempTempBuff))};
-                    moveStreambuf(tempTempBuff, readBuffer_);
-                    boost::asio::read(socket_, readBuffer_, boost::asio::transfer_exactly(readSize),
-                                      errorIn);
-                }
+            while (socket_.available() > 0) {
+                boost::asio::read(socket_, readBuffer_, boost::asio::transfer_at_least(1),
+                                  errorIn);
+                timer.expires_after(std::chrono::milliseconds(config_->general().timeWait));
+                timer.wait();
             }
         }
 

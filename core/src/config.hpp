@@ -19,7 +19,6 @@ private:
         std::string method;
         unsigned int timeWait;
         unsigned short timeout;
-        unsigned short repeatWait;
         std::string chunkHeader;
     };
 

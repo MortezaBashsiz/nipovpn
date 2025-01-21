@@ -27,7 +27,6 @@ Config::Config(const RunMode &mode, const std::string &filePath)
                 configYaml_["general"]["method"].as<std::string>(),
                 configYaml_["general"]["timeWait"].as<unsigned int>(),
                 configYaml_["general"]["timeout"].as<unsigned short>(),
-                configYaml_["general"]["repeatWait"].as<unsigned short>(),
                 configYaml_["general"]["chunkHeader"].as<std::string>()}),
       log_({configYaml_["log"]["logLevel"].as<std::string>(),
             configYaml_["log"]["logFile"].as<std::string>()}),
@@ -89,7 +88,6 @@ std::string Config::toString() const {
        << "   method: " << general_.method << "\n"
        << "   timeWait: " << general_.timeWait << "\n"
        << "   timeout: " << general_.timeout << "\n"
-       << "   repeatWait: " << general_.repeatWait << "\n"
        << "   chunkHeader: " << general_.chunkHeader << "\n"
        << " Log :\n"
        << "   logLevel: " << log_.level << "\n"
