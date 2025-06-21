@@ -17,8 +17,8 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
       log_(log),
       io_context_(io_context),
       acceptor_(io_context,
-                boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(config->listenIp()),
-                                               config->listenPort())) {
+                boost::asio::ip::tcp::endpoint(
+                        boost::asio::ip::make_address(config->listenIp()), config->listenPort())) {
     acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
 
     startAccept();
