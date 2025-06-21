@@ -1,5 +1,11 @@
 #include "serverhandler.hpp"
 
+/**
+ * @brief Constructs a `ServerHandler` object.
+ * 
+ * Initializes the HTTP request handler, client connection, and assigns references
+ * to configuration, logging, and buffers.
+ */
 ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
                              boost::asio::streambuf &writeBuffer,
                              const std::shared_ptr<Config> &config,
@@ -19,8 +25,19 @@ ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
     connect_ = false;
 }
 
+/**
+ * @brief Destructor for `ServerHandler`.
+ * 
+ * Ensures cleanup of resources, though currently the destructor does not perform specific actions.
+ */
 ServerHandler::~ServerHandler() {}
 
+/**
+ * @brief Handles the incoming request and processes it based on its type.
+ * 
+ * Processes HTTP or HTTPS requests, decrypts payloads, performs appropriate actions
+ * (e.g., connect or forward requests), and generates responses.
+ */
 void ServerHandler::handle() {
     std::lock_guard<std::mutex> lock(mutex_);
     if (request_->detectType()) {
@@ -91,7 +108,7 @@ void ServerHandler::handle() {
                             client_->doConnect(request_->dstIP(), request_->dstPort());
                         }
                         client_->doWrite(readBuffer_);
-                        client_->doHandle();
+                        client_->doReadServer();
                         end_ = client_->end_;
                         if (client_->readBuffer().size() > 0) {
                             BoolStr encryption{false, std::string("FAILED")};
@@ -161,9 +178,14 @@ void ServerHandler::handle() {
     }
 }
 
+/**
+ * @brief Continues reading and processing data from the client.
+ * 
+ * Encrypts responses and manages the client socket's lifecycle based on the request type.
+ */
 void ServerHandler::continueRead() {
     std::lock_guard<std::mutex> lock(mutex_);
-    client_->doHandle();
+    client_->doReadServer();
     end_ = client_->end_;
     if (client_->readBuffer().size() > 0) {
         BoolStr encryption{false, std::string("FAILED")};

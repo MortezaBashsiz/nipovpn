@@ -1,5 +1,16 @@
 #include "http.hpp"
 
+/**
+ * @brief Constructs an HTTP object with configuration, logging, and buffer handling.
+ *
+ * Initializes member variables including configuration, logging, stream buffer,
+ * and UUID, with default values for HTTP type and TLS request parameters.
+ *
+ * @param config Shared pointer to the configuration object.
+ * @param log Shared pointer to the logging object.
+ * @param buffer Reference to the Boost Asio stream buffer.
+ * @param uuid Unique identifier for the HTTP session.
+ */
 HTTP::HTTP(const std::shared_ptr<Config> &config,
            const std::shared_ptr<Log> &log, boost::asio::streambuf &buffer, boost::uuids::uuid uuid)
     : config_(config),
@@ -12,6 +23,13 @@ HTTP::HTTP(const std::shared_ptr<Config> &config,
     chunkHeader_ = "no";
 }
 
+/**
+ * @brief Copy constructor for the HTTP class.
+ *
+ * Copies all member variables from another HTTP object.
+ *
+ * @param http Reference to another HTTP object to copy.
+ */
 HTTP::HTTP(const HTTP &http)
     : config_(http.config_),
       log_(http.log_),
@@ -22,8 +40,21 @@ HTTP::HTTP(const HTTP &http)
     chunkHeader_ = "no";
 }
 
+/**
+ * @brief Destructor for the HTTP class.
+ *
+ * Cleans up any allocated resources. Currently, no explicit cleanup is required.
+ */
 HTTP::~HTTP() {}
 
+/**
+ * @brief Detects the type of HTTP or HTTPS request based on the input buffer.
+ *
+ * Determines whether the request is HTTPS or plain HTTP by inspecting the initial bytes
+ * of the stream buffer. Parses the request accordingly.
+ *
+ * @return True if the request type is successfully detected and parsed, false otherwise.
+ */
 bool HTTP::detectType() {
     std::string requestStr{hexStreambufToStr(buffer_)};
     std::string tmpStr;
@@ -44,6 +75,14 @@ bool HTTP::detectType() {
     }
 }
 
+/**
+ * @brief Parses an HTTP request from the input buffer.
+ *
+ * Converts the buffer data into an HTTP request object and sets the HTTP type
+ * based on the request method.
+ *
+ * @return True if parsing is successful, false otherwise.
+ */
 bool HTTP::parseHttp() {
     std::string requestStr(streambufToString(buffer_));
     boost::beast::http::request_parser<boost::beast::http::string_body> parser;
@@ -65,6 +104,13 @@ bool HTTP::parseHttp() {
     }
 }
 
+/**
+ * @brief Parses an HTTP response from the input buffer.
+ *
+ * Converts the buffer data into an HTTP response object.
+ *
+ * @return True if parsing is successful, false otherwise.
+ */
 bool HTTP::parseHttpResp() {
     std::string requestStr(streambufToString(buffer_));
     parser_.eager(true);
@@ -80,6 +126,13 @@ bool HTTP::parseHttpResp() {
     }
 }
 
+/**
+ * @brief Parses a TLS request from the input buffer.
+ *
+ * Identifies the TLS request type and extracts relevant fields such as SNI (Server Name Indication).
+ *
+ * @return True if parsing is successful, false otherwise.
+ */
 bool HTTP::parseTls() {
     std::string tmpStr;
     unsigned short pos = 0;
