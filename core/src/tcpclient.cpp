@@ -70,7 +70,6 @@ bool TCPClient::doConnect(const std::string &dstIP,
     }
 }
 
-
 /**
  * @brief Writes the provided buffer to the TCP socket and handles any errors during the process.
  * 
