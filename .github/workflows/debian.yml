@@ -72,3 +72,4 @@ jobs:
           asset_path: ./nipovpn_v1-0-${{ github.run_number }}.deb
           asset_name: nipovpn_v1-0-${{ github.run_number }}.deb
           asset_content_type: application/octet-stream
+
