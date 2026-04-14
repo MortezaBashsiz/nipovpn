@@ -151,7 +151,7 @@ private:
     boost::asio::io_context &io_context_;
     TCPClient::pointer client_;
     boost::asio::streambuf readBuffer_, writeBuffer_;
-    boost::asio::deadline_timer timeout_;
+    boost::asio::steady_timer timeout_;
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
     boost::uuids::uuid uuid_;
     std::mutex mutex_;
