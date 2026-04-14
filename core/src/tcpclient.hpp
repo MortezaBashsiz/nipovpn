@@ -128,6 +128,6 @@ private:
     boost::asio::ip::tcp::socket socket_;
     boost::asio::streambuf buffer_, writeBuffer_, readBuffer_;
     boost::asio::ip::tcp::resolver resolver_;
-    boost::asio::deadline_timer timeout_;
+    boost::asio::steady_timer timeout_;
     mutable std::mutex mutex_;
 };

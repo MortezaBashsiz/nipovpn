@@ -349,7 +349,7 @@ void TCPConnection::doWrite(auto handlerPointer) {
 void TCPConnection::resetTimeout() {
     if (!config_->general().timeout)
         return;
-    timeout_.expires_from_now(boost::posix_time::seconds(config_->general().timeout));
+    timeout_.expires_after(std::chrono::seconds(config_->general().timeout));
     timeout_.async_wait(boost::bind(&TCPConnection::onTimeout,
                                     shared_from_this(),
                                     boost::asio::placeholders::error));

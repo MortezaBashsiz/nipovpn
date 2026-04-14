@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ggdb")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -MMD -MP")
 
 # https://cmake.org/cmake/help/latest/module/FindBoost.html
-find_package(Boost REQUIRED COMPONENTS system regex)
+find_package(Boost REQUIRED COMPONENTS regex OPTIONAL_COMPONENTS system)
 
 # /usr/local/lib/cmake/yaml-cpp/yaml-cpp-config.cmake
 # declared variables: YAML_CPP_INCLUDE_DIR & YAML_CPP_LIBRARY_DIR
