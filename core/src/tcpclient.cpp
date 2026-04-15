@@ -130,9 +130,48 @@ bool TCPClient::doHandshakeClient() {
     try {
         if (!tlsEnabled_ || !sslSocket_) return true;
 
+        std::string sniHost = config_->general().fakeUrl;
+
+        // If fakeUrl is a full URL (e.g. https://example.com/path),
+        // extract only hostname
+        if (!sniHost.empty()) {
+            // remove scheme if present
+            auto pos = sniHost.find("://");
+            if (pos != std::string::npos) {
+                sniHost = sniHost.substr(pos + 3);
+            }
+
+            // remove path if present
+            pos = sniHost.find('/');
+            if (pos != std::string::npos) {
+                sniHost = sniHost.substr(0, pos);
+            }
+
+            // remove port if present
+            pos = sniHost.find(':');
+            if (pos != std::string::npos) {
+                sniHost = sniHost.substr(0, pos);
+            }
+
+            if (!sniHost.empty()) {
+                if (!SSL_set_tlsext_host_name(sslSocket_->native_handle(),
+                                              sniHost.c_str())) {
+                    log_->write("[" + to_string(uuid_) +
+                                        "] [TLS] Failed to set SNI: " + sniHost,
+                                Log::Level::ERROR);
+                    return false;
+                }
+
+                log_->write("[" + to_string(uuid_) +
+                                    "] [TLS] Using SNI: " + sniHost,
+                            Log::Level::DEBUG);
+            }
+        }
+
         resetTimeout();
         sslSocket_->handshake(boost::asio::ssl::stream_base::client);
         cancelTimeout();
+
         return true;
     } catch (std::exception &error) {
         cancelTimeout();
