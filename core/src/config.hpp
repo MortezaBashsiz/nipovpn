@@ -37,7 +37,6 @@ private:
         std::string tlsCertFile;
         std::string tlsKeyFile;
         std::string tlsCaFile;
-        std::string tlsDhFile;
     };
 
     struct Agent {

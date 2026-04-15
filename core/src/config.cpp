@@ -21,8 +21,7 @@ Config::Config(const RunMode &mode, const std::string &filePath)
                configYaml_["server"]["tlsVerifyPeer"].as<bool>(false),
                configYaml_["server"]["tlsCertFile"].as<std::string>(""),
                configYaml_["server"]["tlsKeyFile"].as<std::string>(""),
-               configYaml_["server"]["tlsCaFile"].as<std::string>(""),
-               configYaml_["server"]["tlsDhFile"].as<std::string>("")}),
+               configYaml_["server"]["tlsCaFile"].as<std::string>("")}),
       agent_({configYaml_["agent"]["threads"].as<unsigned short>(),
               configYaml_["agent"]["listenIp"].as<std::string>(),
               configYaml_["agent"]["listenPort"].as<unsigned short>(),
@@ -86,7 +85,6 @@ std::string Config::toString() const {
        << "   tlsCertFile: " << server_.tlsCertFile << "\n"
        << "   tlsKeyFile: " << server_.tlsKeyFile << "\n"
        << "   tlsCaFile: " << server_.tlsCaFile << "\n"
-       << "   tlsDhFile: " << server_.tlsDhFile << "\n"
        << " agent :\n"
        << "   threads: " << agent_.threads << "\n"
        << "   listenIp: " << agent_.listenIp << "\n"
