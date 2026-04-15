@@ -62,11 +62,6 @@ public:
     void handle();
 
     /**
-     * @brief Continues processing subsequent reads, handling responses, and decryption.
-     */
-    void continueRead();
-
-    /**
      * @brief Accessor for the HTTP request object.
      *
      * @return A reference to the HTTP request object.

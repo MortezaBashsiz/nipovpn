@@ -154,29 +154,3 @@ void AgentHandler::handle() {
 
     copyStringToStreambuf(decryption.message, writeBuffer_);
 }
-
-/**
- * @brief Continues reading and processing data from the server, handling encryption, decryption, and responses.
- *
- * This function performs the following tasks:
- * - Generates a REST-based HTTP POST request and sends it to the server.
- * - Handles the server's response, including parsing, decryption, and processing.
- * - Logs detailed information about the request, response, and errors encountered during processing.
- *
- * @details
- * - Thread safety is ensured using a mutex lock.
- * - The request data is generated using the `genHttpRestPostReqString` method and sent to the server.
- * - Upon receiving the server's response, the function parses it as an HTTP response.
- * - The body of the response is decrypted using AES-256, and the decrypted content is stored in the write buffer.
- * - If the response indicates the end of a chunked transfer (`chunkHeader` set to "yes"), the `end_` flag is set to `true`.
- * - Handles both HTTP and non-HTTP responses, logging any issues encountered.
- * - In case of decryption failure or an empty response, the client socket is closed.
- *
- * @note
- * - This function assumes that the client connection is already established and ready for communication.
- * - Errors in decryption, parsing, or an empty response buffer will terminate the connection.
- */
-void AgentHandler::continueRead() {
-    // not used anymore in pipe mode
-    end_ = false;
-}

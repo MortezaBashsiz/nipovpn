@@ -145,13 +145,3 @@ void ServerHandler::handle() {
         }
     }
 }
-
-/**
- * @brief Continues reading and processing data from the client.
- * 
- * Encrypts responses and manages the client socket's lifecycle based on the request type.
- */
-void ServerHandler::continueRead() {
-    // not used anymore in pipe mode
-    end_ = false;
-}
