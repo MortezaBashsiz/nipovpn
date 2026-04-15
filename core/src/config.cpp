@@ -25,7 +25,6 @@ Config::Config(const RunMode &mode, const std::string &filePath)
       general_({configYaml_["general"]["token"].as<std::string>(),
                 configYaml_["general"]["fakeUrl"].as<std::string>(),
                 configYaml_["general"]["method"].as<std::string>(),
-                configYaml_["general"]["timeWait"].as<unsigned int>(),
                 configYaml_["general"]["timeout"].as<unsigned short>(),
                 configYaml_["general"]["chunkHeader"].as<std::string>()}),
       log_({configYaml_["log"]["logLevel"].as<std::string>(),
@@ -86,7 +85,6 @@ std::string Config::toString() const {
        << "   token: " << general_.token << "\n"
        << "   fakeUrl: " << general_.fakeUrl << "\n"
        << "   method: " << general_.method << "\n"
-       << "   timeWait: " << general_.timeWait << "\n"
        << "   timeout: " << general_.timeout << "\n"
        << "   chunkHeader: " << general_.chunkHeader << "\n"
        << " Log :\n"

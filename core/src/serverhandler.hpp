@@ -56,13 +56,6 @@ public:
     void handle();
 
     /**
-     * @brief Continues reading from the connection.
-     *
-     * This function is invoked when additional data is expected to be read.
-     */
-    void continueRead();
-
-    /**
      * @brief Returns a reference to the HTTP request object.
      *
      * Provides access to the request being handled by the server.

@@ -17,7 +17,6 @@ private:
         std::string token;
         std::string fakeUrl;
         std::string method;
-        unsigned int timeWait;
         unsigned short timeout;
         std::string chunkHeader;
     };
