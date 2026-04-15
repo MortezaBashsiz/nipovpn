@@ -73,7 +73,7 @@ void AgentHandler::handle() {
                             "] [AgentHandler handle] [Encryption Failed] : [ " +
                             encryption.message + "] ",
                     Log::Level::DEBUG);
-        client_->socket().close();
+        client_->socketShutdown();
         return;
     }
 
@@ -88,7 +88,7 @@ void AgentHandler::handle() {
                             "] [AgentHandler handle] [NOT HTTP Request] [Request] : " +
                             streambufToString(readBuffer_),
                     Log::Level::DEBUG);
-        client_->socket().close();
+        client_->socketShutdown();
         return;
     }
 
@@ -100,17 +100,42 @@ void AgentHandler::handle() {
                     Log::Level::INFO);
     }
 
-    if (!client_->socket().is_open()) {
+    if (config_->agent().tlsEnable && !client_->tlsEnabled()) {
+        if (!client_->enableTlsClient()) {
+            log_->write("[" + to_string(uuid_) +
+                                "] [TLS] [ERROR] [Init Client Context] [SRC " +
+                                clientConnStr_ + "] [DST " + config_->agent().serverIp +
+                                ":" + std::to_string(config_->agent().serverPort) + "]",
+                        Log::Level::ERROR);
+            client_->socketShutdown();
+            return;
+        }
+    }
+
+    if (!client_->isOpen()) {
         connect_ = true;
+
         if (!client_->doConnect(config_->agent().serverIp,
                                 config_->agent().serverPort)) {
-            log_->write(std::string("[") + to_string(uuid_) +
+            log_->write("[" + to_string(uuid_) +
                                 "] [CONNECT] [ERROR] [To Server] [SRC " + clientConnStr_ +
                                 "] [DST " + config_->agent().serverIp + ":" +
                                 std::to_string(config_->agent().serverPort) + "]",
                         Log::Level::INFO);
-            client_->socket().close();
+            client_->socketShutdown();
             return;
+        }
+
+        if (client_->tlsEnabled()) {
+            if (!client_->doHandshakeClient()) {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [TLS] [ERROR] [Client Handshake] [SRC " +
+                                    clientConnStr_ + "] [DST " + config_->agent().serverIp +
+                                    ":" + std::to_string(config_->agent().serverPort) + "]",
+                            Log::Level::ERROR);
+                client_->socketShutdown();
+                return;
+            }
         }
     }
 
@@ -119,7 +144,7 @@ void AgentHandler::handle() {
     client_->doReadAgent();
 
     if (client_->readBuffer().size() == 0) {
-        client_->socket().close();
+        client_->socketShutdown();
         return;
     }
 
@@ -129,12 +154,13 @@ void AgentHandler::handle() {
         return;
     }
 
-    HTTP::pointer response = HTTP::create(config_, log_, client_->readBuffer(), uuid_);
+    HTTP::pointer response =
+            HTTP::create(config_, log_, client_->readBuffer(), uuid_);
     if (!response->parseHttpResp()) {
         log_->write("[AgentHandler handle] [NOT HTTP Response] [Response] : " +
                             streambufToString(client_->readBuffer()),
                     Log::Level::DEBUG);
-        client_->socket().close();
+        client_->socketShutdown();
         return;
     }
 
@@ -148,7 +174,7 @@ void AgentHandler::handle() {
                             "] [AgentHandler handle] [Decryption Failed] : [ " +
                             decryption.message + "] ",
                     Log::Level::DEBUG);
-        client_->socket().close();
+        client_->socketShutdown();
         return;
     }
 

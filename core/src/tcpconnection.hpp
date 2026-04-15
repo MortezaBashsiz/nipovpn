@@ -2,8 +2,10 @@
 
 #include <array>
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <memory>
@@ -16,6 +18,8 @@
 class TCPConnection : public boost::enable_shared_from_this<TCPConnection> {
 public:
     using pointer = boost::shared_ptr<TCPConnection>;
+    using ssl_stream =
+            boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
 
     static pointer create(boost::asio::io_context &io_context,
                           const std::shared_ptr<Config> &config,
@@ -25,6 +29,11 @@ public:
     }
 
     boost::asio::ip::tcp::socket &socket();
+    inline TCPClient::pointer client() { return client_; }
+    ssl_stream &tlsSocket();
+
+    bool initTlsServerContext();
+    bool doHandshakeServer();
 
     inline void writeBuffer(boost::asio::streambuf &buffer) {
         moveStreambuf(buffer, writeBuffer_);
@@ -50,7 +59,6 @@ public:
 
     void socketShutdown();
 
-    // new tunnel mode API
     void enableTunnelMode();
     void relayClientToRemote();
     void relayRemoteToClient();
@@ -66,6 +74,9 @@ private:
     void onTimeout(const boost::system::error_code &error);
 
     boost::asio::ip::tcp::socket socket_;
+    boost::asio::ssl::context sslContext_;
+    std::unique_ptr<ssl_stream> tlsSocket_;
+
     const std::shared_ptr<Config> &config_;
     const std::shared_ptr<Log> &log_;
     boost::asio::io_context &io_context_;

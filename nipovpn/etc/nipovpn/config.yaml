@@ -18,6 +18,7 @@ general:
   # Defines the chunk header that you want to inform Agent/Server if it is end or not.
   chunkHeader: "END"
 
+
 # This block is to define log directives
 log:
   # logLevel: "INFO|TRACE|DEBUG"
@@ -34,6 +35,12 @@ server:
   listenIp: "0.0.0.0"
   # listenPort: the port number which will be used on server
   listenPort: 443
+  tlsEnable: true
+  tlsVerifyPeer: false
+  tlsCertFile: "/etc/nipovpn/server.crt"
+  tlsKeyFile: "/etc/nipovpn/server.key"
+  tlsCaFile: ""
+  tlsDhFile: "/etc/nipovpn/dh.pem"
 
 # This block is to define agent directives
 agent:
@@ -51,3 +58,6 @@ agent:
   httpVersion: "1.1"
   # userAgent: This is the http user agent which will be used between agent and server
   userAgent : "NipoAgent"
+  tlsEnable: true
+  tlsVerifyPeer: false
+  tlsCaFile: ""
