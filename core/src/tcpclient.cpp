@@ -2,6 +2,22 @@
 
 #include <openssl/ssl.h>
 
+/**
+ * @brief Constructs a `TCPClient` instance with I/O context, configuration,
+ *        and logging support.
+ *
+ * @details
+ * - Stores references to the configuration, logging object, and I/O context.
+ * - Initializes the plain TCP socket.
+ * - Initializes the TLS context in client mode.
+ * - Starts with TLS disabled and no SSL stream allocated.
+ * - Initializes the DNS resolver and timeout timer.
+ * - Sets the internal connection completion flag `end_` to `false`.
+ *
+ * @param io_context Reference to the Boost.Asio I/O context.
+ * @param config Shared pointer to the configuration object.
+ * @param log Shared pointer to the logging object.
+ */
 TCPClient::TCPClient(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
                      const std::shared_ptr<Log> &log)
@@ -17,19 +33,59 @@ TCPClient::TCPClient(boost::asio::io_context &io_context,
     end_ = false;
 }
 
+/**
+ * @brief Returns the underlying plain TCP socket.
+ *
+ * @return Reference to the internal TCP socket.
+ */
 TCPClient::tcp::socket &TCPClient::socket() { return socket_; }
 
+/**
+ * @brief Returns the TLS stream socket.
+ *
+ * @return Reference to the internal SSL stream.
+ */
 TCPClient::ssl_stream &TCPClient::sslSocket() { return *sslSocket_; }
 
+/**
+ * @brief Indicates whether TLS is enabled for this client.
+ *
+ * @return `true` if TLS is enabled, otherwise `false`.
+ */
 bool TCPClient::tlsEnabled() const { return tlsEnabled_; }
 
+/**
+ * @brief Checks whether the active underlying socket is open.
+ *
+ * @details
+ * - If TLS is enabled and the SSL stream exists, checks the lowest layer socket.
+ * - Otherwise checks the plain TCP socket.
+ *
+ * @return `true` if the active socket is open, otherwise `false`.
+ */
 bool TCPClient::isOpen() const {
     if (tlsEnabled_ && sslSocket_) return sslSocket_->lowest_layer().is_open();
     return socket_.is_open();
 }
 
+/**
+ * @brief Enables TLS support for the client connection.
+ *
+ * @details
+ * - Reinitializes the SSL context in TLS client mode.
+ * - Applies SSL context options to disable legacy SSL versions.
+ * - Enforces a minimum protocol version of TLS 1.2.
+ * - Configures peer verification based on the application configuration.
+ * - Loads the CA file when peer verification is enabled and a CA file is provided.
+ * - Sets the allowed TLS cipher list and TLS 1.3 cipher suites.
+ * - Creates the SSL stream object bound to the internal I/O context.
+ * - Marks the client as TLS-enabled.
+ *
+ * @return `true` if TLS initialization succeeds, otherwise `false`.
+ */
 bool TCPClient::enableTlsClient() {
     std::lock_guard lock(mutex_);
+
     try {
         if (tlsEnabled_) return true;
 
@@ -44,6 +100,7 @@ bool TCPClient::enableTlsClient() {
 
         if (config_->agent().tlsVerifyPeer) {
             sslContext_.set_verify_mode(boost::asio::ssl::verify_peer);
+
             if (!config_->agent().tlsCaFile.empty()) {
                 sslContext_.load_verify_file(config_->agent().tlsCaFile);
             }
@@ -75,6 +132,7 @@ bool TCPClient::enableTlsClient() {
         sslSocket_ = std::make_unique<ssl_stream>(io_context_, sslContext_);
         tlsEnabled_ = true;
         return true;
+
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
                             "] [TCPClient enableTlsClient] " + error.what(),
@@ -83,8 +141,22 @@ bool TCPClient::enableTlsClient() {
     }
 }
 
+/**
+ * @brief Resolves and connects to the specified destination.
+ *
+ * @details
+ * - Resolves the destination host and port using the internal resolver.
+ * - Connects either the plain TCP socket or the TLS socket's lowest layer,
+ *   depending on whether TLS is enabled.
+ * - Logs connection attempts and resolution/connect failures.
+ *
+ * @param dstIP Destination hostname or IP address.
+ * @param dstPort Destination port.
+ * @return `true` if the connection succeeds, otherwise `false`.
+ */
 bool TCPClient::doConnect(const std::string &dstIP, const unsigned short &dstPort) {
     std::lock_guard lock(mutex_);
+
     try {
         log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " + dstIP +
                             ":" + std::to_string(dstPort) + "]",
@@ -117,6 +189,7 @@ bool TCPClient::doConnect(const std::string &dstIP, const unsigned short &dstPor
         }
 
         return true;
+
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] " +
                             error.what(),
@@ -125,29 +198,41 @@ bool TCPClient::doConnect(const std::string &dstIP, const unsigned short &dstPor
     }
 }
 
+/**
+ * @brief Performs the TLS client handshake.
+ *
+ * @details
+ * - Returns immediately if TLS is not enabled.
+ * - Extracts the hostname from `config_->general().fakeUrl` for use as SNI.
+ * - Strips the scheme, path, and port from the configured URL before setting SNI.
+ * - Sets the TLS SNI extension on the SSL stream.
+ * - Starts a timeout timer before the handshake and cancels it after completion.
+ * - Logs SNI usage and handshake failures.
+ *
+ * @return `true` if the handshake succeeds or TLS is not enabled, otherwise `false`.
+ */
 bool TCPClient::doHandshakeClient() {
     std::lock_guard lock(mutex_);
+
     try {
         if (!tlsEnabled_ || !sslSocket_) return true;
 
         std::string sniHost = config_->general().fakeUrl;
 
-        // If fakeUrl is a full URL (e.g. https://example.com/path),
-        // extract only hostname
+        /**
+         * @brief Extracts the hostname portion of the configured fake URL.
+         */
         if (!sniHost.empty()) {
-            // remove scheme if present
             auto pos = sniHost.find("://");
             if (pos != std::string::npos) {
                 sniHost = sniHost.substr(pos + 3);
             }
 
-            // remove path if present
             pos = sniHost.find('/');
             if (pos != std::string::npos) {
                 sniHost = sniHost.substr(0, pos);
             }
 
-            // remove port if present
             pos = sniHost.find(':');
             if (pos != std::string::npos) {
                 sniHost = sniHost.substr(0, pos);
@@ -173,6 +258,7 @@ bool TCPClient::doHandshakeClient() {
         cancelTimeout();
 
         return true;
+
     } catch (std::exception &error) {
         cancelTimeout();
         log_->write("[" + to_string(uuid_) +
@@ -182,13 +268,32 @@ bool TCPClient::doHandshakeClient() {
     }
 }
 
+/**
+ * @brief Replaces the internal write buffer with the contents of the provided buffer.
+ *
+ * @param buffer Source buffer whose contents are moved into the internal write buffer.
+ */
 void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
     std::lock_guard lock(mutex_);
     moveStreambuf(buffer, writeBuffer_);
 }
 
+/**
+ * @brief Writes the contents of a buffer to the connected endpoint.
+ *
+ * @details
+ * - Moves the provided input buffer into the internal write buffer.
+ * - Verifies that the socket is open and that data exists to send.
+ * - Starts a timeout timer before writing and cancels it afterwards.
+ * - Writes through the TLS stream when TLS is enabled, otherwise uses the plain socket.
+ * - Logs destination endpoint information and number of bytes written.
+ * - Shuts down the socket on error.
+ *
+ * @param buffer Source buffer containing data to write.
+ */
 void TCPClient::doWrite(boost::asio::streambuf &buffer) {
     std::lock_guard lock(mutex_);
+
     try {
         moveStreambuf(buffer, writeBuffer_);
 
@@ -234,6 +339,7 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
             socketShutdown();
             return;
         }
+
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [catch] " +
                             error.what(),
@@ -242,6 +348,18 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
     }
 }
 
+/**
+ * @brief Reads agent-side data until the application terminator is encountered.
+ *
+ * @details
+ * - Clears the internal read buffer before reading.
+ * - Verifies that the socket is open.
+ * - Starts a timeout timer before reading and cancels it afterwards.
+ * - Reads until the delimiter `"COMP\r\n\r\n"` is found.
+ * - Uses the TLS stream when TLS is enabled, otherwise uses the plain socket.
+ * - Copies the received data into the general-purpose buffer on success.
+ * - Shuts down the socket on EOF, read error, or exception.
+ */
 void TCPClient::doReadAgent() {
     boost::system::error_code error;
     std::lock_guard lock(mutex_);
@@ -285,6 +403,7 @@ void TCPClient::doReadAgent() {
             socketShutdown();
             return;
         }
+
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
                             "] [TCPClient doReadAgent] [catch read] " + error.what(),
@@ -294,6 +413,21 @@ void TCPClient::doReadAgent() {
     }
 }
 
+/**
+ * @brief Reads a chunk of data from the remote server.
+ *
+ * @details
+ * - Clears the internal read buffer before reading.
+ * - Verifies that the socket is open.
+ * - Starts a timeout timer before reading and cancels it afterwards.
+ * - Reads up to 16384 bytes using `read_some`.
+ * - Uses the TLS stream when TLS is enabled, otherwise uses the plain socket.
+ * - Writes received bytes into the internal read buffer.
+ * - Copies the received data into the general-purpose buffer.
+ * - Updates the `end_` flag when no data is received.
+ * - Logs source endpoint information and number of bytes read.
+ * - Shuts down the socket on EOF, read error, or exception.
+ */
 void TCPClient::doReadServer() {
     boost::system::error_code error;
     end_ = false;
@@ -357,6 +491,7 @@ void TCPClient::doReadServer() {
         }
 
         copyStreambuf(readBuffer_, buffer_);
+
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
                             "] [TCPClient doReadServer] [catch read] " + error.what(),
@@ -365,6 +500,13 @@ void TCPClient::doReadServer() {
     }
 }
 
+/**
+ * @brief Starts or resets the operation timeout timer.
+ *
+ * @details
+ * - Does nothing when the configured timeout value is zero.
+ * - Schedules an asynchronous wait that invokes `onTimeout()`.
+ */
 void TCPClient::resetTimeout() {
     if (!config_->general().timeout) return;
 
@@ -375,10 +517,26 @@ void TCPClient::resetTimeout() {
             });
 }
 
+/**
+ * @brief Cancels the active timeout timer.
+ *
+ * @details
+ * - Does nothing when the configured timeout value is zero.
+ */
 void TCPClient::cancelTimeout() {
     if (config_->general().timeout) timeout_.cancel();
 }
 
+/**
+ * @brief Handles timeout expiration events.
+ *
+ * @details
+ * - Ignores callbacks triggered by cancellation or other non-expiration errors.
+ * - Logs timeout expiration details.
+ * - Shuts down the socket when the timeout expires.
+ *
+ * @param error Boost system error code for the timer event.
+ */
 void TCPClient::onTimeout(const boost::system::error_code &error) {
     if (error || error == boost::asio::error::operation_aborted) return;
 
@@ -390,6 +548,15 @@ void TCPClient::onTimeout(const boost::system::error_code &error) {
     socketShutdown();
 }
 
+/**
+ * @brief Shuts down and closes the active connection.
+ *
+ * @details
+ * - Gracefully shuts down the TLS stream when present.
+ * - Shuts down and closes the underlying socket.
+ * - Ignores shutdown-related error codes.
+ * - Logs exceptions encountered during shutdown.
+ */
 void TCPClient::socketShutdown() {
     try {
         boost::system::error_code ignored;
@@ -405,6 +572,7 @@ void TCPClient::socketShutdown() {
             socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
             socket_.close(ignored);
         }
+
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
                             "] [TCPClient socketShutdown] [catch] " + error.what(),
