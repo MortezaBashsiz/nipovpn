@@ -1,12 +1,14 @@
 #include "tcpserver.hpp"
 
 /**
- * @brief Constructs a new TCPServer instance.
+ * @brief Constructs a `TCPServer` instance and initializes the listening acceptor.
  *
- * Initializes the `acceptor_` with the specified IP and port from the configuration, and sets the `reuse_address` option
- * to allow multiple bindings to the same address. This constructor also starts the process of accepting connections.
+ * @details
+ * - Binds the acceptor to the configured IP address and port.
+ * - Enables `reuse_address` to allow quick restarts without waiting for socket release.
+ * - Immediately starts accepting incoming connections.
  *
- * @param io_context The IO context for asynchronous operations.
+ * @param io_context Reference to the Boost.Asio I/O context.
  * @param config Shared pointer to the configuration object.
  * @param log Shared pointer to the logging object.
  */
@@ -26,10 +28,12 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
 }
 
 /**
- * @brief Starts accepting incoming client connections asynchronously.
+ * @brief Initiates an asynchronous accept operation for incoming connections.
  *
- * This method creates a new `TCPClient` and `TCPConnection` object to handle the connection, then starts the asynchronous
- * accept operation using the acceptor. Once a connection is accepted, the `handleAccept` method will be called.
+ * @details
+ * - Creates a new `TCPClient` and associated `TCPConnection`.
+ * - Calls `async_accept` to wait for incoming connections.
+ * - On completion, forwards control to `handleAccept()`.
  */
 void TCPServer::startAccept() {
     auto client = TCPClient::create(io_context_, config_, log_);
@@ -43,19 +47,32 @@ void TCPServer::startAccept() {
 }
 
 /**
- * @brief Handles the result of the asynchronous accept operation.
+ * @brief Handles the result of an asynchronous accept operation.
  *
- * If the connection was successfully accepted, this method starts the communication on the connection by invoking the
- * `start` method. If an error or exception occurs, it logs the error or exception.
+ * @details
+ * - On successful accept:
+ *   - In **server mode**:
+ *     - Initializes TLS server context.
+ *     - Transfers the accepted socket to the TLS stream.
+ *     - Performs TLS handshake.
+ *     - Starts server-side processing.
+ *   - In **agent mode**:
+ *     - Starts agent-side processing directly (no TLS termination).
  *
- * @param connection The `TCPConnection` object representing the accepted connection.
- * @param error The error code resulting from the accept operation.
+ * - On failure:
+ *   - Logs the error.
+ *
+ * - Always continues accepting new connections regardless of outcome.
+ *
+ * @param connection Shared pointer to the accepted `TCPConnection`.
+ * @param error Error code returned by the accept operation.
  */
 void TCPServer::handleAccept(TCPConnection::pointer connection,
                              const boost::system::error_code &error) {
     try {
         if (!error) {
             if (config_->runMode() == RunMode::server) {
+                // Initialize TLS context for incoming server connections
                 if (!connection->initTlsServerContext()) {
                     log_->write("[TCPServer handleAccept] TLS server context init failed",
                                 Log::Level::ERROR);
@@ -64,8 +81,10 @@ void TCPServer::handleAccept(TCPConnection::pointer connection,
                     return;
                 }
 
+                // Move plain socket into TLS layer
                 connection->tlsSocket().lowest_layer() = std::move(connection->socket());
 
+                // Perform TLS handshake
                 if (!connection->doHandshakeServer()) {
                     log_->write("[TCPServer handleAccept] TLS server handshake failed",
                                 Log::Level::ERROR);
@@ -74,8 +93,10 @@ void TCPServer::handleAccept(TCPConnection::pointer connection,
                     return;
                 }
 
+                // Start server-side handling
                 connection->startServer();
             } else {
+                // Start agent-side handling (no TLS termination)
                 connection->startAgent();
             }
         } else {
@@ -90,5 +111,6 @@ void TCPServer::handleAccept(TCPConnection::pointer connection,
                     Log::Level::ERROR);
     }
 
+    // Continue accepting new connections
     startAccept();
 }

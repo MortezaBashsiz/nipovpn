@@ -1,12 +1,17 @@
 #include "runner.hpp"
 
 /**
- * @brief Constructs a `Runner` object with the given configuration and log instance.
+ * @brief Constructs a `Runner` instance with configuration and logging support.
  *
- * Initializes the `io_context_`, work guard, and strand. Sets the `running_` flag to true.
+ * @details
+ * - Stores references to the configuration and logging objects.
+ * - Initializes the internal Boost.Asio `io_context`.
+ * - Creates a work guard to keep the `io_context` alive.
+ * - Sets the running state to `true`.
+ * - Initializes a strand for serialized handler execution.
  *
  * @param config Shared pointer to the configuration object.
- * @param log Shared pointer to the logging instance.
+ * @param log Shared pointer to the logging object.
  */
 Runner::Runner(const std::shared_ptr<Config> &config,
                const std::shared_ptr<Log> &log)
@@ -18,13 +23,17 @@ Runner::Runner(const std::shared_ptr<Config> &config,
       strand_(boost::asio::make_strand(io_context_)) {}
 
 /**
- * @brief Destructor for the `Runner` class.
+ * @brief Destroys the `Runner` instance and shuts down all execution resources.
  *
- * Stops the `io_context_`, ensures all threads in the thread pool are joined, and safely cleans up resources.
+ * @details
+ * - Sets the running state to `false`.
+ * - Stops the Boost.Asio `io_context`.
+ * - Joins all worker threads in the thread pool if they are still joinable.
  */
 Runner::~Runner() {
     running_.store(false);
     io_context_.stop();
+
     for (auto &thread: threadPool_) {
         if (thread.joinable()) {
             thread.join();
@@ -33,25 +42,33 @@ Runner::~Runner() {
 }
 
 /**
- * @brief Starts the Runner's main execution.
+ * @brief Starts the server runtime and launches worker threads.
  *
- * Initializes the server and spawns multiple worker threads to handle tasks asynchronously.
- * Joins all threads to ensure proper shutdown.
+ * @details
+ * - Logs the current runtime mode and full configuration.
+ * - Creates the `TCPServer` instance bound to the internal `io_context`.
+ * - Spawns a number of worker threads based on the configured thread count.
+ * - Each worker thread runs the `workerThread()` loop.
+ * - Waits for all worker threads to finish before returning.
+ * - Logs any exception that occurs during startup or runtime coordination.
  */
 void Runner::run() {
     try {
-
         log_->write("Config initialized in " + config_->modeToString() + " mode", Log::Level::INFO);
         log_->write(config_->toString(), Log::Level::INFO);
+
         auto tcpServer = TCPServer::create(io_context_, config_, log_);
+
         for (auto i = 0; i < config_->threads(); ++i) {
             threadPool_.emplace_back([this] { workerThread(); });
         }
+
         for (auto &thread: threadPool_) {
             if (thread.joinable()) {
                 thread.join();
             }
         }
+
     } catch (const std::exception &error) {
         log_->write(std::string("[Runner run] ") + error.what(), Log::Level::ERROR);
     } catch (...) {
@@ -60,10 +77,13 @@ void Runner::run() {
 }
 
 /**
- * @brief Worker thread function to process tasks from the `io_context_`.
+ * @brief Worker thread entry point for processing asynchronous operations.
  *
- * Each thread calls `io_context_.run()` to handle asynchronous operations. If an exception occurs,
- * it logs the error and continues processing.
+ * @details
+ * - Repeatedly runs the Boost.Asio `io_context` while the runner is active.
+ * - Exits the loop when `io_context_.run()` completes normally.
+ * - Catches and logs exceptions so that a single handler failure does not
+ *   immediately terminate the worker loop.
  */
 void Runner::workerThread() {
     while (running_.load()) {
@@ -71,19 +91,19 @@ void Runner::workerThread() {
             io_context_.run();
             break;
         } catch (const std::exception &e) {
-
             log_->write(std::string("[WorkerThread] Exception: ") + e.what(), Log::Level::ERROR);
         } catch (...) {
-
             log_->write("[WorkerThread] Unknown error occurred", Log::Level::ERROR);
         }
     }
 }
 
 /**
- * @brief Stops the Runner.
+ * @brief Stops the runner and terminates asynchronous processing.
  *
- * Sets the `running_` flag to false and stops the `io_context_` to terminate the processing loop.
+ * @details
+ * - Sets the running state to `false`.
+ * - Stops the internal Boost.Asio `io_context`.
  */
 void Runner::stop() {
     running_.store(false);

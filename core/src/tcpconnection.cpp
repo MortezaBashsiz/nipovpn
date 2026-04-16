@@ -2,6 +2,27 @@
 
 #include <openssl/ssl.h>
 
+/**
+ * @brief Constructs a `TCPConnection` instance with I/O context, configuration,
+ *        logging, and an associated outbound client.
+ *
+ * @details
+ * - Initializes the accepted inbound socket.
+ * - Initializes the TLS server context in server mode.
+ * - Stores references to the configuration, logging object, and I/O context.
+ * - Stores the associated outbound `TCPClient`.
+ * - Initializes the timeout timer and serialized execution strand.
+ * - Generates a unique UUID for the connection.
+ * - Initializes internal state flags:
+ *   - `end_` is set to `false`
+ *   - `connect_` is set to `false`
+ *   - `tunnelMode_` is set to `false`
+ *
+ * @param io_context Reference to the Boost.Asio I/O context.
+ * @param config Shared pointer to the configuration object.
+ * @param log Shared pointer to the logging object.
+ * @param client Shared pointer to the associated outbound `TCPClient`.
+ */
 TCPConnection::TCPConnection(boost::asio::io_context &io_context,
                              const std::shared_ptr<Config> &config,
                              const std::shared_ptr<Log> &log,
@@ -21,10 +42,35 @@ TCPConnection::TCPConnection(boost::asio::io_context &io_context,
     tunnelMode_ = false;
 }
 
+/**
+ * @brief Returns the inbound TCP socket associated with this connection.
+ *
+ * @return Reference to the inbound socket.
+ */
 boost::asio::ip::tcp::socket &TCPConnection::socket() { return socket_; }
 
+/**
+ * @brief Returns the TLS server stream associated with this connection.
+ *
+ * @return Reference to the TLS socket stream.
+ */
 TCPConnection::ssl_stream &TCPConnection::tlsSocket() { return *tlsSocket_; }
 
+/**
+ * @brief Initializes the TLS server context for inbound encrypted connections.
+ *
+ * @details
+ * - Reinitializes the SSL context in TLS server mode.
+ * - Applies secure context options and disables legacy SSL versions.
+ * - Enforces a minimum TLS version of 1.2.
+ * - Loads the configured server certificate and private key.
+ * - Verifies that the private key matches the loaded certificate.
+ * - Disables peer certificate verification.
+ * - Sets the allowed TLS cipher list and TLS 1.3 cipher suites.
+ * - Creates the TLS stream object bound to the internal I/O context.
+ *
+ * @return `true` if initialization succeeds, otherwise `false`.
+ */
 bool TCPConnection::initTlsServerContext() {
     try {
         sslContext_ = boost::asio::ssl::context(boost::asio::ssl::context::tls_server);
@@ -73,6 +119,7 @@ bool TCPConnection::initTlsServerContext() {
 
         tlsSocket_ = std::make_unique<ssl_stream>(io_context_, sslContext_);
         return true;
+
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
                             "] [TCPConnection initTlsServerContext] " + error.what(),
@@ -81,6 +128,17 @@ bool TCPConnection::initTlsServerContext() {
     }
 }
 
+/**
+ * @brief Performs the server-side TLS handshake on the inbound connection.
+ *
+ * @details
+ * - Starts the timeout timer before the handshake.
+ * - Executes the TLS handshake in server mode.
+ * - Cancels the timeout timer on completion.
+ * - Logs handshake errors when they occur.
+ *
+ * @return `true` if the handshake succeeds, otherwise `false`.
+ */
 bool TCPConnection::doHandshakeServer() {
     try {
         resetTimeout();
@@ -96,18 +154,42 @@ bool TCPConnection::doHandshakeServer() {
     }
 }
 
+/**
+ * @brief Starts processing this connection in agent mode.
+ *
+ * @details
+ * - Assigns the connection UUID to the associated outbound client.
+ * - Begins asynchronous agent-side reading.
+ */
 void TCPConnection::startAgent() {
     std::lock_guard lock(mutex_);
     client_->uuid_ = uuid_;
     doReadAgent();
 }
 
+/**
+ * @brief Starts processing this connection in server mode.
+ *
+ * @details
+ * - Assigns the connection UUID to the associated outbound client.
+ * - Begins asynchronous server-side reading.
+ */
 void TCPConnection::startServer() {
     std::lock_guard lock(mutex_);
     client_->uuid_ = uuid_;
     doReadServer();
 }
 
+/**
+ * @brief Initiates asynchronous reading for agent-mode inbound traffic.
+ *
+ * @details
+ * - If tunnel mode is enabled, switches directly to transparent relay mode.
+ * - Clears the read and write buffers before starting a new operation.
+ * - Starts the timeout timer.
+ * - Performs an asynchronous read of at least one byte from the inbound socket.
+ * - Dispatches completion to `handleReadAgent()` through the strand.
+ */
 void TCPConnection::doReadAgent() {
     try {
         if (tunnelMode_) {
@@ -134,6 +216,17 @@ void TCPConnection::doReadAgent() {
     }
 }
 
+/**
+ * @brief Initiates asynchronous reading for server-mode inbound traffic.
+ *
+ * @details
+ * - If tunnel mode is enabled, switches directly to transparent relay mode.
+ * - Clears the read and write buffers before starting a new operation.
+ * - Starts the timeout timer.
+ * - Performs an asynchronous read until the application terminator
+ *   `"COMP\r\n\r\n"` is encountered.
+ * - Dispatches completion to `handleReadServer()` through the strand.
+ */
 void TCPConnection::doReadServer() {
     try {
         if (tunnelMode_) {
@@ -160,6 +253,21 @@ void TCPConnection::doReadServer() {
     }
 }
 
+/**
+ * @brief Handles completion of an agent-side read operation.
+ *
+ * @details
+ * - Cancels the timeout timer.
+ * - Handles EOF and other socket errors by shutting down the connection.
+ * - Reads the remainder of the request based on the first byte:
+ *   - If the first byte is `C` (`43` in hex), reads until `"\r\n"`.
+ *   - Otherwise reads until `"\r\n\r\n"`.
+ * - Logs source endpoint information and the received byte count.
+ * - Creates an `AgentHandler` to process the received request.
+ * - Updates connection state based on the handler result.
+ * - Asynchronously writes the generated response back to the inbound socket.
+ * - Switches to tunnel relay mode when CONNECT handling is activated.
+ */
 void TCPConnection::handleReadAgent(const boost::system::error_code &error,
                                     size_t) {
     try {
@@ -229,6 +337,7 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error,
                         [self = shared_from_this()](const boost::system::error_code &ec,
                                                     std::size_t) {
                             self->cancelTimeout();
+
                             if (ec) {
                                 self->log_->write("[" + to_string(self->uuid_) +
                                                           "] [TCPConnection write agent] " +
@@ -256,6 +365,18 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error,
     }
 }
 
+/**
+ * @brief Handles completion of a server-side read operation.
+ *
+ * @details
+ * - Cancels the timeout timer.
+ * - Handles EOF and other socket errors by shutting down the connection.
+ * - Logs source endpoint information and the received byte count.
+ * - Creates a `ServerHandler` to process the received request.
+ * - Updates connection state based on the handler result.
+ * - Asynchronously writes the generated response back through the TLS socket.
+ * - Switches to tunnel relay mode when CONNECT handling is activated.
+ */
 void TCPConnection::handleReadServer(const boost::system::error_code &error,
                                      size_t) {
     try {
@@ -308,6 +429,7 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error,
                         [self = shared_from_this()](const boost::system::error_code &ec,
                                                     std::size_t) {
                             self->cancelTimeout();
+
                             if (ec) {
                                 self->log_->write("[" + to_string(self->uuid_) +
                                                           "] [TCPConnection write server] " +
@@ -335,8 +457,28 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error,
     }
 }
 
+/**
+ * @brief Enables transparent tunnel relay mode for this connection.
+ *
+ * @details
+ * - After this is enabled, traffic is relayed bidirectionally without
+ *   request/response parsing.
+ */
 void TCPConnection::enableTunnelMode() { tunnelMode_ = true; }
 
+/**
+ * @brief Relays traffic from the inbound client side to the remote side.
+ *
+ * @details
+ * - In agent mode:
+ *   - Reads from the inbound plain socket.
+ *   - Writes to the outbound remote client, using TLS when enabled.
+ * - In server mode:
+ *   - Reads from the inbound TLS socket.
+ *   - Writes to the outbound plain remote socket.
+ * - Continues relaying recursively until an error occurs.
+ * - Shuts down the connection on read or write failure.
+ */
 void TCPConnection::relayClientToRemote() {
     if (config_->runMode() == RunMode::agent) {
         if (!socket_.is_open() || !client_->isOpen()) {
@@ -410,6 +552,19 @@ void TCPConnection::relayClientToRemote() {
                     }));
 }
 
+/**
+ * @brief Relays traffic from the remote side back to the inbound client side.
+ *
+ * @details
+ * - In agent mode:
+ *   - Reads from the outbound remote client, using TLS when enabled.
+ *   - Writes back to the inbound plain socket.
+ * - In server mode:
+ *   - Reads from the outbound plain remote socket.
+ *   - Writes back to the inbound TLS socket.
+ * - Continues relaying recursively until an error occurs.
+ * - Shuts down the connection on read or write failure.
+ */
 void TCPConnection::relayRemoteToClient() {
     if (config_->runMode() == RunMode::agent) {
         if (!socket_.is_open() || !client_->isOpen()) {
@@ -482,6 +637,13 @@ void TCPConnection::relayRemoteToClient() {
                     }));
 }
 
+/**
+ * @brief Starts or resets the timeout timer for this connection.
+ *
+ * @details
+ * - Does nothing when the configured timeout value is zero.
+ * - Schedules an asynchronous wait that invokes `onTimeout()`.
+ */
 void TCPConnection::resetTimeout() {
     if (!config_->general().timeout) return;
 
@@ -490,10 +652,26 @@ void TCPConnection::resetTimeout() {
                                     boost::asio::placeholders::error));
 }
 
+/**
+ * @brief Cancels the active timeout timer.
+ *
+ * @details
+ * - Does nothing when the configured timeout value is zero.
+ */
 void TCPConnection::cancelTimeout() {
     if (config_->general().timeout) timeout_.cancel();
 }
 
+/**
+ * @brief Handles timeout expiration events.
+ *
+ * @details
+ * - Ignores callbacks caused by cancellation or other non-expiration errors.
+ * - Logs the timeout expiration.
+ * - Shuts down the connection when the timeout expires.
+ *
+ * @param error Boost system error code associated with the timer event.
+ */
 void TCPConnection::onTimeout(const boost::system::error_code &error) {
     if (error || error == boost::asio::error::operation_aborted) return;
 
@@ -505,6 +683,16 @@ void TCPConnection::onTimeout(const boost::system::error_code &error) {
     socketShutdown();
 }
 
+/**
+ * @brief Gracefully shuts down this connection and its associated outbound client.
+ *
+ * @details
+ * - Shuts down and closes the inbound TLS socket when present.
+ * - Shuts down and closes the inbound plain socket when open.
+ * - Shuts down the associated outbound `TCPClient` when present.
+ * - Ignores shutdown-related error codes.
+ * - Logs any exception raised during shutdown.
+ */
 void TCPConnection::socketShutdown() {
     try {
         boost::system::error_code ignored;

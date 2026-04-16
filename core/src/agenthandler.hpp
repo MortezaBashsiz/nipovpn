@@ -10,38 +10,40 @@
 #include "tcpclient.hpp"
 
 /**
- * @brief The `AgentHandler` class manages the interaction between the client and the agent, 
- *        including handling requests, responses, and connection state.
+ * @brief The `AgentHandler` class manages communication between the client and the agent server.
  *
  * @details
- * - This class is derived from `Uncopyable` to prevent copying or assignment.
- * - It provides functionality for handling initial requests (`handle`) and continuing 
- *   with subsequent reads and responses (`continueRead`).
- * - Uses Boost.Asio stream buffers for managing input and output data streams.
- * - Ensures thread safety with an internal mutex.
- * - Maintains the connection state with `end_` and `connect_` flags.
- * - Supports logging and configuration through shared pointers to external objects.
+ * - Responsible for processing incoming client requests and forwarding them to the agent server.
+ * - Handles encryption, HTTP request generation, and response processing.
+ * - Maintains connection state and supports both normal HTTP and CONNECT tunneling.
+ * - Uses Boost.Asio stream buffers for efficient I/O operations.
+ * - Ensures thread safety using an internal mutex.
+ * - Integrates with external components such as configuration, logging, and TCP client handling.
  *
  * @note
- * - The class uses a `pointer` alias for shared ownership management via `std::shared_ptr`.
- * - The `create` static factory method constructs an instance and returns it as a `pointer`.
- * - Requires a valid Boost.Asio I/O context and other dependencies to function properly.
+ * - Inherits from `Uncopyable` to prevent accidental copying.
+ * - Uses shared ownership via `std::shared_ptr` (see `pointer` alias).
+ * - Instances must be created using the `create` factory method.
  */
 class AgentHandler : private Uncopyable {
 public:
     using pointer = std::shared_ptr<AgentHandler>;
 
     /**
-     * @brief Factory method to create an instance of `AgentHandler`.
+     * @brief Factory method to create a new `AgentHandler` instance.
      *
-     * @param readBuffer Reference to the stream buffer for reading data.
-     * @param writeBuffer Reference to the stream buffer for writing data.
+     * @details
+     * - Wraps object construction in a `std::shared_ptr`.
+     * - Ensures consistent creation and ownership semantics.
+     *
+     * @param readBuffer Reference to the stream buffer used for reading client data.
+     * @param writeBuffer Reference to the stream buffer used for writing response data.
      * @param config Shared pointer to the configuration object.
      * @param log Shared pointer to the logging object.
-     * @param client Shared pointer to the `TCPClient` object managing the connection.
-     * @param clientConnStr String containing the client connection information.
-     * @param uuid Unique identifier for this handler, represented as a Boost UUID.
-     * @return A shared pointer to the newly created `AgentHandler` instance.
+     * @param client Shared pointer to the `TCPClient` managing server communication.
+     * @param clientConnStr String describing the client connection source.
+     * @param uuid Unique identifier for this handler instance.
+     * @return A shared pointer to the created `AgentHandler`.
      */
     static pointer create(boost::asio::streambuf &readBuffer,
                           boost::asio::streambuf &writeBuffer,
@@ -54,41 +56,61 @@ public:
                                         client, clientConnStr, uuid));
     }
 
+    /**
+     * @brief Destructor for `AgentHandler`.
+     *
+     * @details
+     * - Default destructor; resource management is handled by smart pointers and references.
+     */
     ~AgentHandler();
 
     /**
-     * @brief Handles the initial processing of requests, encryption, and server communication.
+     * @brief Processes a client request and communicates with the agent server.
+     *
+     * @details
+     * - Encrypts incoming data.
+     * - Builds and sends an HTTP request to the agent server.
+     * - Receives, parses, and decrypts the server response.
+     * - Handles CONNECT tunneling and normal HTTP flows.
      */
     void handle();
 
     /**
-     * @brief Accessor for the HTTP request object.
+     * @brief Provides access to the associated HTTP request object.
      *
-     * @return A reference to the HTTP request object.
+     * @return A const reference to the HTTP request pointer.
      */
     inline const HTTP::pointer &request() & { return request_; }
 
     /**
-     * @brief Accessor for the HTTP request object, allowing move semantics.
+     * @brief Provides rvalue access to the HTTP request object.
      *
-     * @return An rvalue reference to the HTTP request object.
+     * @details
+     * - Enables move semantics when transferring ownership.
+     *
+     * @return An rvalue reference to the HTTP request pointer.
      */
     inline const HTTP::pointer &&request() && { return std::move(request_); }
 
-    bool end_;    ///< Indicates whether the handler has completed its operations.
-    bool connect_;///< Indicates the connection state.
+    bool end_;    ///< Indicates whether processing has completed.
+    bool connect_;///< Indicates whether a CONNECT tunnel or server connection is active.
 
 private:
     /**
-     * @brief Constructs an `AgentHandler` instance with the specified parameters.
+     * @brief Constructs an `AgentHandler` instance.
      *
-     * @param readBuffer Reference to the stream buffer for reading data.
-     * @param writeBuffer Reference to the stream buffer for writing data.
+     * @details
+     * - Initializes buffers, configuration, logging, and client references.
+     * - Creates the internal HTTP request handler.
+     * - Stores connection metadata and unique identifier.
+     *
+     * @param readBuffer Reference to the input stream buffer.
+     * @param writeBuffer Reference to the output stream buffer.
      * @param config Shared pointer to the configuration object.
      * @param log Shared pointer to the logging object.
-     * @param client Shared pointer to the `TCPClient` object managing the connection.
-     * @param clientConnStr String containing the client connection information.
-     * @param uuid Unique identifier for this handler, represented as a Boost UUID.
+     * @param client Shared pointer to the TCP client.
+     * @param clientConnStr Client connection description string.
+     * @param uuid Unique identifier for this handler instance.
      */
     AgentHandler(boost::asio::streambuf &readBuffer,
                  boost::asio::streambuf &writeBuffer,
@@ -98,15 +120,15 @@ private:
                  const std::string &clientConnStr,
                  boost::uuids::uuid uuid);
 
-    const std::shared_ptr<Config> &config_;///< Configuration object reference.
-    const std::shared_ptr<Log> &log_;      ///< Logging object reference.
-    const TCPClient::pointer &client_;     ///< TCP client managing the connection.
-    boost::asio::streambuf &readBuffer_;   ///< Buffer for reading data.
-    boost::asio::streambuf &writeBuffer_;  ///< Buffer for writing data.
-    HTTP::pointer request_;                ///< HTTP request handler.
+    const std::shared_ptr<Config> &config_;///< Reference to the configuration object.
+    const std::shared_ptr<Log> &log_;      ///< Reference to the logging object.
+    const TCPClient::pointer &client_;     ///< Reference to the TCP client.
+    boost::asio::streambuf &readBuffer_;   ///< Buffer for incoming client data.
+    boost::asio::streambuf &writeBuffer_;  ///< Buffer for outgoing response data.
+    HTTP::pointer request_;                ///< HTTP request handler instance.
     const std::string &clientConnStr_;     ///< Client connection string.
 
     boost::uuids::uuid uuid_;///< Unique identifier for this handler.
 
-    std::mutex mutex_;///< Mutex for ensuring thread safety.
+    std::mutex mutex_;///< Mutex used to ensure thread-safe operations.
 };

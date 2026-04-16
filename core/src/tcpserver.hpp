@@ -6,25 +6,34 @@
 #include "tcpconnection.hpp"
 
 /**
- * @brief A TCP server class that accepts incoming TCP connections and handles them.
+ * @brief The `TCPServer` class accepts incoming TCP connections and dispatches them for handling.
  *
- * The class listens for incoming connections and creates `TCPConnection` objects to handle communication.
+ * @details
+ * - Owns the listening acceptor socket.
+ * - Uses the provided Boost.Asio `io_context` for asynchronous accept operations.
+ * - Creates `TCPConnection` instances for accepted clients.
+ * - Integrates with configuration and logging components.
+ *
+ * @note
+ * - Instances are managed through shared ownership using `boost::shared_ptr`.
+ * - Objects should be created using the `create` factory method.
  */
 class TCPServer {
 public:
     using pointer = boost::shared_ptr<TCPServer>;
 
     /**
-   * @brief Creates a new TCPServer instance.
-   *
-   * This static factory method initializes a `TCPServer` with the provided IO context, configuration, and logging.
-   *
-   * @param io_context The IO context for asynchronous operations.
-   * @param config Shared pointer to the configuration object.
-   * @param log Shared pointer to the logging object.
-   *
-   * @return A shared pointer to the newly created TCPServer instance.
-   */
+     * @brief Factory method to create a new `TCPServer` instance.
+     *
+     * @details
+     * - Wraps object construction in a `boost::shared_ptr`.
+     * - Ensures consistent ownership and lifetime management.
+     *
+     * @param io_context Reference to the Boost.Asio I/O context.
+     * @param config Shared pointer to the configuration object.
+     * @param log Shared pointer to the logging object.
+     * @return Shared pointer to the created `TCPServer`.
+     */
     static pointer create(boost::asio::io_context &io_context,
                           const std::shared_ptr<Config> &config,
                           const std::shared_ptr<Log> &log) {
@@ -32,40 +41,46 @@ public:
     }
 
     /**
-   * @brief Starts the process of accepting incoming connections.
-   *
-   * This method begins the asynchronous accept operation to listen for incoming client connections.
-   */
+     * @brief Starts accepting incoming client connections.
+     *
+     * @details
+     * - Begins an asynchronous accept operation on the listening socket.
+     * - Accepted connections are passed to `handleAccept()`.
+     */
     void startAccept();
 
 private:
     /**
-   * @brief Constructs a TCPServer object.
-   *
-   * Initializes the acceptor, sets up the IO context, and stores the configuration and log objects.
-   *
-   * @param io_context The IO context for asynchronous operations.
-   * @param config Shared pointer to the configuration object.
-   * @param log Shared pointer to the logging object.
-   */
+     * @brief Constructs a `TCPServer` instance.
+     *
+     * @details
+     * - Stores references to the configuration, logging object, and I/O context.
+     * - Initializes the listening acceptor socket.
+     *
+     * @param io_context Reference to the Boost.Asio I/O context.
+     * @param config Shared pointer to the configuration object.
+     * @param log Shared pointer to the logging object.
+     */
     explicit TCPServer(boost::asio::io_context &io_context,
                        const std::shared_ptr<Config> &config,
                        const std::shared_ptr<Log> &log);
 
     /**
-   * @brief Handles the completion of an accept operation.
-   *
-   * Once a new connection is accepted, this method is called to handle the connection by creating a `TCPConnection`
-   * object and starting communication with the client.
-   *
-   * @param connection A shared pointer to the new `TCPConnection` object.
-   * @param error The error code indicating the result of the accept operation.
-   */
+     * @brief Handles completion of an asynchronous accept operation.
+     *
+     * @details
+     * - Receives the newly accepted `TCPConnection`.
+     * - Inspects the accept result through the provided error code.
+     * - Starts connection processing when accept succeeds.
+     *
+     * @param connection Shared pointer to the accepted `TCPConnection`.
+     * @param error Result of the accept operation.
+     */
     void handleAccept(TCPConnection::pointer connection,
                       const boost::system::error_code &error);
 
-    const std::shared_ptr<Config> &config_;
-    const std::shared_ptr<Log> &log_;
-    boost::asio::io_context &io_context_;
-    boost::asio::ip::tcp::acceptor acceptor_;
+    const std::shared_ptr<Config> &config_;  ///< Reference to the configuration object.
+    const std::shared_ptr<Log> &log_;        ///< Reference to the logging object.
+    boost::asio::io_context &io_context_;    ///< Reference to the I/O context.
+    boost::asio::ip::tcp::acceptor acceptor_;///< Listening TCP acceptor.
 };
