@@ -59,8 +59,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
         with:
-          tag_name: 'v1.1.${{ github.run_number }}'
-          release_name: Staging v1.1.${{ github.run_number }}
+          tag_name: 'v.0.1.1.${{ github.run_number }}'
+          release_name: Staging v.0.1.1.${{ github.run_number }}
           draft: false
           prerelease: true
 
