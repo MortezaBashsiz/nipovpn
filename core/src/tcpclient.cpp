@@ -359,14 +359,24 @@ bool TCPClient::doHandshakeClient() {
                     return false;
                 }
 
-                // Advertise HTTP ALPN.
+                // IMPORTANT:
+                // Only advertise HTTP/1.1 because this client sends HTTP/1.1 text.
+                // If h2 is advertised, Cloudflare may negotiate HTTP/2 and then
+                // close the connection when it receives an HTTP/1.1 request.
                 static const unsigned char alpn[] = {
-                        0x02, 'h', '2',
                         0x08, 'h', 't', 't', 'p', '/', '1', '.', '1'};
-                SSL_set_alpn_protos(sslSocket_->native_handle(), alpn, sizeof(alpn));
+
+                if (SSL_set_alpn_protos(sslSocket_->native_handle(),
+                                        alpn, sizeof(alpn)) != 0) {
+                    log_->write("[" + to_string(uuid_) +
+                                        "] [TLS] Failed to set ALPN http/1.1",
+                                Log::Level::ERROR);
+                    return false;
+                }
 
                 log_->write("[" + to_string(uuid_) +
-                                    "] [TLS] Using SNI/ALPN host: " + sniHost,
+                                    "] [TLS] Using SNI/ALPN host: " + sniHost +
+                                    " [ALPN http/1.1]",
                             Log::Level::DEBUG);
             }
         }
@@ -374,6 +384,29 @@ bool TCPClient::doHandshakeClient() {
         resetTimeout();
         sslSocket_->handshake(boost::asio::ssl::stream_base::client);
         cancelTimeout();
+
+        const unsigned char *selected = nullptr;
+        unsigned int selectedLen = 0;
+        SSL_get0_alpn_selected(sslSocket_->native_handle(), &selected, &selectedLen);
+
+        if (selected != nullptr && selectedLen > 0) {
+            std::string negotiated(reinterpret_cast<const char *>(selected), selectedLen);
+            log_->write("[" + to_string(uuid_) +
+                                "] [TLS] Negotiated ALPN: " + negotiated,
+                        Log::Level::DEBUG);
+
+            if (negotiated != "http/1.1") {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [TLS] Unsupported negotiated ALPN: " + negotiated,
+                            Log::Level::ERROR);
+                return false;
+            }
+        } else {
+            log_->write("[" + to_string(uuid_) +
+                                "] [TLS] No ALPN negotiated",
+                        Log::Level::DEBUG);
+        }
+
         return true;
 
     } catch (std::exception &error) {
