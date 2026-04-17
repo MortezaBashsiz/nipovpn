@@ -174,8 +174,17 @@ void AgentHandler::handle() {
     }
 
     const std::string innerResponse = outerResponse.substr(bodyPos + 4);
-    copyStringToStreambuf(innerResponse, writeBuffer_);
 
+    // CONNECT: the outer response body itself is the proxy response to the browser,
+    // usually "HTTP/1.1 200 Connection Established\r\n\r\n".
+    if (request_->httpType() == HTTP::HttpType::connect) {
+        copyStringToStreambuf(innerResponse, writeBuffer_);
+        connect_ = true;
+        end_ = false;
+        return;
+    }
+
+    copyStringToStreambuf(innerResponse, writeBuffer_);
     connect_ = false;
     end_ = false;
 }

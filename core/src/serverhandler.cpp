@@ -68,6 +68,7 @@ ServerHandler::~ServerHandler() {}
 void ServerHandler::handle() {
     std::lock_guard lock(mutex_);
 
+    // Parse outer request from agent
     if (!request_->detectType()) {
         log_->write("[" + to_string(uuid_) +
                             "] [ServerHandler handle] [NOT HTTP Request From Agent] "
@@ -91,6 +92,7 @@ void ServerHandler::handle() {
         return;
     }
 
+    // Extract inner raw request from outer HTTP body
     const std::string innerRequest = std::string(outerReq.body());
     copyStringToStreambuf(innerRequest, readBuffer_);
 
@@ -104,43 +106,87 @@ void ServerHandler::handle() {
         return;
     }
 
-    if (inner->httpType() == HTTP::HttpType::connect) {
-        copyStringToStreambuf(
-                "HTTP/1.1 501 Not Implemented\r\n"
-                "Content-Length: 19\r\n"
-                "Connection: close\r\n\r\n"
-                "CONNECT not ready.\n",
-                writeBuffer_);
-        return;
-    }
+    switch (inner->httpType()) {
+        case HTTP::HttpType::connect: {
+            // Connect to requested destination and return the CONNECT response
+            // inside the body of the outer HTTP response.
+            if (client_->doConnect(inner->dstIP(), inner->dstPort())) {
+                log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " +
+                                    clientConnStr_ + "] [DST " + inner->dstIP() + ":" +
+                                    std::to_string(inner->dstPort()) + "]",
+                            Log::Level::INFO);
 
-    if (!client_->socket().is_open()) {
-        if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
-            client_->socket().close();
+                const std::string connectEstablished =
+                        "HTTP/1.1 200 Connection Established\r\n\r\n";
+
+                std::ostringstream outer;
+                outer << "HTTP/1.1 200 OK\r\n"
+                      << "Content-Type: application/octet-stream\r\n"
+                      << "Content-Length: " << connectEstablished.size() << "\r\n"
+                      << "Connection: keep-alive\r\n"
+                      << "\r\n"
+                      << connectEstablished;
+
+                copyStringToStreambuf(outer.str(), writeBuffer_);
+                connect_ = true;
+                end_ = false;
+                return;
+            } else {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [CONNECT] [ERROR] [Resolving Host] [SRC " +
+                                    clientConnStr_ + "] [DST " + inner->dstIP() + ":" +
+                                    std::to_string(inner->dstPort()) + "]",
+                            Log::Level::INFO);
+
+                const std::string connectFailed =
+                        "HTTP/1.1 502 Bad Gateway\r\n\r\n";
+
+                std::ostringstream outer;
+                outer << "HTTP/1.1 502 Bad Gateway\r\n"
+                      << "Content-Type: application/octet-stream\r\n"
+                      << "Content-Length: " << connectFailed.size() << "\r\n"
+                      << "Connection: close\r\n"
+                      << "\r\n"
+                      << connectFailed;
+
+                copyStringToStreambuf(outer.str(), writeBuffer_);
+                connect_ = false;
+                end_ = true;
+                return;
+            }
+        }
+
+        case HTTP::HttpType::http:
+        case HTTP::HttpType::https: {
+            if (!client_->socket().is_open()) {
+                if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
+                    client_->socket().close();
+                    return;
+                }
+            }
+
+            client_->doWrite(readBuffer_);
+            client_->doReadServer();
+
+            if (client_->readBuffer().size() == 0) {
+                client_->socket().close();
+                return;
+            }
+
+            const std::string innerResponse = streambufToString(client_->readBuffer());
+
+            std::ostringstream outer;
+            outer << "HTTP/1.1 200 OK\r\n"
+                  << "Content-Type: application/octet-stream\r\n"
+                  << "Content-Length: " << innerResponse.size() << "\r\n"
+                  << "Connection: keep-alive\r\n"
+                  << "\r\n"
+                  << innerResponse;
+
+            copyStringToStreambuf(outer.str(), writeBuffer_);
+            connect_ = false;
+            end_ = false;
             return;
         }
     }
-
-    client_->doWrite(readBuffer_);
-    client_->doReadServer();
-
-    if (client_->readBuffer().size() == 0) {
-        client_->socket().close();
-        return;
-    }
-
-    const std::string innerResponse = streambufToString(client_->readBuffer());
-
-    std::ostringstream outer;
-    outer << "HTTP/1.1 200 OK\r\n"
-          << "Content-Type: application/octet-stream\r\n"
-          << "Content-Length: " << innerResponse.size() << "\r\n"
-          << "Connection: keep-alive\r\n"
-          << "\r\n"
-          << innerResponse;
-
-    copyStringToStreambuf(outer.str(), writeBuffer_);
-
-    connect_ = false;
-    end_ = false;
 }
