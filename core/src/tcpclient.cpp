@@ -2,6 +2,128 @@
 
 #include <openssl/ssl.h>
 
+#include <algorithm>
+#include <cctype>
+#include <sstream>
+
+namespace {
+
+    std::string toLowerCopy(std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return s;
+    }
+
+    std::string extractHeaders(const std::string &msg) {
+        auto pos = msg.find("\r\n\r\n");
+        if (pos == std::string::npos) return {};
+        return msg.substr(0, pos + 4);
+    }
+
+    std::string extractBody(const std::string &msg) {
+        auto pos = msg.find("\r\n\r\n");
+        if (pos == std::string::npos) return {};
+        return msg.substr(pos + 4);
+    }
+
+    bool parseContentLength(const std::string &headers, std::size_t &value) {
+        std::istringstream iss(headers);
+        std::string line;
+        while (std::getline(iss, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            auto lower = toLowerCopy(line);
+            if (lower.rfind("content-length:", 0) == 0) {
+                auto raw = line.substr(std::string("Content-Length:").size());
+                raw.erase(0, raw.find_first_not_of(" \t"));
+                try {
+                    value = static_cast<std::size_t>(std::stoull(raw));
+                    return true;
+                } catch (...) {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool isChunked(const std::string &headers) {
+        std::istringstream iss(headers);
+        std::string line;
+        while (std::getline(iss, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            auto lower = toLowerCopy(line);
+            if (lower.rfind("transfer-encoding:", 0) == 0 &&
+                lower.find("chunked") != std::string::npos) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    template<typename SyncReadStream>
+    bool readHttpMessage(SyncReadStream &stream,
+                         boost::asio::streambuf &out,
+                         boost::system::error_code &ec) {
+        out.consume(out.size());
+
+        // Read headers first.
+        boost::asio::read_until(stream, out, "\r\n\r\n", ec);
+        if (ec) return false;
+
+        std::string current = streambufToString(out);
+        std::string headers = extractHeaders(current);
+        std::string body = extractBody(current);
+
+        // Fixed-length body.
+        std::size_t contentLength = 0;
+        if (parseContentLength(headers, contentLength)) {
+            if (body.size() < contentLength) {
+                boost::asio::read(stream, out,
+                                  boost::asio::transfer_exactly(contentLength - body.size()),
+                                  ec);
+                if (ec) return false;
+            }
+            return true;
+        }
+
+        // Chunked body.
+        if (isChunked(headers)) {
+            for (;;) {
+                current = streambufToString(out);
+                auto bodyPos = current.find("\r\n\r\n");
+                if (bodyPos == std::string::npos) return false;
+
+                std::string bodyPart = current.substr(bodyPos + 4);
+                auto lastChunkPos = bodyPart.find("\r\n0\r\n\r\n");
+                if (lastChunkPos != std::string::npos || bodyPart == "0\r\n\r\n") {
+                    return true;
+                }
+
+                std::array<char, 4096> tmp{};
+                std::size_t n = stream.read_some(boost::asio::buffer(tmp), ec);
+                if (ec) return false;
+                std::ostream os(&out);
+                os.write(tmp.data(), static_cast<std::streamsize>(n));
+            }
+        }
+
+        // No Content-Length and not chunked: treat close as end.
+        for (;;) {
+            std::array<char, 4096> tmp{};
+            std::size_t n = stream.read_some(boost::asio::buffer(tmp), ec);
+            if (ec == boost::asio::error::eof) {
+                ec.clear();
+                return true;
+            }
+            if (ec) return false;
+            std::ostream os(&out);
+            os.write(tmp.data(), static_cast<std::streamsize>(n));
+        }
+    }
+
+}// namespace
+
+
 /**
  * @brief Constructs a `TCPClient` instance with I/O context, configuration,
  *        and logging support.
@@ -219,36 +341,32 @@ bool TCPClient::doHandshakeClient() {
 
         std::string sniHost = config_->general().fakeUrl;
 
-        /**
-         * @brief Extracts the hostname portion of the configured fake URL.
-         */
         if (!sniHost.empty()) {
             auto pos = sniHost.find("://");
-            if (pos != std::string::npos) {
-                sniHost = sniHost.substr(pos + 3);
-            }
+            if (pos != std::string::npos) sniHost = sniHost.substr(pos + 3);
 
             pos = sniHost.find('/');
-            if (pos != std::string::npos) {
-                sniHost = sniHost.substr(0, pos);
-            }
+            if (pos != std::string::npos) sniHost = sniHost.substr(0, pos);
 
             pos = sniHost.find(':');
-            if (pos != std::string::npos) {
-                sniHost = sniHost.substr(0, pos);
-            }
+            if (pos != std::string::npos) sniHost = sniHost.substr(0, pos);
 
             if (!sniHost.empty()) {
-                if (!SSL_set_tlsext_host_name(sslSocket_->native_handle(),
-                                              sniHost.c_str())) {
+                if (!SSL_set_tlsext_host_name(sslSocket_->native_handle(), sniHost.c_str())) {
                     log_->write("[" + to_string(uuid_) +
                                         "] [TLS] Failed to set SNI: " + sniHost,
                                 Log::Level::ERROR);
                     return false;
                 }
 
+                // Advertise HTTP ALPN.
+                static const unsigned char alpn[] = {
+                        0x02, 'h', '2',
+                        0x08, 'h', 't', 't', 'p', '/', '1', '.', '1'};
+                SSL_set_alpn_protos(sslSocket_->native_handle(), alpn, sizeof(alpn));
+
                 log_->write("[" + to_string(uuid_) +
-                                    "] [TLS] Using SNI: " + sniHost,
+                                    "] [TLS] Using SNI/ALPN host: " + sniHost,
                             Log::Level::DEBUG);
             }
         }
@@ -256,7 +374,6 @@ bool TCPClient::doHandshakeClient() {
         resetTimeout();
         sslSocket_->handshake(boost::asio::ssl::stream_base::client);
         cancelTimeout();
-
         return true;
 
     } catch (std::exception &error) {
@@ -375,24 +492,25 @@ void TCPClient::doReadAgent() {
 
         resetTimeout();
 
+        bool ok = false;
         if (tlsEnabled_ && sslSocket_) {
-            boost::asio::read_until(*sslSocket_, readBuffer_, "COMP\r\n\r\n", error);
+            ok = readHttpMessage(*sslSocket_, readBuffer_, error);
         } else {
-            boost::asio::read_until(socket_, readBuffer_, "COMP\r\n\r\n", error);
+            ok = readHttpMessage(socket_, readBuffer_, error);
         }
 
         cancelTimeout();
 
-        if (error == boost::asio::error::eof) {
-            log_->write("[" + to_string(uuid_) +
-                                "] [TCPClient doReadAgent] [EOF] Connection closed by peer.",
-                        Log::Level::TRACE);
-            socketShutdown();
-            return;
-        } else if (error) {
-            log_->write("[" + to_string(uuid_) +
-                                "] [TCPClient doReadAgent] [error] " + error.message(),
-                        Log::Level::ERROR);
+        if (!ok) {
+            if (error == boost::asio::error::eof) {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [TCPClient doReadAgent] [EOF] Connection closed by peer.",
+                            Log::Level::TRACE);
+            } else {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [TCPClient doReadAgent] [error] " + error.message(),
+                            Log::Level::ERROR);
+            }
             socketShutdown();
             return;
         }
@@ -401,7 +519,6 @@ void TCPClient::doReadAgent() {
             copyStreambuf(readBuffer_, buffer_);
         } else {
             socketShutdown();
-            return;
         }
 
     } catch (std::exception &error) {
@@ -409,7 +526,6 @@ void TCPClient::doReadAgent() {
                             "] [TCPClient doReadAgent] [catch read] " + error.what(),
                     Log::Level::DEBUG);
         socketShutdown();
-        return;
     }
 }
 

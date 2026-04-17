@@ -5,7 +5,7 @@ general:
   token: "af445adb-2434-4975-9445-2c1b2231"
   # fakeUrl: string
   # Defines the fake url and endpoint between agent and server
-  fakeUrl: "http://www.adas.com"
+  fakeUrl: "http://nipo.ciron.net"
   # method: "HEAD|GET|POST|PUT|DELETE"
   # Defines with which method
   #   you like to send requests from agent to server

@@ -325,42 +325,96 @@ void HTTP::setIPPort() {
     std::vector<std::string> splitted;
 
     switch (httpType()) {
-        case HTTP::HttpType::https:
+        case HTTP::HttpType::https: {
             target = parsedTlsRequest_.sni;
             splitted = splitString(target, ":");
 
-            if (splitted.size() > 1) {
+            if (!splitted.empty()) {
                 dstIP_ = splitted[0];
-                dstPort_ = std::stoi(splitted[1]);
+                if (splitted.size() > 1 && !splitted[1].empty()) {
+                    dstPort_ = std::stoi(splitted[1]);
+                } else {
+                    dstPort_ = 443;
+                }
             } else {
-                dstIP_ = target;
+                dstIP_.clear();
                 dstPort_ = 443;
             }
             break;
+        }
 
-        case HTTP::HttpType::http:
+        case HTTP::HttpType::http: {
             target = boost::lexical_cast<std::string>(parsedHttpRequest_.target());
-            splitted = splitString(
-                    splitString(splitString(target, "http://")[1], "/")[0], ":");
+
+            // Absolute-form request target:
+            //   http://host:port/path
+            // Origin-form request target:
+            //   /path
+            // For origin-form, use Host header instead.
+            std::string hostPort;
+
+            if (target.rfind("http://", 0) == 0) {
+                std::string withoutScheme = target.substr(std::string("http://").size());
+                auto slashPos = withoutScheme.find('/');
+                hostPort = (slashPos == std::string::npos)
+                                   ? withoutScheme
+                                   : withoutScheme.substr(0, slashPos);
+            } else if (target.rfind("https://", 0) == 0) {
+                std::string withoutScheme = target.substr(std::string("https://").size());
+                auto slashPos = withoutScheme.find('/');
+                hostPort = (slashPos == std::string::npos)
+                                   ? withoutScheme
+                                   : withoutScheme.substr(0, slashPos);
+            } else {
+                // origin-form like "/relay"
+                auto hostIt = parsedHttpRequest_.find("Host");
+                if (hostIt != parsedHttpRequest_.end()) {
+                    hostPort = boost::lexical_cast<std::string>(hostIt->value());
+                } else {
+                    log_->write("[" + to_string(uuid_) +
+                                        "] [HTTP setIPPort] missing Host header",
+                                Log::Level::DEBUG);
+                    dstIP_.clear();
+                    dstPort_ = 80;
+                    break;
+                }
+            }
+
+            splitted = splitString(hostPort, ":");
+            if (!splitted.empty()) {
+                dstIP_ = splitted[0];
+                if (splitted.size() > 1 && !splitted[1].empty()) {
+                    dstPort_ = std::stoi(splitted[1]);
+                } else {
+                    dstPort_ = 80;
+                }
+            } else {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [HTTP setIPPort] wrong request",
+                            Log::Level::DEBUG);
+                dstIP_.clear();
+                dstPort_ = 80;
+            }
+            break;
+        }
+
+        case HTTP::HttpType::connect: {
+            target = boost::lexical_cast<std::string>(parsedHttpRequest_.target());
+            splitted = splitString(target, ":");
 
             if (!splitted.empty()) {
                 dstIP_ = splitted[0];
-
-                if (splitted.size() > 1)
+                if (splitted.size() > 1 && !splitted[1].empty()) {
                     dstPort_ = std::stoi(splitted[1]);
-                else
-                    dstPort_ = 80;
+                } else {
+                    dstPort_ = 443;
+                }
             } else {
-                log_->write("[" + to_string(uuid_) + "] [HTTP setIPPort] wrong request", Log::Level::DEBUG);
+                dstIP_.clear();
+                dstPort_ = 443;
             }
             break;
-
-        case HTTP::HttpType::connect:
-            target = boost::lexical_cast<std::string>(parsedHttpRequest_.target());
-            splitted = splitString(target, ":");
-            dstIP_ = splitted[0];
-            dstPort_ = std::stoi(splitted[1]);
-            break;
+        }
     }
 }
 

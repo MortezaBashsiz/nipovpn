@@ -2,6 +2,108 @@
 
 #include <openssl/ssl.h>
 
+#include <algorithm>
+#include <cctype>
+#include <sstream>
+
+namespace {
+
+    std::string toLowerCopy(std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return s;
+    }
+
+    std::string extractHeaders(const std::string &msg) {
+        auto pos = msg.find("\r\n\r\n");
+        if (pos == std::string::npos) return {};
+        return msg.substr(0, pos + 4);
+    }
+
+    std::string extractBody(const std::string &msg) {
+        auto pos = msg.find("\r\n\r\n");
+        if (pos == std::string::npos) return {};
+        return msg.substr(pos + 4);
+    }
+
+    bool parseContentLength(const std::string &headers, std::size_t &value) {
+        std::istringstream iss(headers);
+        std::string line;
+        while (std::getline(iss, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            auto lower = toLowerCopy(line);
+            if (lower.rfind("content-length:", 0) == 0) {
+                auto raw = line.substr(std::string("Content-Length:").size());
+                raw.erase(0, raw.find_first_not_of(" \t"));
+                try {
+                    value = static_cast<std::size_t>(std::stoull(raw));
+                    return true;
+                } catch (...) {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool isChunked(const std::string &headers) {
+        std::istringstream iss(headers);
+        std::string line;
+        while (std::getline(iss, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            auto lower = toLowerCopy(line);
+            if (lower.rfind("transfer-encoding:", 0) == 0 &&
+                lower.find("chunked") != std::string::npos) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool readRemainingHttpBody(TCPConnection::ssl_stream &stream,
+                               boost::asio::streambuf &buf,
+                               boost::system::error_code &ec) {
+        std::string current = streambufToString(buf);
+        std::string headers = extractHeaders(current);
+        std::string body = extractBody(current);
+
+        std::size_t contentLength = 0;
+        if (parseContentLength(headers, contentLength)) {
+            if (body.size() < contentLength) {
+                boost::asio::read(stream, buf,
+                                  boost::asio::transfer_exactly(contentLength - body.size()),
+                                  ec);
+                if (ec) return false;
+            }
+            return true;
+        }
+
+        if (isChunked(headers)) {
+            for (;;) {
+                current = streambufToString(buf);
+                auto pos = current.find("\r\n\r\n");
+                if (pos == std::string::npos) return false;
+                auto bodyPart = current.substr(pos + 4);
+
+                if (bodyPart.find("\r\n0\r\n\r\n") != std::string::npos ||
+                    bodyPart == "0\r\n\r\n") {
+                    return true;
+                }
+
+                std::array<char, 4096> tmp{};
+                std::size_t n = stream.read_some(boost::asio::buffer(tmp), ec);
+                if (ec) return false;
+                std::ostream os(&buf);
+                os.write(tmp.data(), static_cast<std::streamsize>(n));
+            }
+        }
+
+        return true;
+    }
+
+}// namespace
+
+
 /**
  * @brief Constructs a `TCPConnection` instance with I/O context, configuration,
  *        logging, and an associated outbound client.
@@ -239,7 +341,7 @@ void TCPConnection::doReadServer() {
 
         resetTimeout();
         boost::asio::async_read_until(
-                *tlsSocket_, readBuffer_, "COMP\r\n\r\n",
+                *tlsSocket_, readBuffer_, "\r\n\r\n",
                 boost::asio::bind_executor(
                         strand_,
                         boost::bind(&TCPConnection::handleReadServer, shared_from_this(),
@@ -392,6 +494,16 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error,
                                     "] [TCPConnection handleReadServer] " + error.message(),
                             Log::Level::TRACE);
             }
+            socketShutdown();
+            return;
+        }
+
+        boost::system::error_code bodyError;
+        if (!readRemainingHttpBody(*tlsSocket_, readBuffer_, bodyError)) {
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPConnection handleReadServer] body read failed: " +
+                                bodyError.message(),
+                        Log::Level::ERROR);
             socketShutdown();
             return;
         }
