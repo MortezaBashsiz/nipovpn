@@ -370,8 +370,7 @@ void TCPConnection::doReadServer() {
  * - Asynchronously writes the generated response back to the inbound socket.
  * - Switches to tunnel relay mode when CONNECT handling is activated.
  */
-void TCPConnection::handleReadAgent(const boost::system::error_code &error,
-                                    size_t) {
+void TCPConnection::handleReadAgent(const boost::system::error_code &error, size_t) {
     try {
         cancelTimeout();
 
@@ -390,39 +389,69 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error,
         }
 
         boost::system::error_code errorIn;
-        std::string bufStr{hexStreambufToStr(readBuffer_)};
 
-        if (bufStr == "43") {
-            boost::asio::read_until(socket_, readBuffer_, "\r\n", errorIn);
-        } else {
+        // We already have at least 1 byte from doReadAgent().
+        // For HTTP proxy traffic, always read the full request headers first.
+        std::string current = streambufToString(readBuffer_);
+        if (current.find("\r\n\r\n") == std::string::npos) {
             boost::asio::read_until(socket_, readBuffer_, "\r\n\r\n", errorIn);
         }
 
         if (errorIn && errorIn != boost::asio::error::eof) {
             log_->write("[" + to_string(uuid_) +
-                                "] [TCPConnection handleReadAgent] [errorIn] " +
-                                errorIn.message(),
+                                "] [TCPConnection handleReadAgent] [errorIn] " + errorIn.message(),
                         Log::Level::DEBUG);
             socketShutdown();
             return;
         }
 
+        current = streambufToString(readBuffer_);
+        const std::string headers = extractHeaders(current);
+        const std::string body = extractBody(current);
+
+        // CONNECT requests do not have an HTTP message body here.
+        const bool isConnect =
+                headers.rfind("CONNECT ", 0) == 0 || headers.rfind("connect ", 0) == 0;
+
+        // For normal HTTP requests, if Content-Length exists, make sure the full body is present.
+        if (!isConnect) {
+            std::size_t contentLength = 0;
+            if (parseContentLength(headers, contentLength) && body.size() < contentLength) {
+                boost::asio::read(socket_,
+                                  readBuffer_,
+                                  boost::asio::transfer_exactly(contentLength - body.size()),
+                                  errorIn);
+
+                if (errorIn && errorIn != boost::asio::error::eof) {
+                    log_->write("[" + to_string(uuid_) +
+                                        "] [TCPConnection handleReadAgent] [body read] " +
+                                        errorIn.message(),
+                                Log::Level::DEBUG);
+                    socketShutdown();
+                    return;
+                }
+            }
+        }
+
         log_->write("[" + to_string(uuid_) +
                             "] [TCPConnection handleReadAgent] "
                             "[SRC " +
-                            socket_.remote_endpoint().address().to_string() +
-                            ":" + std::to_string(socket_.remote_endpoint().port()) +
-                            "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
+                            socket_.remote_endpoint().address().to_string() + ":" +
+                            std::to_string(socket_.remote_endpoint().port()) + "] [Bytes " +
+                            std::to_string(readBuffer_.size()) + "] ",
                     Log::Level::DEBUG);
 
         AgentHandler::pointer agentHandler_ = AgentHandler::create(
-                readBuffer_, writeBuffer_, config_, log_, client_,
+                readBuffer_,
+                writeBuffer_,
+                config_,
+                log_,
+                client_,
                 socket_.remote_endpoint().address().to_string() + ":" +
                         std::to_string(socket_.remote_endpoint().port()),
                 uuid_);
 
         agentHandler_->handle();
-
         end_ = agentHandler_->end_;
         connect_ = agentHandler_->connect_;
 
@@ -433,7 +462,8 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error,
 
         resetTimeout();
         boost::asio::async_write(
-                socket_, writeBuffer_.data(),
+                socket_,
+                writeBuffer_.data(),
                 boost::asio::bind_executor(
                         strand_,
                         [self = shared_from_this()](const boost::system::error_code &ec,
@@ -460,8 +490,7 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error,
                         }));
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
-                            "] [TCPConnection handleReadAgent] [catch read] " +
-                            error.what(),
+                            "] [TCPConnection handleReadAgent] [catch read] " + error.what(),
                     Log::Level::DEBUG);
         socketShutdown();
     }

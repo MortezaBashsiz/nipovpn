@@ -94,9 +94,29 @@ void ServerHandler::handle() {
 
     // Extract inner raw request from outer HTTP body
     const std::string innerRequest = std::string(outerReq.body());
-    copyStringToStreambuf(innerRequest, readBuffer_);
 
+    // Split inner payload into:
+    //   1) the HTTP message headers (CONNECT or normal HTTP request)
+    //   2) any extra bytes already coalesced after the HTTP headers
+    //
+    // For CONNECT, those extra bytes are usually the first tunneled TLS bytes
+    // and MUST be forwarded to the remote destination after connect succeeds.
+    const std::size_t headerEnd = innerRequest.find("\r\n\r\n");
+    if (headerEnd == std::string::npos) {
+        log_->write("[" + to_string(uuid_) +
+                            "] [ServerHandler handle] [INNER REQUEST MISSING HEADER END]",
+                    Log::Level::DEBUG);
+        client_->socket().close();
+        return;
+    }
+
+    const std::string innerHeaders = innerRequest.substr(0, headerEnd + 4);
+    const std::string pendingTunnelData = innerRequest.substr(headerEnd + 4);
+
+    // Parse only the HTTP message part.
+    copyStringToStreambuf(innerHeaders, readBuffer_);
     HTTP::pointer inner = HTTP::create(config_, log_, readBuffer_, uuid_);
+
     if (!inner->detectType()) {
         log_->write("[" + to_string(uuid_) +
                             "] [ServerHandler handle] [NOT INNER HTTP Request] [Request] : " +
@@ -108,13 +128,19 @@ void ServerHandler::handle() {
 
     switch (inner->httpType()) {
         case HTTP::HttpType::connect: {
-            // Connect to requested destination and return the CONNECT response
-            // inside the body of the outer HTTP response.
             if (client_->doConnect(inner->dstIP(), inner->dstPort())) {
-                log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " +
-                                    clientConnStr_ + "] [DST " + inner->dstIP() + ":" +
+                log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " + clientConnStr_ +
+                                    "] [DST " + inner->dstIP() + ":" +
                                     std::to_string(inner->dstPort()) + "]",
                             Log::Level::INFO);
+
+                // If the agent already delivered bytes after the CONNECT headers,
+                // they belong to the tunnel and must be forwarded immediately.
+                if (!pendingTunnelData.empty()) {
+                    boost::asio::streambuf pendingBuf;
+                    copyStringToStreambuf(pendingTunnelData, pendingBuf);
+                    client_->doWrite(pendingBuf);
+                }
 
                 const std::string connectEstablished =
                         "HTTP/1.1 200 Connection Established\r\n\r\n";
@@ -158,6 +184,10 @@ void ServerHandler::handle() {
 
         case HTTP::HttpType::http:
         case HTTP::HttpType::https: {
+            // For normal HTTP requests, forward the full inner request
+            // (headers + optional body) exactly as received.
+            copyStringToStreambuf(innerRequest, readBuffer_);
+
             if (!client_->socket().is_open()) {
                 if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
                     client_->socket().close();
