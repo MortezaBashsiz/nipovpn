@@ -1,27 +1,5 @@
 #include "agenthandler.hpp"
 
-/**
- * @brief Constructs an `AgentHandler` instance with the required buffers, configuration,
- *        logging, client connection, and session identifier.
- *
- * @details
- * - Initializes internal references to the read and write buffers.
- * - Stores shared references to the configuration and logging objects.
- * - Stores the associated `TCPClient` instance used for server communication.
- * - Creates an `HTTP` helper object for parsing and generating HTTP messages.
- * - Saves the client connection string and UUID for logging and tracking purposes.
- * - Sets the initial state flags:
- *   - `end_` is initialized to `false`, indicating processing is not finished.
- *   - `connect_` is initialized to `false`, indicating that no CONNECT tunnel is active.
- *
- * @param readBuffer Reference to the stream buffer used for reading incoming client data.
- * @param writeBuffer Reference to the stream buffer used for storing outgoing response data.
- * @param config Shared pointer to the configuration object.
- * @param log Shared pointer to the logging object.
- * @param client Shared pointer to the `TCPClient` used for communication with the remote server.
- * @param clientConnStr String describing the client connection source.
- * @param uuid Unique identifier for this handler session, represented as a Boost UUID.
- */
 AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
                            boost::asio::streambuf &writeBuffer,
                            const std::shared_ptr<Config> &config,
@@ -41,40 +19,10 @@ AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
     connect_ = false;
 }
 
-/**
- * @brief Destroys the `AgentHandler` instance.
- *
- * @details
- * - Performs no additional cleanup explicitly.
- * - Resource lifetime is managed by referenced objects and smart pointers.
- */
+
 AgentHandler::~AgentHandler() {}
 
-/**
- * @brief Handles a client request by encrypting it, forwarding it to the agent server,
- *        and processing the server response.
- *
- * @details
- * - Ensures thread-safe execution using an internal mutex.
- * - Reads the incoming request data from `readBuffer_` and encrypts it using AES-256.
- * - Encodes the encrypted payload with Base64 and wraps it into an HTTP POST request.
- * - Detects the type of the original HTTP request before forwarding it.
- * - Logs connection details when a valid HTTP target is available.
- * - Initializes TLS on the client connection when enabled in the configuration.
- * - Establishes a TCP connection to the configured server if one is not already open.
- * - Performs a TLS handshake when TLS is active on the client connection.
- * - Sends the generated HTTP request to the remote server and reads the response.
- * - Handles CONNECT requests specially by forwarding the raw response directly.
- * - Parses normal HTTP responses, decrypts their body content, and writes the
- *   decrypted result into `writeBuffer_`.
- * - On any failure during encryption, connection, parsing, decryption, or I/O,
- *   the client socket is shut down and processing stops.
- *
- * @note
- * - For CONNECT requests, the method does not decrypt the response body and instead
- *   forwards the raw response stream directly to the write buffer.
- * - The `connect_` flag is updated when a connection or CONNECT tunnel is established.
- */
+
 void AgentHandler::handle() {
     std::lock_guard lock(mutex_);
 
@@ -175,8 +123,6 @@ void AgentHandler::handle() {
 
     const std::string innerResponse = outerResponse.substr(bodyPos + 4);
 
-    // CONNECT: the outer response body itself is the proxy response to the browser,
-    // usually "HTTP/1.1 200 Connection Established\r\n\r\n".
     if (request_->httpType() == HTTP::HttpType::connect) {
         copyStringToStreambuf(innerResponse, writeBuffer_);
         connect_ = true;

@@ -1,22 +1,5 @@
 #include "http.hpp"
 
-/**
- * @brief Constructs an `HTTP` instance with configuration, logging, input buffer,
- *        and session identifier.
- *
- * @details
- * - Stores references to the configuration, logging, and stream buffer objects.
- * - Initializes the parsed HTTP request object and default HTTP type.
- * - Initializes the parsed TLS request state with empty values and a default
- *   TLS handshake type.
- * - Stores the UUID used for logging and tracing this session.
- * - Sets the default chunk header state to `"no"`.
- *
- * @param config Shared pointer to the configuration object.
- * @param log Shared pointer to the logging object.
- * @param buffer Reference to the stream buffer containing raw request or response data.
- * @param uuid Unique identifier for the current session.
- */
 HTTP::HTTP(const std::shared_ptr<Config> &config,
            const std::shared_ptr<Log> &log,
            boost::asio::streambuf &buffer,
@@ -31,17 +14,6 @@ HTTP::HTTP(const std::shared_ptr<Config> &config,
     chunkHeader_ = "no";
 }
 
-/**
- * @brief Copy-constructs an `HTTP` instance from another instance.
- *
- * @details
- * - Copies references to the configuration, logging, and stream buffer objects.
- * - Copies the parsed HTTP request and parsed TLS request state.
- * - Copies the UUID for session identification.
- * - Resets the chunk header state to `"no"`.
- *
- * @param http Existing `HTTP` object to copy.
- */
 HTTP::HTTP(const HTTP &http)
     : config_(http.config_),
       log_(http.log_),
@@ -52,30 +24,10 @@ HTTP::HTTP(const HTTP &http)
     chunkHeader_ = "no";
 }
 
-/**
- * @brief Destroys the `HTTP` instance.
- *
- * @details
- * - Performs no explicit cleanup.
- * - Resource management is handled by referenced objects and standard class members.
- */
+
 HTTP::~HTTP() {}
 
-/**
- * @brief Detects whether the current buffer contains TLS-related traffic or HTTP traffic.
- *
- * @details
- * - Reads the input buffer as a hexadecimal string.
- * - Inspects the first byte to distinguish TLS record types from plain HTTP data.
- * - Treats values `16`, `14`, and `17` as TLS record types:
- *   - `16`: Handshake
- *   - `14`: ChangeCipherSpec
- *   - `17`: ApplicationData
- * - For TLS traffic, stores the raw body and invokes `parseTls()`.
- * - For non-TLS traffic, invokes `parseHttp()`.
- *
- * @return `true` if the request type is successfully detected and parsed, otherwise `false`.
- */
+
 bool HTTP::detectType() {
     std::string requestStr{hexStreambufToStr(buffer_)};
     std::string tmpStr;
@@ -99,19 +51,6 @@ bool HTTP::detectType() {
     }
 }
 
-/**
- * @brief Parses an HTTP request from the current input buffer.
- *
- * @details
- * - Converts the stream buffer contents to a string.
- * - Uses Boost.Beast request parsing to parse the HTTP request.
- * - Detects whether the request method is `CONNECT` or a normal HTTP method.
- * - Sets the internal HTTP type accordingly.
- * - Extracts and stores the destination IP address and port.
- * - Logs parsing errors when request parsing fails.
- *
- * @return `true` if parsing succeeds, otherwise `false`.
- */
 bool HTTP::parseHttp() {
     std::string requestStr(streambufToString(buffer_));
     boost::beast::http::request_parser<boost::beast::http::string_body> parser;
@@ -137,17 +76,6 @@ bool HTTP::parseHttp() {
     }
 }
 
-/**
- * @brief Parses an HTTP response from the current input buffer.
- *
- * @details
- * - Converts the stream buffer contents to a string.
- * - Uses the internal Boost.Beast parser to parse the HTTP response.
- * - Stores the parsed response object on success.
- * - Logs parsing errors when response parsing fails.
- *
- * @return `true` if parsing succeeds, otherwise `false`.
- */
 bool HTTP::parseHttpResp() {
     std::string requestStr(streambufToString(buffer_));
     parser_.eager(true);
@@ -165,21 +93,6 @@ bool HTTP::parseHttpResp() {
     }
 }
 
-/**
- * @brief Parses TLS request data from the stored TLS body.
- *
- * @details
- * - Inspects the TLS record type from the first byte of the hex-encoded body.
- * - Supports parsing of:
- *   - TLS Handshake
- *   - ChangeCipherSpec
- *   - ApplicationData
- * - For TLS handshake records, attempts to extract the Server Name Indication (SNI)
- *   from the ClientHello message.
- * - Updates destination IP and port after successful parsing.
- *
- * @return `true` if parsing succeeds, otherwise `false`.
- */
 bool HTTP::parseTls() {
     std::string tmpStr;
     unsigned short pos = 0;
@@ -244,19 +157,6 @@ bool HTTP::parseTls() {
         return false;
 }
 
-/**
- * @brief Generates an HTTP POST request string containing the provided body.
- *
- * @details
- * - Builds an HTTP request using configured method, fake URL, HTTP version,
- *   and User-Agent.
- * - Sets common headers including `Host`, `Accept`, `Connection`,
- *   `Content-Length`, and `Content-Type`.
- * - Appends the payload body followed by the application terminator marker.
- *
- * @param body Body content to include in the HTTP request.
- * @return Serialized HTTP POST request string.
- */
 const std::string HTTP::genHttpPostReqString(const std::string &body) const {
     return std::string(config_->general().method + " " +
                        config_->general().fakeUrl + " HTTP/" +
@@ -268,17 +168,6 @@ const std::string HTTP::genHttpPostReqString(const std::string &body) const {
            "Content-Type: application/x-www-form-urlencoded\r\n" + "\r\n" + body + "COMP\r\n\r\n";
 }
 
-/**
- * @brief Generates a REST-style HTTP POST request string.
- *
- * @details
- * - Builds an HTTP request using configured method, fake URL, HTTP version,
- *   and User-Agent.
- * - Adds the custom `Rest: yes` header to mark the request as a REST-style operation.
- * - Appends the application terminator marker.
- *
- * @return Serialized REST-style HTTP POST request string.
- */
 const std::string HTTP::genHttpRestPostReqString() const {
     return std::string(config_->general().method + " " +
                        config_->general().fakeUrl + " HTTP/" +
@@ -289,17 +178,6 @@ const std::string HTTP::genHttpRestPostReqString() const {
            "Rest: yes\r\n" + "COMP\r\n\r\n";
 }
 
-/**
- * @brief Generates an HTTP `200 OK` response string.
- *
- * @details
- * - Builds a successful HTTP response with content type, content length,
- *   custom chunk header, and cache-related headers.
- * - Appends the response body followed by the application terminator marker.
- *
- * @param body Body content to include in the HTTP response.
- * @return Serialized HTTP `200 OK` response string.
- */
 const std::string HTTP::genHttpOkResString(const std::string &body) const {
     return std::string("HTTP/1.1 200 OK\r\n") +
            "Content-Type: application/x-www-form-urlencoded\r\n" +
@@ -309,17 +187,6 @@ const std::string HTTP::genHttpOkResString(const std::string &body) const {
            "Pragma: no-cache\r\n" + "\r\n" + body + "COMP\r\n\r\n";
 }
 
-/**
- * @brief Extracts and stores destination IP address and port from the parsed request data.
- *
- * @details
- * - For TLS traffic, uses the parsed SNI value and defaults to port `443`
- *   when no explicit port is provided.
- * - For HTTP traffic, extracts the host and optional port from the request target
- *   and defaults to port `80` when no port is present.
- * - For CONNECT traffic, splits the target directly into host and port.
- * - Logs an error when HTTP request parsing does not provide a usable target.
- */
 void HTTP::setIPPort() {
     std::string target{};
     std::vector<std::string> splitted;
@@ -346,11 +213,6 @@ void HTTP::setIPPort() {
         case HTTP::HttpType::http: {
             target = boost::lexical_cast<std::string>(parsedHttpRequest_.target());
 
-            // Absolute-form request target:
-            //   http://host:port/path
-            // Origin-form request target:
-            //   /path
-            // For origin-form, use Host header instead.
             std::string hostPort;
 
             if (target.rfind("http://", 0) == 0) {
@@ -418,11 +280,6 @@ void HTTP::setIPPort() {
     }
 }
 
-/**
- * @brief Converts the parsed TLS record type to a string.
- *
- * @return String representation of the current TLS type.
- */
 const std::string HTTP::tlsTypeToString() const {
     switch (parsedTlsRequest_.type) {
         case TlsTypes::TLSHandshake:
@@ -436,17 +293,6 @@ const std::string HTTP::tlsTypeToString() const {
     }
 }
 
-/**
- * @brief Converts the current parsed request state into a human-readable string.
- *
- * @details
- * - For TLS traffic, returns TLS type, SNI, body size, and body contents.
- * - For HTTP traffic, returns method, version, target, User-Agent, body size,
- *   and body contents.
- * - For CONNECT traffic, returns method and target only.
- *
- * @return Formatted string representation of the current request state.
- */
 const std::string HTTP::toString() const {
     switch (httpType()) {
         case HTTP::HttpType::https:
@@ -483,14 +329,6 @@ const std::string HTTP::toString() const {
     }
 }
 
-/**
- * @brief Converts the parsed HTTP response into a human-readable string.
- *
- * @details
- * - Returns the response base fields, body size, and body contents.
- *
- * @return Formatted string representation of the parsed HTTP response.
- */
 const std::string HTTP::restoString() const {
     return std::string("\n") +
            boost::lexical_cast<std::string>(parsedHttpResponse_.base()) + "\n" +

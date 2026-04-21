@@ -23,14 +23,6 @@
 #include <string>
 #include <vector>
 
-/**
- * @brief Base class used to disable copy construction and copy assignment.
- *
- * @details
- * - Intended to be inherited privately by classes that must not be copied.
- * - Keeps the default constructor available.
- * - Deletes copy constructor and copy assignment operator.
- */
 class Uncopyable {
 public:
     Uncopyable() = default;
@@ -40,62 +32,26 @@ private:
     Uncopyable &operator=(const Uncopyable &) = delete;
 };
 
-/**
- * @brief Prints a message to standard output.
- *
- * @details
- * - Intended for quick debugging output.
- * - Prefixes the message with a fixed marker.
- *
- * @param message Value to be written to `std::cout`.
- */
 inline void OUT(const auto &message) {
     std::cout << "OUT OUT OUT OUT OUT OUT OUT OUT : " << message
               << std::endl;
 }
 
-/**
- * @brief Simple result structure containing a success flag and message.
- *
- * @details
- * - Commonly used to return operation status along with an explanatory message.
- */
 struct BoolStr {
-    bool ok;            ///< Indicates whether the operation succeeded.
-    std::string message;///< Contains the result or error message.
+    bool ok;
+    std::string message;
 };
 
-/**
- * @brief Checks whether a file exists.
- *
- * @param name Path to the file.
- * @return `true` if the file exists and is accessible, otherwise `false`.
- */
 inline bool fileExists(const std::string &name) {
     std::ifstream file(name.c_str());
     return file.good();
 }
 
-/**
- * @brief Converts a Boost.Asio stream buffer into a string.
- *
- * @param buff Reference to the stream buffer.
- * @return String containing the current contents of the buffer.
- */
 inline std::string streambufToString(const boost::asio::streambuf &buff) {
     return {boost::asio::buffers_begin(buff.data()),
             boost::asio::buffers_begin(buff.data()) + buff.size()};
 }
 
-/**
- * @brief Replaces the contents of a stream buffer with a string.
- *
- * @details
- * - Clears the destination buffer before writing the new string.
- *
- * @param inputStr Source string to copy into the buffer.
- * @param buff Destination stream buffer.
- */
 inline void copyStringToStreambuf(const std::string &inputStr,
                                   boost::asio::streambuf &buff) {
     buff.consume(buff.size());
@@ -103,16 +59,6 @@ inline void copyStringToStreambuf(const std::string &inputStr,
     os << inputStr;
 }
 
-/**
- * @brief Moves all data from one stream buffer to another.
- *
- * @details
- * - Copies the source buffer contents into the target buffer.
- * - Consumes all data from the source buffer after copying.
- *
- * @param source Source stream buffer.
- * @param target Target stream buffer.
- */
 inline void moveStreambuf(boost::asio::streambuf &source,
                           boost::asio::streambuf &target) {
     auto bytes_copied =
@@ -121,15 +67,6 @@ inline void moveStreambuf(boost::asio::streambuf &source,
     source.consume(source.size());
 }
 
-/**
- * @brief Copies all data from one stream buffer to another.
- *
- * @details
- * - Leaves the source buffer unchanged.
- *
- * @param source Source stream buffer.
- * @param target Target stream buffer.
- */
 inline void copyStreambuf(boost::asio::streambuf &source,
                           boost::asio::streambuf &target) {
     auto bytes_copied =
@@ -137,13 +74,6 @@ inline void copyStreambuf(boost::asio::streambuf &source,
     target.commit(bytes_copied);
 }
 
-/**
- * @brief Converts a byte array to its hexadecimal string representation.
- *
- * @param data Pointer to the input byte array.
- * @param size Number of bytes in the array.
- * @return Lowercase hexadecimal string representation of the input.
- */
 inline std::string hexArrToStr(const unsigned char *data, std::size_t size) {
     std::stringstream tempStr;
     tempStr << std::hex << std::setfill('0');
@@ -155,12 +85,6 @@ inline std::string hexArrToStr(const unsigned char *data, std::size_t size) {
     return tempStr.str();
 }
 
-/**
- * @brief Converts a hexadecimal string to an integer.
- *
- * @param hexString Hexadecimal string input.
- * @return Parsed value as an unsigned integer.
- */
 inline unsigned int hexToInt(const std::string &hexString) {
     unsigned short result;
     std::stringstream hexStr(hexString);
@@ -168,16 +92,6 @@ inline unsigned int hexToInt(const std::string &hexString) {
     return result;
 }
 
-/**
- * @brief Converts a hexadecimal string into its ASCII string representation.
- *
- * @details
- * - Processes the input two characters at a time.
- * - Each hexadecimal byte is converted into its character equivalent.
- *
- * @param hex Hexadecimal string input.
- * @return Decoded ASCII string.
- */
 inline std::string hexToASCII(const std::string &hex) {
     std::string ascii;
 
@@ -190,12 +104,6 @@ inline std::string hexToASCII(const std::string &hex) {
     return ascii;
 }
 
-/**
- * @brief Converts a hexadecimal character into its numeric value.
- *
- * @param c Input character.
- * @return Numeric value of the hexadecimal character, or `0` if invalid.
- */
 inline unsigned char charToHex(char c) {
     if ('0' <= c && c <= '9') return c - '0';
     if ('A' <= c && c <= 'F') return c - 'A' + 10;
@@ -203,12 +111,6 @@ inline unsigned char charToHex(char c) {
     return 0;
 }
 
-/**
- * @brief Converts a hexadecimal string into a byte array.
- *
- * @param hexStr Hexadecimal string input.
- * @return Vector containing the decoded bytes.
- */
 inline std::vector<unsigned char> strToHexArr(const std::string &hexStr) {
     std::vector<unsigned char> result(hexStr.size() / 2);
 
@@ -219,29 +121,12 @@ inline std::vector<unsigned char> strToHexArr(const std::string &hexStr) {
     return result;
 }
 
-/**
- * @brief Converts a stream buffer into a hexadecimal string.
- *
- * @details
- * - First converts the stream buffer into a raw string.
- * - Then converts the raw bytes into a hexadecimal representation.
- *
- * @param buff Source stream buffer.
- * @return Hexadecimal string representation of the buffer contents.
- */
 inline std::string hexStreambufToStr(const boost::asio::streambuf &buff) {
     return hexArrToStr(
             reinterpret_cast<const unsigned char *>(streambufToString(buff).c_str()),
             buff.size());
 }
 
-/**
- * @brief Splits a string using a delimiter.
- *
- * @param str Input string.
- * @param delimiter Delimiter string.
- * @return Vector containing the split parts.
- */
 inline std::vector<std::string> splitString(const std::string &str,
                                             const std::string &delimiter) {
     std::vector<std::string> result;
@@ -266,17 +151,6 @@ inline std::vector<std::string> splitString(const std::string &str,
     return result;
 }
 
-/**
- * @brief Decodes a Base64-encoded string.
- *
- * @details
- * - Trims trailing padding characters before decoding.
- * - Uses Boost archive iterators for Base64 decoding.
- * - Throws `std::runtime_error` if decoding fails.
- *
- * @param inputStr Base64-encoded input string.
- * @return Decoded binary string.
- */
 inline std::string decode64(const std::string &inputStr) {
     using namespace boost::archive::iterators;
 
@@ -293,16 +167,6 @@ inline std::string decode64(const std::string &inputStr) {
     }
 }
 
-/**
- * @brief Encodes a string into Base64 format.
- *
- * @details
- * - Uses Boost archive iterators for Base64 encoding.
- * - Appends the required padding characters (`=`).
- *
- * @param inputStr Input string.
- * @return Base64-encoded string.
- */
 inline std::string encode64(const std::string &inputStr) {
     using namespace boost::archive::iterators;
 
@@ -317,18 +181,6 @@ inline std::string encode64(const std::string &inputStr) {
     return encoded;
 }
 
-/**
- * @brief Encrypts a string using AES-256-CBC.
- *
- * @details
- * - Generates a random IV for each encryption operation.
- * - Prepends the IV to the encrypted output.
- * - Uses OpenSSL EVP APIs for encryption.
- *
- * @param plaintext Input plaintext string.
- * @param key Encryption key.
- * @return A `BoolStr` containing success status and encrypted data or an error message.
- */
 inline BoolStr aes256Encrypt(const std::string &plaintext,
                              const std::string &key) {
     BoolStr result{false, "Encryption failed"};
@@ -386,17 +238,6 @@ inline BoolStr aes256Encrypt(const std::string &plaintext,
     return result;
 }
 
-/**
- * @brief Decrypts an AES-256-CBC encrypted string containing a prepended IV.
- *
- * @details
- * - Extracts the IV from the beginning of the input.
- * - Decrypts the remaining ciphertext using OpenSSL EVP APIs.
- *
- * @param ciphertext_with_iv Encrypted input containing IV + ciphertext.
- * @param key Decryption key.
- * @return A `BoolStr` containing success status and decrypted plaintext or an error message.
- */
 inline BoolStr aes256Decrypt(const std::string &ciphertext_with_iv,
                              const std::string &key) {
     BoolStr result{false, "Decryption failed"};
@@ -452,24 +293,6 @@ inline BoolStr aes256Decrypt(const std::string &ciphertext_with_iv,
     return result;
 }
 
-/**
- * @brief Validates command-line arguments and the configuration file.
- *
- * @details
- * - Verifies the expected number of arguments.
- * - Ensures the selected mode is either `server` or `agent`.
- * - Checks that the configuration file exists.
- * - Loads and parses the YAML configuration file.
- * - Validates required keys in the following sections:
- *   - `general`
- *   - `log`
- *   - `server`
- *   - `agent`
- *
- * @param argc Number of command-line arguments.
- * @param argv Array of command-line argument strings.
- * @return A `BoolStr` containing validation status and an explanatory message.
- */
 inline BoolStr validateConfig(int argc, const char *argv[]) {
     BoolStr result{false, "Validation failed"};
 
