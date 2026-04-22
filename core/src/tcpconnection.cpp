@@ -60,7 +60,8 @@ namespace {
         return false;
     }
 
-    bool readRemainingHttpBody(TCPConnection::ssl_stream &stream,
+    template<typename Stream>
+    bool readRemainingHttpBody(Stream &stream,
                                boost::asio::streambuf &buf,
                                boost::system::error_code &ec) {
         std::string current = streambufToString(buf);
@@ -248,13 +249,24 @@ void TCPConnection::doReadServer() {
         writeBuffer_.consume(writeBuffer_.size());
 
         resetTimeout();
-        boost::asio::async_read_until(
-                *tlsSocket_, readBuffer_, "\r\n\r\n",
-                boost::asio::bind_executor(
-                        strand_,
-                        boost::bind(&TCPConnection::handleReadServer, shared_from_this(),
-                                    boost::asio::placeholders::error,
-                                    boost::asio::placeholders::bytes_transferred)));
+
+        if (config_->server().tlsEnable) {
+            boost::asio::async_read_until(
+                    *tlsSocket_, readBuffer_, "\r\n\r\n",
+                    boost::asio::bind_executor(
+                            strand_,
+                            boost::bind(&TCPConnection::handleReadServer, shared_from_this(),
+                                        boost::asio::placeholders::error,
+                                        boost::asio::placeholders::bytes_transferred)));
+        } else {
+            boost::asio::async_read_until(
+                    socket_, readBuffer_, "\r\n\r\n",
+                    boost::asio::bind_executor(
+                            strand_,
+                            boost::bind(&TCPConnection::handleReadServer, shared_from_this(),
+                                        boost::asio::placeholders::error,
+                                        boost::asio::placeholders::bytes_transferred)));
+        }
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
                             "] [TCPConnection doReadServer] [catch] " + error.what(),
@@ -405,29 +417,45 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error,
         }
 
         boost::system::error_code bodyError;
-        if (!readRemainingHttpBody(*tlsSocket_, readBuffer_, bodyError)) {
-            log_->write("[" + to_string(uuid_) +
-                                "] [TCPConnection handleReadServer] body read failed: " +
-                                bodyError.message(),
-                        Log::Level::ERROR);
-            socketShutdown();
-            return;
+        std::string remotePeer;
+
+        if (config_->server().tlsEnable) {
+            if (!readRemainingHttpBody(*tlsSocket_, readBuffer_, bodyError)) {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [TCPConnection handleReadServer] body read failed: " +
+                                    bodyError.message(),
+                            Log::Level::ERROR);
+                socketShutdown();
+                return;
+            }
+
+            remotePeer = tlsSocket_->lowest_layer().remote_endpoint().address().to_string() +
+                         ":" +
+                         std::to_string(tlsSocket_->lowest_layer().remote_endpoint().port());
+        } else {
+            if (!readRemainingHttpBody(socket_, readBuffer_, bodyError)) {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [TCPConnection handleReadServer] body read failed: " +
+                                    bodyError.message(),
+                            Log::Level::ERROR);
+                socketShutdown();
+                return;
+            }
+
+            remotePeer = socket_.remote_endpoint().address().to_string() + ":" +
+                         std::to_string(socket_.remote_endpoint().port());
         }
 
         log_->write("[" + to_string(uuid_) +
                             "] [TCPConnection handleReadServer] "
                             "[SRC " +
-                            tlsSocket_->lowest_layer().remote_endpoint().address().to_string() +
-                            ":" +
-                            std::to_string(tlsSocket_->lowest_layer().remote_endpoint().port()) +
-                            "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
+                            remotePeer + "] [Bytes " +
+                            std::to_string(readBuffer_.size()) + "] ",
                     Log::Level::DEBUG);
 
-        ServerHandler::pointer serverHandler_ = ServerHandler::create(
-                readBuffer_, writeBuffer_, config_, log_, client_,
-                tlsSocket_->lowest_layer().remote_endpoint().address().to_string() + ":" +
-                        std::to_string(tlsSocket_->lowest_layer().remote_endpoint().port()),
-                uuid_);
+        ServerHandler::pointer serverHandler_ =
+                ServerHandler::create(readBuffer_, writeBuffer_, config_, log_, client_,
+                                      remotePeer, uuid_);
 
         serverHandler_->handle();
 
@@ -440,32 +468,40 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error,
         }
 
         resetTimeout();
-        boost::asio::async_write(
-                *tlsSocket_, writeBuffer_.data(),
-                boost::asio::bind_executor(
-                        strand_,
-                        [self = shared_from_this()](const boost::system::error_code &ec,
-                                                    std::size_t) {
-                            self->cancelTimeout();
 
-                            if (ec) {
-                                self->log_->write("[" + to_string(self->uuid_) +
-                                                          "] [TCPConnection write server] " +
-                                                          ec.message(),
-                                                  Log::Level::ERROR);
-                                self->socketShutdown();
-                                return;
-                            }
+        auto writeHandler =
+                [self = shared_from_this()](const boost::system::error_code &ec,
+                                            std::size_t) {
+                    self->cancelTimeout();
 
-                            if (self->connect_) {
-                                self->enableTunnelMode();
-                                self->relayClientToRemote();
-                                self->relayRemoteToClient();
-                                return;
-                            }
+                    if (ec) {
+                        self->log_->write("[" + to_string(self->uuid_) +
+                                                  "] [TCPConnection write server] " +
+                                                  ec.message(),
+                                          Log::Level::ERROR);
+                        self->socketShutdown();
+                        return;
+                    }
 
-                            self->doReadServer();
-                        }));
+                    if (self->connect_) {
+                        self->enableTunnelMode();
+                        self->relayClientToRemote();
+                        self->relayRemoteToClient();
+                        return;
+                    }
+
+                    self->doReadServer();
+                };
+
+        if (config_->server().tlsEnable) {
+            boost::asio::async_write(
+                    *tlsSocket_, writeBuffer_.data(),
+                    boost::asio::bind_executor(strand_, writeHandler));
+        } else {
+            boost::asio::async_write(
+                    socket_, writeBuffer_.data(),
+                    boost::asio::bind_executor(strand_, writeHandler));
+        }
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
                             "] [TCPConnection handleReadServer] [catch read] " +
@@ -519,35 +555,52 @@ void TCPConnection::relayClientToRemote() {
         return;
     }
 
-    if (!tlsSocket_ || !client_->isOpen()) {
+    if (!client_->isOpen()) {
         socketShutdown();
         return;
     }
 
-    tlsSocket_->async_read_some(
-            boost::asio::buffer(downstreamBuf_),
-            boost::asio::bind_executor(
-                    strand_,
-                    [self = shared_from_this()](const boost::system::error_code &ec,
-                                                std::size_t bytes) {
-                        if (ec) {
-                            self->socketShutdown();
-                            return;
-                        }
+    auto readHandler =
+            [self = shared_from_this()](const boost::system::error_code &ec,
+                                        std::size_t bytes) {
+                if (ec) {
+                    self->socketShutdown();
+                    return;
+                }
 
-                        boost::asio::async_write(
-                                self->client_->socket(),
-                                boost::asio::buffer(self->downstreamBuf_.data(), bytes),
-                                boost::asio::bind_executor(
-                                        self->strand_,
-                                        [self](const boost::system::error_code &werr, std::size_t) {
-                                            if (werr) {
-                                                self->socketShutdown();
-                                                return;
-                                            }
-                                            self->relayClientToRemote();
-                                        }));
-                    }));
+                boost::asio::async_write(
+                        self->client_->socket(),
+                        boost::asio::buffer(self->downstreamBuf_.data(), bytes),
+                        boost::asio::bind_executor(
+                                self->strand_,
+                                [self](const boost::system::error_code &werr, std::size_t) {
+                                    if (werr) {
+                                        self->socketShutdown();
+                                        return;
+                                    }
+                                    self->relayClientToRemote();
+                                }));
+            };
+
+    if (config_->server().tlsEnable) {
+        if (!tlsSocket_) {
+            socketShutdown();
+            return;
+        }
+
+        tlsSocket_->async_read_some(
+                boost::asio::buffer(downstreamBuf_),
+                boost::asio::bind_executor(strand_, readHandler));
+    } else {
+        if (!socket_.is_open()) {
+            socketShutdown();
+            return;
+        }
+
+        socket_.async_read_some(
+                boost::asio::buffer(downstreamBuf_),
+                boost::asio::bind_executor(strand_, readHandler));
+    }
 }
 
 void TCPConnection::relayRemoteToClient() {
@@ -591,7 +644,7 @@ void TCPConnection::relayRemoteToClient() {
         return;
     }
 
-    if (!tlsSocket_ || !client_->isOpen()) {
+    if (!client_->isOpen()) {
         socketShutdown();
         return;
     }
@@ -607,18 +660,36 @@ void TCPConnection::relayRemoteToClient() {
                             return;
                         }
 
-                        boost::asio::async_write(
-                                *self->tlsSocket_,
-                                boost::asio::buffer(self->upstreamBuf_.data(), bytes),
-                                boost::asio::bind_executor(
-                                        self->strand_,
-                                        [self](const boost::system::error_code &werr, std::size_t) {
-                                            if (werr) {
-                                                self->socketShutdown();
-                                                return;
-                                            }
-                                            self->relayRemoteToClient();
-                                        }));
+                        auto writeHandler =
+                                [self](const boost::system::error_code &werr, std::size_t) {
+                                    if (werr) {
+                                        self->socketShutdown();
+                                        return;
+                                    }
+                                    self->relayRemoteToClient();
+                                };
+
+                        if (self->config_->server().tlsEnable) {
+                            if (!self->tlsSocket_) {
+                                self->socketShutdown();
+                                return;
+                            }
+
+                            boost::asio::async_write(
+                                    *self->tlsSocket_,
+                                    boost::asio::buffer(self->upstreamBuf_.data(), bytes),
+                                    boost::asio::bind_executor(self->strand_, writeHandler));
+                        } else {
+                            if (!self->socket_.is_open()) {
+                                self->socketShutdown();
+                                return;
+                            }
+
+                            boost::asio::async_write(
+                                    self->socket_,
+                                    boost::asio::buffer(self->upstreamBuf_.data(), bytes),
+                                    boost::asio::bind_executor(self->strand_, writeHandler));
+                        }
                     }));
 }
 

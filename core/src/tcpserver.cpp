@@ -31,22 +31,25 @@ void TCPServer::handleAccept(TCPConnection::pointer connection,
     try {
         if (!error) {
             if (config_->runMode() == RunMode::server) {
-                if (!connection->initTlsServerContext()) {
-                    log_->write("[TCPServer handleAccept] TLS server context init failed",
-                                Log::Level::ERROR);
-                    connection->socketShutdown();
-                    startAccept();
-                    return;
-                }
+                if (config_->server().tlsEnable) {
+                    if (!connection->initTlsServerContext()) {
+                        log_->write("[TCPServer handleAccept] TLS server context init failed",
+                                    Log::Level::ERROR);
+                        connection->socketShutdown();
+                        startAccept();
+                        return;
+                    }
 
-                connection->tlsSocket().lowest_layer() = std::move(connection->socket());
+                    connection->tlsSocket().lowest_layer() =
+                            std::move(connection->socket());
 
-                if (!connection->doHandshakeServer()) {
-                    log_->write("[TCPServer handleAccept] TLS server handshake failed",
-                                Log::Level::ERROR);
-                    connection->socketShutdown();
-                    startAccept();
-                    return;
+                    if (!connection->doHandshakeServer()) {
+                        log_->write("[TCPServer handleAccept] TLS server handshake failed",
+                                    Log::Level::ERROR);
+                        connection->socketShutdown();
+                        startAccept();
+                        return;
+                    }
                 }
 
                 connection->startServer();
