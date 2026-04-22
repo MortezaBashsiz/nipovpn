@@ -1,15 +1,5 @@
 #include "tcpserver.hpp"
 
-/**
- * @brief Constructs a new TCPServer instance.
- *
- * Initializes the `acceptor_` with the specified IP and port from the configuration, and sets the `reuse_address` option
- * to allow multiple bindings to the same address. This constructor also starts the process of accepting connections.
- *
- * @param io_context The IO context for asynchronous operations.
- * @param config Shared pointer to the configuration object.
- * @param log Shared pointer to the logging object.
- */
 TCPServer::TCPServer(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
                      const std::shared_ptr<Log> &log)
@@ -25,12 +15,6 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
     startAccept();
 }
 
-/**
- * @brief Starts accepting incoming client connections asynchronously.
- *
- * This method creates a new `TCPClient` and `TCPConnection` object to handle the connection, then starts the asynchronous
- * accept operation using the acceptor. Once a connection is accepted, the `handleAccept` method will be called.
- */
 void TCPServer::startAccept() {
     auto client = TCPClient::create(io_context_, config_, log_);
     auto connection = TCPConnection::create(io_context_, config_, log_, client);
@@ -42,36 +26,30 @@ void TCPServer::startAccept() {
             });
 }
 
-/**
- * @brief Handles the result of the asynchronous accept operation.
- *
- * If the connection was successfully accepted, this method starts the communication on the connection by invoking the
- * `start` method. If an error or exception occurs, it logs the error or exception.
- *
- * @param connection The `TCPConnection` object representing the accepted connection.
- * @param error The error code resulting from the accept operation.
- */
 void TCPServer::handleAccept(TCPConnection::pointer connection,
                              const boost::system::error_code &error) {
     try {
         if (!error) {
             if (config_->runMode() == RunMode::server) {
-                if (!connection->initTlsServerContext()) {
-                    log_->write("[TCPServer handleAccept] TLS server context init failed",
-                                Log::Level::ERROR);
-                    connection->socketShutdown();
-                    startAccept();
-                    return;
-                }
+                if (config_->server().tlsEnable) {
+                    if (!connection->initTlsServerContext()) {
+                        log_->write("[TCPServer handleAccept] TLS server context init failed",
+                                    Log::Level::ERROR);
+                        connection->socketShutdown();
+                        startAccept();
+                        return;
+                    }
 
-                connection->tlsSocket().lowest_layer() = std::move(connection->socket());
+                    connection->tlsSocket().lowest_layer() =
+                            std::move(connection->socket());
 
-                if (!connection->doHandshakeServer()) {
-                    log_->write("[TCPServer handleAccept] TLS server handshake failed",
-                                Log::Level::ERROR);
-                    connection->socketShutdown();
-                    startAccept();
-                    return;
+                    if (!connection->doHandshakeServer()) {
+                        log_->write("[TCPServer handleAccept] TLS server handshake failed",
+                                    Log::Level::ERROR);
+                        connection->socketShutdown();
+                        startAccept();
+                        return;
+                    }
                 }
 
                 connection->startServer();

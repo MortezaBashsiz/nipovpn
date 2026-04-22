@@ -1,11 +1,5 @@
 #include "serverhandler.hpp"
 
-/**
- * @brief Constructs a `ServerHandler` object.
- * 
- * Initializes the HTTP request handler, client connection, and assigns references
- * to configuration, logging, and buffers.
- */
 ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
                              boost::asio::streambuf &writeBuffer,
                              const std::shared_ptr<Config> &config,
@@ -25,19 +19,8 @@ ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
     connect_ = false;
 }
 
-/**
- * @brief Destructor for `ServerHandler`.
- * 
- * Ensures cleanup of resources, though currently the destructor does not perform specific actions.
- */
 ServerHandler::~ServerHandler() {}
 
-/**
- * @brief Handles the incoming request and processes it based on its type.
- * 
- * Processes HTTP or HTTPS requests, decrypts payloads, performs appropriate actions
- * (e.g., connect or forward requests), and generates responses.
- */
 void ServerHandler::handle() {
     std::lock_guard lock(mutex_);
 
@@ -51,63 +34,106 @@ void ServerHandler::handle() {
         return;
     }
 
-    BoolStr decryption{false, std::string("FAILED")};
-    decryption = aes256Decrypt(
-            decode64(std::string(request_->parsedHttpRequest().body())),
-            config_->general().token);
+    const auto &outerReq = request_->parsedHttpRequest();
+    const std::string method = std::string(outerReq.method_string());
+    const std::string target = std::string(outerReq.target());
 
-    if (!decryption.ok) {
+    if (method != "POST" || target != "/relay") {
+        copyStringToStreambuf(
+                "HTTP/1.1 404 Not Found\r\n"
+                "Content-Length: 0\r\n"
+                "Connection: close\r\n\r\n",
+                writeBuffer_);
+        return;
+    }
+
+    const std::string innerRequest = std::string(outerReq.body());
+
+    const std::size_t headerEnd = innerRequest.find("\r\n\r\n");
+    if (headerEnd == std::string::npos) {
         log_->write("[" + to_string(uuid_) +
-                            "] [ServerHandler handle] [Decryption Failed] : [ " +
-                            decryption.message + "] ",
+                            "] [ServerHandler handle] [INNER REQUEST MISSING HEADER END]",
                     Log::Level::DEBUG);
         client_->socket().close();
         return;
     }
 
-    auto tempHexArr = strToHexArr(decryption.message);
-    std::string tempHexArrStr(tempHexArr.begin(), tempHexArr.end());
-    copyStringToStreambuf(tempHexArrStr, readBuffer_);
+    const std::string innerHeaders = innerRequest.substr(0, headerEnd + 4);
+    const std::string pendingTunnelData = innerRequest.substr(headerEnd + 4);
 
-    if (!request_->detectType()) {
+    copyStringToStreambuf(innerHeaders, readBuffer_);
+    HTTP::pointer inner = HTTP::create(config_, log_, readBuffer_, uuid_);
+
+    if (!inner->detectType()) {
         log_->write("[" + to_string(uuid_) +
-                            "] [ServerHandler handle] [NOT HTTP Request] [Request] : " +
+                            "] [ServerHandler handle] [NOT INNER HTTP Request] [Request] : " +
                             streambufToString(readBuffer_),
                     Log::Level::DEBUG);
         client_->socket().close();
         return;
     }
 
-    switch (request_->httpType()) {
+    switch (inner->httpType()) {
         case HTTP::HttpType::connect: {
-            connect_ = true;
-
-            boost::asio::streambuf tempBuff;
-            std::iostream os(&tempBuff);
-
-            if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
-                log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " +
-                                    clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
-                                    std::to_string(request_->dstPort()) + "]",
+            if (client_->doConnect(inner->dstIP(), inner->dstPort())) {
+                log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " + clientConnStr_ +
+                                    "] [DST " + inner->dstIP() + ":" +
+                                    std::to_string(inner->dstPort()) + "]",
                             Log::Level::INFO);
-                os << "HTTP/1.1 200 Connection established COMP\r\n\r\n";
+
+                if (!pendingTunnelData.empty()) {
+                    boost::asio::streambuf pendingBuf;
+                    copyStringToStreambuf(pendingTunnelData, pendingBuf);
+                    client_->doWrite(pendingBuf);
+                }
+
+                const std::string connectEstablished =
+                        "HTTP/1.1 200 Connection Established\r\n\r\n";
+
+                std::ostringstream outer;
+                outer << "HTTP/1.1 200 OK\r\n"
+                      << "Content-Type: application/octet-stream\r\n"
+                      << "Content-Length: " << connectEstablished.size() << "\r\n"
+                      << "Connection: keep-alive\r\n"
+                      << "\r\n"
+                      << connectEstablished;
+
+                copyStringToStreambuf(outer.str(), writeBuffer_);
+                connect_ = true;
+                end_ = false;
+                return;
             } else {
-                log_->write(std::string("[") + to_string(uuid_) +
+                log_->write("[" + to_string(uuid_) +
                                     "] [CONNECT] [ERROR] [Resolving Host] [SRC " +
-                                    clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
-                                    std::to_string(request_->dstPort()) + "]",
+                                    clientConnStr_ + "] [DST " + inner->dstIP() + ":" +
+                                    std::to_string(inner->dstPort()) + "]",
                             Log::Level::INFO);
-                os << "HTTP/1.1 500 Connection failed COMP\r\n\r\n";
-            }
 
-            moveStreambuf(tempBuff, writeBuffer_);
-            return;
+                const std::string connectFailed =
+                        "HTTP/1.1 502 Bad Gateway\r\n\r\n";
+
+                std::ostringstream outer;
+                outer << "HTTP/1.1 502 Bad Gateway\r\n"
+                      << "Content-Type: application/octet-stream\r\n"
+                      << "Content-Length: " << connectFailed.size() << "\r\n"
+                      << "Connection: close\r\n"
+                      << "\r\n"
+                      << connectFailed;
+
+                copyStringToStreambuf(outer.str(), writeBuffer_);
+                connect_ = false;
+                end_ = true;
+                return;
+            }
         }
 
         case HTTP::HttpType::http:
         case HTTP::HttpType::https: {
+
+            copyStringToStreambuf(innerRequest, readBuffer_);
+
             if (!client_->socket().is_open()) {
-                if (!client_->doConnect(request_->dstIP(), request_->dstPort())) {
+                if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
                     client_->socket().close();
                     return;
                 }
@@ -121,25 +147,18 @@ void ServerHandler::handle() {
                 return;
             }
 
-            BoolStr encryption{false, std::string("FAILED")};
-            encryption =
-                    aes256Encrypt(streambufToString(client_->readBuffer()),
-                                  config_->general().token);
+            const std::string innerResponse = streambufToString(client_->readBuffer());
 
-            if (!encryption.ok) {
-                log_->write("[" + to_string(uuid_) +
-                                    "] [ServerHandler handle] [Encryption Failed] : [ " +
-                                    encryption.message + "] ",
-                            Log::Level::DEBUG);
-                client_->socket().close();
-                return;
-            }
+            std::ostringstream outer;
+            outer << "HTTP/1.1 200 OK\r\n"
+                  << "Content-Type: application/octet-stream\r\n"
+                  << "Content-Length: " << innerResponse.size() << "\r\n"
+                  << "Connection: keep-alive\r\n"
+                  << "\r\n"
+                  << innerResponse;
 
-            std::string newRes(
-                    request_->genHttpOkResString(encode64(encryption.message)));
-            copyStringToStreambuf(newRes, writeBuffer_);
-
-            connect_ = true;
+            copyStringToStreambuf(outer.str(), writeBuffer_);
+            connect_ = false;
             end_ = false;
             return;
         }

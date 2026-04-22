@@ -5,7 +5,7 @@ general:
   token: "af445adb-2434-4975-9445-2c1b2231"
   # fakeUrl: string
   # Defines the fake url and endpoint between agent and server
-  fakeUrl: "http://www.adas.com/api01"
+  fakeUrl: "http://nipo.ciron.net"
   # method: "HEAD|GET|POST|PUT|DELETE"
   # Defines with which method
   #   you like to send requests from agent to server
@@ -34,13 +34,12 @@ server:
   # listenIp: which must be IPv4 which is used on server
   listenIp: "0.0.0.0"
   # listenPort: the port number which will be used on server
-  listenPort: 443
-  tlsEnable: true
+  listenPort: 8081
+  tlsEnable: false
   tlsVerifyPeer: false
   tlsCertFile: "/etc/nipovpn/server.crt"
   tlsKeyFile: "/etc/nipovpn/server.key"
   tlsCaFile: ""
-  tlsDhFile: "/etc/nipovpn/dh.pem"
 
 # This block is to define agent directives
 agent:
@@ -53,11 +52,11 @@ agent:
   # serverIp: IPv4 of the nipoServer
   serverIp: "127.0.0.10"
   # serverPort: port number of the nipoServer
-  serverPort: 443
+  serverPort: 8081
   # httpVersion: This version will be used between agent and server
   httpVersion: "1.1"
   # userAgent: This is the http user agent which will be used between agent and server
   userAgent : "NipoAgent"
-  tlsEnable: true
+  tlsEnable: false
   tlsVerifyPeer: false
   tlsCaFile: ""

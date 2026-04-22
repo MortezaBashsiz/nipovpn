@@ -1,26 +1,5 @@
 #include "agenthandler.hpp"
 
-/**
- * @brief Constructs an AgentHandler object to manage client-agent interactions.
- *
- * This constructor initializes the AgentHandler with the necessary resources, 
- * including read and write buffers, configuration, logging, client connection, 
- * and a unique identifier for the session.
- *
- * @param readBuffer Reference to the stream buffer used for reading data.
- * @param writeBuffer Reference to the stream buffer used for writing data.
- * @param config Shared pointer to the configuration object containing system settings.
- * @param log Shared pointer to the logging object for recording events and errors.
- * @param client Shared pointer to the TCPClient object managing the client connection.
- * @param clientConnStr A string representing the client's connection details.
- * @param uuid A unique identifier for the session, provided as a Boost UUID.
- *
- * @details
- * - Initializes the HTTP request handler using the provided configuration, logger, 
- *   read buffer, and UUID.
- * - Sets the `end_` flag to `false`, indicating the handler is active and ready.
- * - Initializes the `connect_` flag to `false`, indicating no active connection initially.
- */
 AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
                            boost::asio::streambuf &writeBuffer,
                            const std::shared_ptr<Config> &config,
@@ -40,48 +19,12 @@ AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
     connect_ = false;
 }
 
+
 AgentHandler::~AgentHandler() {}
 
-/**
- * @brief Handles the processing of incoming requests, encryption, server communication, and response handling.
- *
- * This function coordinates multiple tasks, including:
- * - Encrypting the incoming data.
- * - Generating and sending an HTTP request to the server.
- * - Receiving and decrypting the server's response.
- * - Managing the connection state and logging detailed information at each step.
- *
- * @details
- * - The function ensures thread safety using a mutex lock.
- * - The incoming data is encrypted using AES-256 with a token retrieved from the configuration.
- * - If encryption is successful, the function builds an HTTP POST request and determines the request type.
- * - It establishes a connection to the server if required and sends the encrypted request.
- * - The server's response is parsed and decrypted. If successful, the decrypted data is copied to the write buffer.
- * - Handles HTTP and non-HTTP responses, including error scenarios and connection cleanup.
- * - Maintains logging for debugging and informational purposes throughout the process.
- *
- * @note In case of any error during encryption, connection, or response handling, the client socket is closed.
- */
+
 void AgentHandler::handle() {
     std::lock_guard lock(mutex_);
-
-    BoolStr encryption{false, std::string("FAILED")};
-    encryption = aes256Encrypt(hexStreambufToStr(readBuffer_),
-                               config_->general().token);
-    if (!encryption.ok) {
-        log_->write("[" + to_string(uuid_) +
-                            "] [AgentHandler handle] [Encryption Failed] : [ " +
-                            encryption.message + "] ",
-                    Log::Level::DEBUG);
-        client_->socketShutdown();
-        return;
-    }
-
-    log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Done]",
-                Log::Level::DEBUG);
-
-    std::string newReq(
-            request_->genHttpPostReqString(encode64(encryption.message)));
 
     if (!request_->detectType()) {
         log_->write("[" + to_string(uuid_) +
@@ -93,7 +36,7 @@ void AgentHandler::handle() {
     }
 
     if (request_->parsedHttpRequest().target().length() > 0) {
-        log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " + clientConnStr_ +
+        log_->write("[" + to_string(uuid_) + "] [FORWARD] [SRC " + clientConnStr_ +
                             "] [DST " +
                             std::string(request_->parsedHttpRequest().target()) +
                             "]",
@@ -139,7 +82,26 @@ void AgentHandler::handle() {
         }
     }
 
-    copyStringToStreambuf(newReq, readBuffer_);
+    const std::string innerRequest = streambufToString(readBuffer_);
+
+    std::string hostHeader = config_->general().fakeUrl;
+    auto pos = hostHeader.find("://");
+    if (pos != std::string::npos) hostHeader = hostHeader.substr(pos + 3);
+    pos = hostHeader.find('/');
+    if (pos != std::string::npos) hostHeader = hostHeader.substr(0, pos);
+
+    std::ostringstream outer;
+    outer << "POST /relay HTTP/1.1\r\n"
+          << "Host: " << hostHeader << "\r\n"
+          << "User-Agent: Mozilla/5.0\r\n"
+          << "Accept: */*\r\n"
+          << "Content-Type: application/octet-stream\r\n"
+          << "Content-Length: " << innerRequest.size() << "\r\n"
+          << "Connection: keep-alive\r\n"
+          << "\r\n"
+          << innerRequest;
+
+    copyStringToStreambuf(outer.str(), readBuffer_);
     client_->doWrite(readBuffer_);
     client_->doReadAgent();
 
@@ -148,35 +110,27 @@ void AgentHandler::handle() {
         return;
     }
 
-    if (request_->httpType() == HTTP::HttpType::connect) {
-        connect_ = true;
-        moveStreambuf(client_->readBuffer(), writeBuffer_);
-        return;
-    }
-
-    HTTP::pointer response =
-            HTTP::create(config_, log_, client_->readBuffer(), uuid_);
-    if (!response->parseHttpResp()) {
-        log_->write("[AgentHandler handle] [NOT HTTP Response] [Response] : " +
-                            streambufToString(client_->readBuffer()),
-                    Log::Level::DEBUG);
-        client_->socketShutdown();
-        return;
-    }
-
-    BoolStr decryption{false, std::string("FAILED")};
-    decryption = aes256Decrypt(
-            decode64(std::string(response->parsedHttpResponse().body())),
-            config_->general().token);
-
-    if (!decryption.ok) {
+    const std::string outerResponse = streambufToString(client_->readBuffer());
+    const auto bodyPos = outerResponse.find("\r\n\r\n");
+    if (bodyPos == std::string::npos) {
         log_->write("[" + to_string(uuid_) +
-                            "] [AgentHandler handle] [Decryption Failed] : [ " +
-                            decryption.message + "] ",
+                            "] [AgentHandler handle] [NOT HTTP Response] [Response] : " +
+                            outerResponse,
                     Log::Level::DEBUG);
         client_->socketShutdown();
         return;
     }
 
-    copyStringToStreambuf(decryption.message, writeBuffer_);
+    const std::string innerResponse = outerResponse.substr(bodyPos + 4);
+
+    if (request_->httpType() == HTTP::HttpType::connect) {
+        copyStringToStreambuf(innerResponse, writeBuffer_);
+        connect_ = true;
+        end_ = false;
+        return;
+    }
+
+    copyStringToStreambuf(innerResponse, writeBuffer_);
+    connect_ = false;
+    end_ = false;
 }

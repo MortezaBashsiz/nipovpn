@@ -21,8 +21,7 @@ Config::Config(const RunMode &mode, const std::string &filePath)
                configYaml_["server"]["tlsVerifyPeer"].as<bool>(false),
                configYaml_["server"]["tlsCertFile"].as<std::string>(""),
                configYaml_["server"]["tlsKeyFile"].as<std::string>(""),
-               configYaml_["server"]["tlsCaFile"].as<std::string>(""),
-               configYaml_["server"]["tlsDhFile"].as<std::string>("")}),
+               configYaml_["server"]["tlsCaFile"].as<std::string>("")}),
       agent_({configYaml_["agent"]["threads"].as<unsigned short>(),
               configYaml_["agent"]["listenIp"].as<std::string>(),
               configYaml_["agent"]["listenPort"].as<unsigned short>(),
@@ -33,6 +32,7 @@ Config::Config(const RunMode &mode, const std::string &filePath)
               configYaml_["agent"]["tlsEnable"].as<bool>(false),
               configYaml_["agent"]["tlsVerifyPeer"].as<bool>(false),
               configYaml_["agent"]["tlsCaFile"].as<std::string>("")}) {
+
     std::lock_guard<std::mutex> lock(configMutex_);
 
     switch (runMode_) {
@@ -41,6 +41,7 @@ Config::Config(const RunMode &mode, const std::string &filePath)
             listenIp_ = server_.listenIp;
             listenPort_ = server_.listenPort;
             break;
+
         case RunMode::agent:
             threads_ = agent_.threads;
             listenIp_ = agent_.listenIp;
@@ -86,7 +87,6 @@ std::string Config::toString() const {
        << "   tlsCertFile: " << server_.tlsCertFile << "\n"
        << "   tlsKeyFile: " << server_.tlsKeyFile << "\n"
        << "   tlsCaFile: " << server_.tlsCaFile << "\n"
-       << "   tlsDhFile: " << server_.tlsDhFile << "\n"
        << " agent :\n"
        << "   threads: " << agent_.threads << "\n"
        << "   listenIp: " << agent_.listenIp << "\n"
@@ -164,6 +164,7 @@ const std::string &Config::filePath() const {
 
 std::string Config::modeToString() const {
     std::lock_guard<std::mutex> lock(configMutex_);
+
     switch (runMode_) {
         case RunMode::server:
             return "server";

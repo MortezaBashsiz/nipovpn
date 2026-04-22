@@ -27,29 +27,37 @@ public:
     }
 
     tcp::socket &socket();
+
     ssl_stream &sslSocket();
 
     bool tlsEnabled() const;
+
     bool isOpen() const;
 
     bool enableTlsClient();
+
     bool doHandshakeClient();
 
     void writeBuffer(boost::asio::streambuf &buffer);
 
     inline boost::asio::streambuf &writeBuffer() & { return writeBuffer_; }
+
     inline boost::asio::streambuf &&writeBuffer() && {
         return std::move(writeBuffer_);
     }
 
     inline boost::asio::streambuf &readBuffer() & { return readBuffer_; }
+
     inline boost::asio::streambuf &&readBuffer() && { return std::move(readBuffer_); }
 
     bool doConnect(const std::string &dstIP, const unsigned short &dstPort);
 
     void doWrite(boost::asio::streambuf &buffer);
+
     void doReadAgent();
+
     void doReadServer();
+
     void socketShutdown();
 
     boost::uuids::uuid uuid_;
@@ -61,7 +69,10 @@ private:
                        const std::shared_ptr<Log> &log);
 
     void resetTimeout();
+
+
     void cancelTimeout();
+
     void onTimeout(const boost::system::error_code &error);
 
     const std::shared_ptr<Config> &config_;

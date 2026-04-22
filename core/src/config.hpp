@@ -9,8 +9,10 @@
 
 #include "general.hpp"
 
-enum class RunMode { server,
-                     agent };
+enum class RunMode {
+    server,
+    agent
+};
 
 class Config : private Uncopyable {
 private:
@@ -37,7 +39,6 @@ private:
         std::string tlsCertFile;
         std::string tlsKeyFile;
         std::string tlsCaFile;
-        std::string tlsDhFile;
     };
 
     struct Agent {
@@ -57,6 +58,7 @@ private:
     const RunMode &runMode_;
     std::string filePath_;
     const YAML::Node configYaml_;
+
     unsigned short threads_;
     std::string listenIp_;
     unsigned short listenPort_;
@@ -78,6 +80,7 @@ public:
     const Agent agent_;
 
     explicit Config(const Config::pointer &config);
+
     ~Config();
 
     const General &general() const;
@@ -86,17 +89,22 @@ public:
     const Agent &agent() const;
 
     const unsigned short &threads() const;
+
     void threads(unsigned short threads);
 
     const std::string &listenIp() const;
+
     void listenIp(const std::string &ip);
 
     const unsigned short &listenPort() const;
+
     void listenPort(unsigned short port);
 
     const RunMode &runMode() const;
+
     const std::string &filePath() const;
 
     std::string modeToString() const;
+
     std::string toString() const;
 };

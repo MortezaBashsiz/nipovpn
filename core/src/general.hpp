@@ -23,9 +23,6 @@
 #include <string>
 #include <vector>
 
-/**
-* @brief Abstract for inheritance to make classes Uncopyable.
-*/
 class Uncopyable {
 public:
     Uncopyable() = default;
@@ -35,52 +32,26 @@ private:
     Uncopyable &operator=(const Uncopyable &) = delete;
 };
 
-/**
-* @brief Prints message to output.
-* 
-* @param message an auto refrence to message.
-*/
 inline void OUT(const auto &message) {
     std::cout << "OUT OUT OUT OUT OUT OUT OUT OUT : " << message
               << std::endl;
 }
 
-/**
-* @brief struct for return a bool with specific message.
-*/
 struct BoolStr {
     bool ok;
     std::string message;
 };
 
-/**
-* @brief checks if the file exists or not.
-* 
-* @param name which is refrenced to the string path of file.
-* @return bool as result of existance.
-*/
 inline bool fileExists(const std::string &name) {
     std::ifstream file(name.c_str());
     return file.good();
 }
 
-/**
-* @brief converts streambuffer to string.
-* 
-* @param buff is a refrence to streambuffer.
-* @return string format of given buffer.
-*/
 inline std::string streambufToString(const boost::asio::streambuf &buff) {
     return {boost::asio::buffers_begin(buff.data()),
             boost::asio::buffers_begin(buff.data()) + buff.size()};
 }
 
-/**
-* @brief copies a string to streambuffer.
-* 
-* @param inputStr a refrence to the string.
-* @param buff a refrence to the streambuffer.
-*/
 inline void copyStringToStreambuf(const std::string &inputStr,
                                   boost::asio::streambuf &buff) {
     buff.consume(buff.size());
@@ -88,13 +59,6 @@ inline void copyStringToStreambuf(const std::string &inputStr,
     os << inputStr;
 }
 
-/**
-* @brief moves a streambuffer to another streambuffer.
-*   it will consume(clean) the source streambuffer.
-* 
-* @param source a refrence to the source streambuffer.
-* @param target a refrence to the target streambuffer.
-*/
 inline void moveStreambuf(boost::asio::streambuf &source,
                           boost::asio::streambuf &target) {
     auto bytes_copied =
@@ -103,13 +67,6 @@ inline void moveStreambuf(boost::asio::streambuf &source,
     source.consume(source.size());
 }
 
-/**
-* @brief copies a streambuffer to another streambuffer.
-*   it will keep the source streambuffer as is.
-* 
-* @param source a refrence to the source streambuffer.
-* @param target a refrence to the target streambuffer.
-*/
 inline void copyStreambuf(boost::asio::streambuf &source,
                           boost::asio::streambuf &target) {
     auto bytes_copied =
@@ -117,28 +74,17 @@ inline void copyStreambuf(boost::asio::streambuf &source,
     target.commit(bytes_copied);
 }
 
-/**
-* @brief converts hexadecimal array to string.
-* 
-* @param data is a refrence to the hexadecimal array.
-* @size is size of hexadecimal array.
-* @return string format of given array.
-*/
 inline std::string hexArrToStr(const unsigned char *data, std::size_t size) {
     std::stringstream tempStr;
     tempStr << std::hex << std::setfill('0');
+
     for (std::size_t i = 0; i < size; ++i) {
         tempStr << std::setw(2) << static_cast<unsigned>(data[i]);
     }
+
     return tempStr.str();
 }
 
-/**
-* @brief converts hexadecimal string to int.
-* 
-* @param hexString is a refrence to the hexadecimal string.
-* @return the result as unsigned int.
-*/
 inline unsigned int hexToInt(const std::string &hexString) {
     unsigned short result;
     std::stringstream hexStr(hexString);
@@ -146,29 +92,18 @@ inline unsigned int hexToInt(const std::string &hexString) {
     return result;
 }
 
-/**
-* @brief converts hexadecimal string to ASCII string format.
-* 
-* @param hex is a refrence to the hexadecimal string.
-* @return the result as string.
-*/
 inline std::string hexToASCII(const std::string &hex) {
     std::string ascii;
+
     for (size_t i = 0; i < hex.length(); i += 2) {
         std::string part = hex.substr(i, 2);
         char ch = static_cast<char>(stoul(part, nullptr, 16));
         ascii += ch;
     }
+
     return ascii;
 }
 
-
-/**
-* @brief converts a char hexadecimal char.
-* 
-* @param c is a char.
-* @return the result as hex char.
-*/
 inline unsigned char charToHex(char c) {
     if ('0' <= c && c <= '9') return c - '0';
     if ('A' <= c && c <= 'F') return c - 'A' + 10;
@@ -176,64 +111,46 @@ inline unsigned char charToHex(char c) {
     return 0;
 }
 
-/**
-* @brief converts string to hexadecimal array.
-* 
-* @param hexStr is a refrence to the hexadecimal string.
-* @return the result as a vector of chars.
-*/
 inline std::vector<unsigned char> strToHexArr(const std::string &hexStr) {
     std::vector<unsigned char> result(hexStr.size() / 2);
-    for (std::size_t i = 0; i < hexStr.size() / 2; ++i)
+
+    for (std::size_t i = 0; i < hexStr.size() / 2; ++i) {
         result[i] = 16 * charToHex(hexStr[2 * i]) + charToHex(hexStr[2 * i + 1]);
+    }
+
     return result;
 }
 
-/**
-* @brief converts streambuffer to string.
-*   first we need to convert the streambuffer to hex array and then to string
-* 
-* @param buff is a refrence to the streambuffer.
-* @return the result as a string.
-*/
 inline std::string hexStreambufToStr(const boost::asio::streambuf &buff) {
     return hexArrToStr(
             reinterpret_cast<const unsigned char *>(streambufToString(buff).c_str()),
             buff.size());
 }
 
-/**
-* @brief splits string based on delimiter.
-* 
-* @param str is a refrence to the string.
-* @param delimiter is a refrence to the delimiter string.
-* @return the result as a vector of strings.
-*/
 inline std::vector<std::string> splitString(const std::string &str,
                                             const std::string &delimiter) {
     std::vector<std::string> result;
     std::string tempStr = str;
+
     while (!tempStr.empty()) {
         size_t index = tempStr.find(delimiter);
+
         if (index != std::string::npos) {
             result.push_back(tempStr.substr(0, index));
             tempStr = tempStr.substr(index + delimiter.size());
-            if (tempStr.empty()) result.push_back(tempStr);
+
+            if (tempStr.empty()) {
+                result.push_back(tempStr);
+            }
         } else {
             result.push_back(tempStr);
             tempStr.clear();
         }
     }
+
     return result;
 }
 
-
-/**
-* @brief decodes based64 encoded string.
-* 
-* @param inputStr is a refrence to the encoded string.
-* @return decoded string.
-*/
 inline std::string decode64(const std::string &inputStr) {
     using namespace boost::archive::iterators;
 
@@ -245,17 +162,11 @@ inline std::string decode64(const std::string &inputStr) {
         using transformWidth = transform_width<binaryFromBase64, 8, 6>;
 
         return {transformWidth(temp.begin()), transformWidth(temp.end())};
-    } catch (const std::exception &e) {
+    } catch (const std::exception &) {
         throw std::runtime_error("Invalid Base64 encoding");
     }
 }
 
-/**
-* @brief encodes string in base64 format.
-* 
-* @param inputStr is a refrence to the string.
-* @return encoded string.
-*/
 inline std::string encode64(const std::string &inputStr) {
     using namespace boost::archive::iterators;
 
@@ -270,13 +181,6 @@ inline std::string encode64(const std::string &inputStr) {
     return encoded;
 }
 
-/**
-* @brief encrypt string in aes256 by given key.
-* 
-* @param plaintext is a refrence to the string.
-* @param key is a refrence to the key string.
-* @return encrypted BoolStr.
-*/
 inline BoolStr aes256Encrypt(const std::string &plaintext,
                              const std::string &key) {
     BoolStr result{false, "Encryption failed"};
@@ -328,19 +232,12 @@ inline BoolStr aes256Encrypt(const std::string &plaintext,
     std::string final_result(reinterpret_cast<char *>(iv), sizeof(iv));
     final_result.append(reinterpret_cast<char *>(ciphertext.data()),
                         ciphertext_len);
+
     result.ok = true;
     result.message = final_result;
-
     return result;
 }
 
-/**
-* @brief decrypt string in aes256 by given key.
-* 
-* @param ciphertext_with_iv is a refrence to the encrypted string.
-* @param key is a refrence to the key string.
-* @return decrypted BoolStr.
-*/
 inline BoolStr aes256Decrypt(const std::string &ciphertext_with_iv,
                              const std::string &key) {
     BoolStr result{false, "Decryption failed"};
@@ -348,6 +245,7 @@ inline BoolStr aes256Decrypt(const std::string &ciphertext_with_iv,
     unsigned char iv[EVP_MAX_IV_LENGTH];
     std::memcpy(iv, ciphertext_with_iv.c_str(),
                 EVP_CIPHER_iv_length(EVP_aes_256_cbc()));
+
     std::string ciphertext =
             ciphertext_with_iv.substr(EVP_CIPHER_iv_length(EVP_aes_256_cbc()));
 
@@ -395,11 +293,6 @@ inline BoolStr aes256Decrypt(const std::string &ciphertext_with_iv,
     return result;
 }
 
-/**
-* @brief validates if the config is correct or not.
-*
-* @return result BoolStr.
-*/
 inline BoolStr validateConfig(int argc, const char *argv[]) {
     BoolStr result{false, "Validation failed"};
 

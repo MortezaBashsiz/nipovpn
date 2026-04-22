@@ -29,10 +29,13 @@ public:
     }
 
     boost::asio::ip::tcp::socket &socket();
+
     inline TCPClient::pointer client() { return client_; }
+
     ssl_stream &tlsSocket();
 
     bool initTlsServerContext();
+
     bool doHandshakeServer();
 
     inline void writeBuffer(boost::asio::streambuf &buffer) {
@@ -40,6 +43,7 @@ public:
     }
 
     inline const boost::asio::streambuf &readBuffer() & { return readBuffer_; }
+
     inline const boost::asio::streambuf &&readBuffer() && {
         return std::move(readBuffer_);
     }
@@ -47,20 +51,25 @@ public:
     inline boost::uuids::uuid uuid() { return uuid_; }
 
     void startAgent();
+
     void startServer();
 
     void doReadAgent();
+
     void doReadServer();
 
     void handleReadAgent(const boost::system::error_code &error,
                          size_t bytes_transferred);
+
     void handleReadServer(const boost::system::error_code &error,
                           size_t bytes_transferred);
 
     void socketShutdown();
 
     void enableTunnelMode();
+
     void relayClientToRemote();
+
     void relayRemoteToClient();
 
 private:
@@ -70,7 +79,9 @@ private:
                            TCPClient::pointer client);
 
     void resetTimeout();
+
     void cancelTimeout();
+
     void onTimeout(const boost::system::error_code &error);
 
     boost::asio::ip::tcp::socket socket_;

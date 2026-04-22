@@ -50,30 +50,6 @@ Create the log directory and log file
 Run it
 ```bash
 sudo build/core/nipovpn server nipovpn/etc/nipovpn/config.yaml
-2024-08-02_15:30:07 [INFO] Config initialized in server mode 
-2024-08-02_15:30:07 [INFO] 
-Config :
- General :
-   fakeUrl: http://www.adas.com/api01
-   method: HEAD
-   timeWait: 0
-   repeatWait: 1
- Log :
-   logLevel: DEBUG
-   logFile: /var/log/nipovpn/nipovpn.log
- server :
-   threads: 4
-   listenIp: 0.0.0.0
-   listenPort: 443
- agent :
-   threads: 4
-   listenIp: 0.0.0.0
-   listenPort: 8080
-   serverIp: 127.0.0.1
-   serverPort: 443
-   token: af445adb-2434-4975-9445-2c1b2231
-   httpVersion: 1.1
-   userAgent: NipoAgent 
 ```
 
 ### Package
@@ -92,28 +68,4 @@ There are systemd services to manage the nipovpn process.
 ```bash
 [~]>$ sudo systemctl start nipovpn-server.service
 [~]>$ cat /var/log/nipovpn/nipovpn.log
-2024-08-02_15:30:07 [INFO] Config initialized in server mode 
-2024-08-02_15:30:07 [INFO] 
-Config :
- General :
-   fakeUrl: http://www.adas.com/api01
-   method: HEAD
-   timeWait: 0
-   repeatWait: 1
- Log :
-   logLevel: DEBUG
-   logFile: /var/log/nipovpn/nipovpn.log
- server :
-   threads: 4
-   listenIp: 0.0.0.0
-   listenPort: 443
- agent :
-   threads: 4
-   listenIp: 0.0.0.0
-   listenPort: 8080
-   serverIp: 127.0.0.1
-   serverPort: 443
-   token: af445adb-2434-4975-9445-2c1b2231
-   httpVersion: 1.1
-   userAgent: NipoAgent 
 ```
