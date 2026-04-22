@@ -2,27 +2,109 @@
 
 #include <openssl/ssl.h>
 
-/**
- * @brief Constructs a `TCPConnection` instance with I/O context, configuration,
- *        logging, and an associated outbound client.
- *
- * @details
- * - Initializes the accepted inbound socket.
- * - Initializes the TLS server context in server mode.
- * - Stores references to the configuration, logging object, and I/O context.
- * - Stores the associated outbound `TCPClient`.
- * - Initializes the timeout timer and serialized execution strand.
- * - Generates a unique UUID for the connection.
- * - Initializes internal state flags:
- *   - `end_` is set to `false`
- *   - `connect_` is set to `false`
- *   - `tunnelMode_` is set to `false`
- *
- * @param io_context Reference to the Boost.Asio I/O context.
- * @param config Shared pointer to the configuration object.
- * @param log Shared pointer to the logging object.
- * @param client Shared pointer to the associated outbound `TCPClient`.
- */
+#include <algorithm>
+#include <cctype>
+#include <sstream>
+
+namespace {
+
+    std::string toLowerCopy(std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return s;
+    }
+
+    std::string extractHeaders(const std::string &msg) {
+        auto pos = msg.find("\r\n\r\n");
+        if (pos == std::string::npos) return {};
+        return msg.substr(0, pos + 4);
+    }
+
+    std::string extractBody(const std::string &msg) {
+        auto pos = msg.find("\r\n\r\n");
+        if (pos == std::string::npos) return {};
+        return msg.substr(pos + 4);
+    }
+
+    bool parseContentLength(const std::string &headers, std::size_t &value) {
+        std::istringstream iss(headers);
+        std::string line;
+        while (std::getline(iss, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            auto lower = toLowerCopy(line);
+            if (lower.rfind("content-length:", 0) == 0) {
+                auto raw = line.substr(std::string("Content-Length:").size());
+                raw.erase(0, raw.find_first_not_of(" \t"));
+                try {
+                    value = static_cast<std::size_t>(std::stoull(raw));
+                    return true;
+                } catch (...) {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool isChunked(const std::string &headers) {
+        std::istringstream iss(headers);
+        std::string line;
+        while (std::getline(iss, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            auto lower = toLowerCopy(line);
+            if (lower.rfind("transfer-encoding:", 0) == 0 &&
+                lower.find("chunked") != std::string::npos) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    template<typename Stream>
+    bool readRemainingHttpBody(Stream &stream,
+                               boost::asio::streambuf &buf,
+                               boost::system::error_code &ec) {
+        std::string current = streambufToString(buf);
+        std::string headers = extractHeaders(current);
+        std::string body = extractBody(current);
+
+        std::size_t contentLength = 0;
+        if (parseContentLength(headers, contentLength)) {
+            if (body.size() < contentLength) {
+                boost::asio::read(stream, buf,
+                                  boost::asio::transfer_exactly(contentLength - body.size()),
+                                  ec);
+                if (ec) return false;
+            }
+            return true;
+        }
+
+        if (isChunked(headers)) {
+            for (;;) {
+                current = streambufToString(buf);
+                auto pos = current.find("\r\n\r\n");
+                if (pos == std::string::npos) return false;
+                auto bodyPart = current.substr(pos + 4);
+
+                if (bodyPart.find("\r\n0\r\n\r\n") != std::string::npos ||
+                    bodyPart == "0\r\n\r\n") {
+                    return true;
+                }
+
+                std::array<char, 4096> tmp{};
+                std::size_t n = stream.read_some(boost::asio::buffer(tmp), ec);
+                if (ec) return false;
+                std::ostream os(&buf);
+                os.write(tmp.data(), static_cast<std::streamsize>(n));
+            }
+        }
+
+        return true;
+    }
+
+}// namespace
+
+
 TCPConnection::TCPConnection(boost::asio::io_context &io_context,
                              const std::shared_ptr<Config> &config,
                              const std::shared_ptr<Log> &log,
@@ -42,35 +124,10 @@ TCPConnection::TCPConnection(boost::asio::io_context &io_context,
     tunnelMode_ = false;
 }
 
-/**
- * @brief Returns the inbound TCP socket associated with this connection.
- *
- * @return Reference to the inbound socket.
- */
 boost::asio::ip::tcp::socket &TCPConnection::socket() { return socket_; }
 
-/**
- * @brief Returns the TLS server stream associated with this connection.
- *
- * @return Reference to the TLS socket stream.
- */
 TCPConnection::ssl_stream &TCPConnection::tlsSocket() { return *tlsSocket_; }
 
-/**
- * @brief Initializes the TLS server context for inbound encrypted connections.
- *
- * @details
- * - Reinitializes the SSL context in TLS server mode.
- * - Applies secure context options and disables legacy SSL versions.
- * - Enforces a minimum TLS version of 1.2.
- * - Loads the configured server certificate and private key.
- * - Verifies that the private key matches the loaded certificate.
- * - Disables peer certificate verification.
- * - Sets the allowed TLS cipher list and TLS 1.3 cipher suites.
- * - Creates the TLS stream object bound to the internal I/O context.
- *
- * @return `true` if initialization succeeds, otherwise `false`.
- */
 bool TCPConnection::initTlsServerContext() {
     try {
         sslContext_ = boost::asio::ssl::context(boost::asio::ssl::context::tls_server);
@@ -128,17 +185,6 @@ bool TCPConnection::initTlsServerContext() {
     }
 }
 
-/**
- * @brief Performs the server-side TLS handshake on the inbound connection.
- *
- * @details
- * - Starts the timeout timer before the handshake.
- * - Executes the TLS handshake in server mode.
- * - Cancels the timeout timer on completion.
- * - Logs handshake errors when they occur.
- *
- * @return `true` if the handshake succeeds, otherwise `false`.
- */
 bool TCPConnection::doHandshakeServer() {
     try {
         resetTimeout();
@@ -154,42 +200,18 @@ bool TCPConnection::doHandshakeServer() {
     }
 }
 
-/**
- * @brief Starts processing this connection in agent mode.
- *
- * @details
- * - Assigns the connection UUID to the associated outbound client.
- * - Begins asynchronous agent-side reading.
- */
 void TCPConnection::startAgent() {
     std::lock_guard lock(mutex_);
     client_->uuid_ = uuid_;
     doReadAgent();
 }
 
-/**
- * @brief Starts processing this connection in server mode.
- *
- * @details
- * - Assigns the connection UUID to the associated outbound client.
- * - Begins asynchronous server-side reading.
- */
 void TCPConnection::startServer() {
     std::lock_guard lock(mutex_);
     client_->uuid_ = uuid_;
     doReadServer();
 }
 
-/**
- * @brief Initiates asynchronous reading for agent-mode inbound traffic.
- *
- * @details
- * - If tunnel mode is enabled, switches directly to transparent relay mode.
- * - Clears the read and write buffers before starting a new operation.
- * - Starts the timeout timer.
- * - Performs an asynchronous read of at least one byte from the inbound socket.
- * - Dispatches completion to `handleReadAgent()` through the strand.
- */
 void TCPConnection::doReadAgent() {
     try {
         if (tunnelMode_) {
@@ -216,17 +238,6 @@ void TCPConnection::doReadAgent() {
     }
 }
 
-/**
- * @brief Initiates asynchronous reading for server-mode inbound traffic.
- *
- * @details
- * - If tunnel mode is enabled, switches directly to transparent relay mode.
- * - Clears the read and write buffers before starting a new operation.
- * - Starts the timeout timer.
- * - Performs an asynchronous read until the application terminator
- *   `"COMP\r\n\r\n"` is encountered.
- * - Dispatches completion to `handleReadServer()` through the strand.
- */
 void TCPConnection::doReadServer() {
     try {
         if (tunnelMode_) {
@@ -238,13 +249,24 @@ void TCPConnection::doReadServer() {
         writeBuffer_.consume(writeBuffer_.size());
 
         resetTimeout();
-        boost::asio::async_read_until(
-                *tlsSocket_, readBuffer_, "COMP\r\n\r\n",
-                boost::asio::bind_executor(
-                        strand_,
-                        boost::bind(&TCPConnection::handleReadServer, shared_from_this(),
-                                    boost::asio::placeholders::error,
-                                    boost::asio::placeholders::bytes_transferred)));
+
+        if (config_->server().tlsEnable) {
+            boost::asio::async_read_until(
+                    *tlsSocket_, readBuffer_, "\r\n\r\n",
+                    boost::asio::bind_executor(
+                            strand_,
+                            boost::bind(&TCPConnection::handleReadServer, shared_from_this(),
+                                        boost::asio::placeholders::error,
+                                        boost::asio::placeholders::bytes_transferred)));
+        } else {
+            boost::asio::async_read_until(
+                    socket_, readBuffer_, "\r\n\r\n",
+                    boost::asio::bind_executor(
+                            strand_,
+                            boost::bind(&TCPConnection::handleReadServer, shared_from_this(),
+                                        boost::asio::placeholders::error,
+                                        boost::asio::placeholders::bytes_transferred)));
+        }
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
                             "] [TCPConnection doReadServer] [catch] " + error.what(),
@@ -253,23 +275,7 @@ void TCPConnection::doReadServer() {
     }
 }
 
-/**
- * @brief Handles completion of an agent-side read operation.
- *
- * @details
- * - Cancels the timeout timer.
- * - Handles EOF and other socket errors by shutting down the connection.
- * - Reads the remainder of the request based on the first byte:
- *   - If the first byte is `C` (`43` in hex), reads until `"\r\n"`.
- *   - Otherwise reads until `"\r\n\r\n"`.
- * - Logs source endpoint information and the received byte count.
- * - Creates an `AgentHandler` to process the received request.
- * - Updates connection state based on the handler result.
- * - Asynchronously writes the generated response back to the inbound socket.
- * - Switches to tunnel relay mode when CONNECT handling is activated.
- */
-void TCPConnection::handleReadAgent(const boost::system::error_code &error,
-                                    size_t) {
+void TCPConnection::handleReadAgent(const boost::system::error_code &error, size_t) {
     try {
         cancelTimeout();
 
@@ -288,39 +294,65 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error,
         }
 
         boost::system::error_code errorIn;
-        std::string bufStr{hexStreambufToStr(readBuffer_)};
 
-        if (bufStr == "43") {
-            boost::asio::read_until(socket_, readBuffer_, "\r\n", errorIn);
-        } else {
+        std::string current = streambufToString(readBuffer_);
+        if (current.find("\r\n\r\n") == std::string::npos) {
             boost::asio::read_until(socket_, readBuffer_, "\r\n\r\n", errorIn);
         }
 
         if (errorIn && errorIn != boost::asio::error::eof) {
             log_->write("[" + to_string(uuid_) +
-                                "] [TCPConnection handleReadAgent] [errorIn] " +
-                                errorIn.message(),
+                                "] [TCPConnection handleReadAgent] [errorIn] " + errorIn.message(),
                         Log::Level::DEBUG);
             socketShutdown();
             return;
         }
 
+        current = streambufToString(readBuffer_);
+        const std::string headers = extractHeaders(current);
+        const std::string body = extractBody(current);
+
+        const bool isConnect =
+                headers.rfind("CONNECT ", 0) == 0 || headers.rfind("connect ", 0) == 0;
+
+        if (!isConnect) {
+            std::size_t contentLength = 0;
+            if (parseContentLength(headers, contentLength) && body.size() < contentLength) {
+                boost::asio::read(socket_,
+                                  readBuffer_,
+                                  boost::asio::transfer_exactly(contentLength - body.size()),
+                                  errorIn);
+
+                if (errorIn && errorIn != boost::asio::error::eof) {
+                    log_->write("[" + to_string(uuid_) +
+                                        "] [TCPConnection handleReadAgent] [body read] " +
+                                        errorIn.message(),
+                                Log::Level::DEBUG);
+                    socketShutdown();
+                    return;
+                }
+            }
+        }
+
         log_->write("[" + to_string(uuid_) +
                             "] [TCPConnection handleReadAgent] "
                             "[SRC " +
-                            socket_.remote_endpoint().address().to_string() +
-                            ":" + std::to_string(socket_.remote_endpoint().port()) +
-                            "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
+                            socket_.remote_endpoint().address().to_string() + ":" +
+                            std::to_string(socket_.remote_endpoint().port()) + "] [Bytes " +
+                            std::to_string(readBuffer_.size()) + "] ",
                     Log::Level::DEBUG);
 
         AgentHandler::pointer agentHandler_ = AgentHandler::create(
-                readBuffer_, writeBuffer_, config_, log_, client_,
+                readBuffer_,
+                writeBuffer_,
+                config_,
+                log_,
+                client_,
                 socket_.remote_endpoint().address().to_string() + ":" +
                         std::to_string(socket_.remote_endpoint().port()),
                 uuid_);
 
         agentHandler_->handle();
-
         end_ = agentHandler_->end_;
         connect_ = agentHandler_->connect_;
 
@@ -331,7 +363,8 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error,
 
         resetTimeout();
         boost::asio::async_write(
-                socket_, writeBuffer_.data(),
+                socket_,
+                writeBuffer_.data(),
                 boost::asio::bind_executor(
                         strand_,
                         [self = shared_from_this()](const boost::system::error_code &ec,
@@ -358,25 +391,12 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error,
                         }));
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
-                            "] [TCPConnection handleReadAgent] [catch read] " +
-                            error.what(),
+                            "] [TCPConnection handleReadAgent] [catch read] " + error.what(),
                     Log::Level::DEBUG);
         socketShutdown();
     }
 }
 
-/**
- * @brief Handles completion of a server-side read operation.
- *
- * @details
- * - Cancels the timeout timer.
- * - Handles EOF and other socket errors by shutting down the connection.
- * - Logs source endpoint information and the received byte count.
- * - Creates a `ServerHandler` to process the received request.
- * - Updates connection state based on the handler result.
- * - Asynchronously writes the generated response back through the TLS socket.
- * - Switches to tunnel relay mode when CONNECT handling is activated.
- */
 void TCPConnection::handleReadServer(const boost::system::error_code &error,
                                      size_t) {
     try {
@@ -396,20 +416,46 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error,
             return;
         }
 
+        boost::system::error_code bodyError;
+        std::string remotePeer;
+
+        if (config_->server().tlsEnable) {
+            if (!readRemainingHttpBody(*tlsSocket_, readBuffer_, bodyError)) {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [TCPConnection handleReadServer] body read failed: " +
+                                    bodyError.message(),
+                            Log::Level::ERROR);
+                socketShutdown();
+                return;
+            }
+
+            remotePeer = tlsSocket_->lowest_layer().remote_endpoint().address().to_string() +
+                         ":" +
+                         std::to_string(tlsSocket_->lowest_layer().remote_endpoint().port());
+        } else {
+            if (!readRemainingHttpBody(socket_, readBuffer_, bodyError)) {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [TCPConnection handleReadServer] body read failed: " +
+                                    bodyError.message(),
+                            Log::Level::ERROR);
+                socketShutdown();
+                return;
+            }
+
+            remotePeer = socket_.remote_endpoint().address().to_string() + ":" +
+                         std::to_string(socket_.remote_endpoint().port());
+        }
+
         log_->write("[" + to_string(uuid_) +
                             "] [TCPConnection handleReadServer] "
                             "[SRC " +
-                            tlsSocket_->lowest_layer().remote_endpoint().address().to_string() +
-                            ":" +
-                            std::to_string(tlsSocket_->lowest_layer().remote_endpoint().port()) +
-                            "] [Bytes " + std::to_string(readBuffer_.size()) + "] ",
+                            remotePeer + "] [Bytes " +
+                            std::to_string(readBuffer_.size()) + "] ",
                     Log::Level::DEBUG);
 
-        ServerHandler::pointer serverHandler_ = ServerHandler::create(
-                readBuffer_, writeBuffer_, config_, log_, client_,
-                tlsSocket_->lowest_layer().remote_endpoint().address().to_string() + ":" +
-                        std::to_string(tlsSocket_->lowest_layer().remote_endpoint().port()),
-                uuid_);
+        ServerHandler::pointer serverHandler_ =
+                ServerHandler::create(readBuffer_, writeBuffer_, config_, log_, client_,
+                                      remotePeer, uuid_);
 
         serverHandler_->handle();
 
@@ -422,32 +468,40 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error,
         }
 
         resetTimeout();
-        boost::asio::async_write(
-                *tlsSocket_, writeBuffer_.data(),
-                boost::asio::bind_executor(
-                        strand_,
-                        [self = shared_from_this()](const boost::system::error_code &ec,
-                                                    std::size_t) {
-                            self->cancelTimeout();
 
-                            if (ec) {
-                                self->log_->write("[" + to_string(self->uuid_) +
-                                                          "] [TCPConnection write server] " +
-                                                          ec.message(),
-                                                  Log::Level::ERROR);
-                                self->socketShutdown();
-                                return;
-                            }
+        auto writeHandler =
+                [self = shared_from_this()](const boost::system::error_code &ec,
+                                            std::size_t) {
+                    self->cancelTimeout();
 
-                            if (self->connect_) {
-                                self->enableTunnelMode();
-                                self->relayClientToRemote();
-                                self->relayRemoteToClient();
-                                return;
-                            }
+                    if (ec) {
+                        self->log_->write("[" + to_string(self->uuid_) +
+                                                  "] [TCPConnection write server] " +
+                                                  ec.message(),
+                                          Log::Level::ERROR);
+                        self->socketShutdown();
+                        return;
+                    }
 
-                            self->doReadServer();
-                        }));
+                    if (self->connect_) {
+                        self->enableTunnelMode();
+                        self->relayClientToRemote();
+                        self->relayRemoteToClient();
+                        return;
+                    }
+
+                    self->doReadServer();
+                };
+
+        if (config_->server().tlsEnable) {
+            boost::asio::async_write(
+                    *tlsSocket_, writeBuffer_.data(),
+                    boost::asio::bind_executor(strand_, writeHandler));
+        } else {
+            boost::asio::async_write(
+                    socket_, writeBuffer_.data(),
+                    boost::asio::bind_executor(strand_, writeHandler));
+        }
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
                             "] [TCPConnection handleReadServer] [catch read] " +
@@ -457,28 +511,8 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error,
     }
 }
 
-/**
- * @brief Enables transparent tunnel relay mode for this connection.
- *
- * @details
- * - After this is enabled, traffic is relayed bidirectionally without
- *   request/response parsing.
- */
 void TCPConnection::enableTunnelMode() { tunnelMode_ = true; }
 
-/**
- * @brief Relays traffic from the inbound client side to the remote side.
- *
- * @details
- * - In agent mode:
- *   - Reads from the inbound plain socket.
- *   - Writes to the outbound remote client, using TLS when enabled.
- * - In server mode:
- *   - Reads from the inbound TLS socket.
- *   - Writes to the outbound plain remote socket.
- * - Continues relaying recursively until an error occurs.
- * - Shuts down the connection on read or write failure.
- */
 void TCPConnection::relayClientToRemote() {
     if (config_->runMode() == RunMode::agent) {
         if (!socket_.is_open() || !client_->isOpen()) {
@@ -521,50 +555,54 @@ void TCPConnection::relayClientToRemote() {
         return;
     }
 
-    if (!tlsSocket_ || !client_->isOpen()) {
+    if (!client_->isOpen()) {
         socketShutdown();
         return;
     }
 
-    tlsSocket_->async_read_some(
-            boost::asio::buffer(downstreamBuf_),
-            boost::asio::bind_executor(
-                    strand_,
-                    [self = shared_from_this()](const boost::system::error_code &ec,
-                                                std::size_t bytes) {
-                        if (ec) {
-                            self->socketShutdown();
-                            return;
-                        }
+    auto readHandler =
+            [self = shared_from_this()](const boost::system::error_code &ec,
+                                        std::size_t bytes) {
+                if (ec) {
+                    self->socketShutdown();
+                    return;
+                }
 
-                        boost::asio::async_write(
-                                self->client_->socket(),
-                                boost::asio::buffer(self->downstreamBuf_.data(), bytes),
-                                boost::asio::bind_executor(
-                                        self->strand_,
-                                        [self](const boost::system::error_code &werr, std::size_t) {
-                                            if (werr) {
-                                                self->socketShutdown();
-                                                return;
-                                            }
-                                            self->relayClientToRemote();
-                                        }));
-                    }));
+                boost::asio::async_write(
+                        self->client_->socket(),
+                        boost::asio::buffer(self->downstreamBuf_.data(), bytes),
+                        boost::asio::bind_executor(
+                                self->strand_,
+                                [self](const boost::system::error_code &werr, std::size_t) {
+                                    if (werr) {
+                                        self->socketShutdown();
+                                        return;
+                                    }
+                                    self->relayClientToRemote();
+                                }));
+            };
+
+    if (config_->server().tlsEnable) {
+        if (!tlsSocket_) {
+            socketShutdown();
+            return;
+        }
+
+        tlsSocket_->async_read_some(
+                boost::asio::buffer(downstreamBuf_),
+                boost::asio::bind_executor(strand_, readHandler));
+    } else {
+        if (!socket_.is_open()) {
+            socketShutdown();
+            return;
+        }
+
+        socket_.async_read_some(
+                boost::asio::buffer(downstreamBuf_),
+                boost::asio::bind_executor(strand_, readHandler));
+    }
 }
 
-/**
- * @brief Relays traffic from the remote side back to the inbound client side.
- *
- * @details
- * - In agent mode:
- *   - Reads from the outbound remote client, using TLS when enabled.
- *   - Writes back to the inbound plain socket.
- * - In server mode:
- *   - Reads from the outbound plain remote socket.
- *   - Writes back to the inbound TLS socket.
- * - Continues relaying recursively until an error occurs.
- * - Shuts down the connection on read or write failure.
- */
 void TCPConnection::relayRemoteToClient() {
     if (config_->runMode() == RunMode::agent) {
         if (!socket_.is_open() || !client_->isOpen()) {
@@ -606,7 +644,7 @@ void TCPConnection::relayRemoteToClient() {
         return;
     }
 
-    if (!tlsSocket_ || !client_->isOpen()) {
+    if (!client_->isOpen()) {
         socketShutdown();
         return;
     }
@@ -622,28 +660,39 @@ void TCPConnection::relayRemoteToClient() {
                             return;
                         }
 
-                        boost::asio::async_write(
-                                *self->tlsSocket_,
-                                boost::asio::buffer(self->upstreamBuf_.data(), bytes),
-                                boost::asio::bind_executor(
-                                        self->strand_,
-                                        [self](const boost::system::error_code &werr, std::size_t) {
-                                            if (werr) {
-                                                self->socketShutdown();
-                                                return;
-                                            }
-                                            self->relayRemoteToClient();
-                                        }));
+                        auto writeHandler =
+                                [self](const boost::system::error_code &werr, std::size_t) {
+                                    if (werr) {
+                                        self->socketShutdown();
+                                        return;
+                                    }
+                                    self->relayRemoteToClient();
+                                };
+
+                        if (self->config_->server().tlsEnable) {
+                            if (!self->tlsSocket_) {
+                                self->socketShutdown();
+                                return;
+                            }
+
+                            boost::asio::async_write(
+                                    *self->tlsSocket_,
+                                    boost::asio::buffer(self->upstreamBuf_.data(), bytes),
+                                    boost::asio::bind_executor(self->strand_, writeHandler));
+                        } else {
+                            if (!self->socket_.is_open()) {
+                                self->socketShutdown();
+                                return;
+                            }
+
+                            boost::asio::async_write(
+                                    self->socket_,
+                                    boost::asio::buffer(self->upstreamBuf_.data(), bytes),
+                                    boost::asio::bind_executor(self->strand_, writeHandler));
+                        }
                     }));
 }
 
-/**
- * @brief Starts or resets the timeout timer for this connection.
- *
- * @details
- * - Does nothing when the configured timeout value is zero.
- * - Schedules an asynchronous wait that invokes `onTimeout()`.
- */
 void TCPConnection::resetTimeout() {
     if (!config_->general().timeout) return;
 
@@ -652,26 +701,10 @@ void TCPConnection::resetTimeout() {
                                     boost::asio::placeholders::error));
 }
 
-/**
- * @brief Cancels the active timeout timer.
- *
- * @details
- * - Does nothing when the configured timeout value is zero.
- */
 void TCPConnection::cancelTimeout() {
     if (config_->general().timeout) timeout_.cancel();
 }
 
-/**
- * @brief Handles timeout expiration events.
- *
- * @details
- * - Ignores callbacks caused by cancellation or other non-expiration errors.
- * - Logs the timeout expiration.
- * - Shuts down the connection when the timeout expires.
- *
- * @param error Boost system error code associated with the timer event.
- */
 void TCPConnection::onTimeout(const boost::system::error_code &error) {
     if (error || error == boost::asio::error::operation_aborted) return;
 
@@ -683,16 +716,6 @@ void TCPConnection::onTimeout(const boost::system::error_code &error) {
     socketShutdown();
 }
 
-/**
- * @brief Gracefully shuts down this connection and its associated outbound client.
- *
- * @details
- * - Shuts down and closes the inbound TLS socket when present.
- * - Shuts down and closes the inbound plain socket when open.
- * - Shuts down the associated outbound `TCPClient` when present.
- * - Ignores shutdown-related error codes.
- * - Logs any exception raised during shutdown.
- */
 void TCPConnection::socketShutdown() {
     try {
         boost::system::error_code ignored;

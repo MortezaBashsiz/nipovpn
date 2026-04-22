@@ -1,22 +1,5 @@
 #include "config.hpp"
 
-/**
- * @brief Constructs a `Config` instance by loading and parsing a YAML configuration file.
- *
- * @details
- * - Loads the YAML configuration from the provided file path.
- * - Initializes all configuration sections (`general_`, `log_`, `server_`, `agent_`)
- *   directly from the parsed YAML structure.
- * - Sets default runtime values for threads, listen IP, and port.
- * - Based on the selected `RunMode`, initializes runtime parameters:
- *   - `threads_`
- *   - `listenIp_`
- *   - `listenPort_`
- * - Ensures thread-safe initialization using a mutex lock.
- *
- * @param mode Runtime mode (server or agent).
- * @param filePath Path to the YAML configuration file.
- */
 Config::Config(const RunMode &mode, const std::string &filePath)
     : runMode_(mode),
       filePath_(filePath),
@@ -52,9 +35,6 @@ Config::Config(const RunMode &mode, const std::string &filePath)
 
     std::lock_guard<std::mutex> lock(configMutex_);
 
-    /**
-     * @brief Initializes runtime parameters based on the selected run mode.
-     */
     switch (runMode_) {
         case RunMode::server:
             threads_ = server_.threads;
@@ -70,16 +50,6 @@ Config::Config(const RunMode &mode, const std::string &filePath)
     }
 }
 
-/**
- * @brief Copy constructor that creates a new `Config` instance from an existing one.
- *
- * @details
- * - Copies all configuration sections and runtime parameters.
- * - Reloads the YAML configuration from the original file path.
- * - Preserves the runtime mode and all derived values.
- *
- * @param config Shared pointer to the existing configuration.
- */
 Config::Config(const Config::pointer &config)
     : runMode_(config->runMode()),
       filePath_(config->filePath()),
@@ -92,24 +62,8 @@ Config::Config(const Config::pointer &config)
       server_(config->server()),
       agent_(config->agent()) {}
 
-/**
- * @brief Destructor for `Config`.
- *
- * @details
- * - Defaulted destructor; no explicit resource cleanup required.
- */
 Config::~Config() = default;
 
-/**
- * @brief Converts the configuration into a human-readable string.
- *
- * @details
- * - Serializes all configuration sections into a formatted string.
- * - Includes General, Log, Server, and Agent sections.
- * - Useful for debugging and logging configuration state.
- *
- * @return A formatted string representation of the configuration.
- */
 std::string Config::toString() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     std::stringstream ss;
@@ -148,107 +102,66 @@ std::string Config::toString() const {
     return ss.str();
 }
 
-/**
- * @brief Returns the General configuration section.
- */
 const Config::General &Config::general() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return general_;
 }
 
-/**
- * @brief Returns the Log configuration section.
- */
 const Config::Log &Config::log() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return log_;
 }
 
-/**
- * @brief Returns the Server configuration section.
- */
 const Config::Server &Config::server() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return server_;
 }
 
-/**
- * @brief Returns the Agent configuration section.
- */
 const Config::Agent &Config::agent() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return agent_;
 }
 
-/**
- * @brief Gets the current thread count.
- */
 const unsigned short &Config::threads() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return threads_;
 }
 
-/**
- * @brief Sets the thread count at runtime.
- */
 void Config::threads(unsigned short threads) {
     std::lock_guard<std::mutex> lock(configMutex_);
     threads_ = threads;
 }
 
-/**
- * @brief Gets the listening IP address.
- */
 const std::string &Config::listenIp() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return listenIp_;
 }
 
-/**
- * @brief Sets the listening IP address at runtime.
- */
 void Config::listenIp(const std::string &ip) {
     std::lock_guard<std::mutex> lock(configMutex_);
     listenIp_ = ip;
 }
 
-/**
- * @brief Gets the listening port.
- */
 const unsigned short &Config::listenPort() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return listenPort_;
 }
 
-/**
- * @brief Sets the listening port at runtime.
- */
 void Config::listenPort(unsigned short port) {
     std::lock_guard<std::mutex> lock(configMutex_);
     listenPort_ = port;
 }
 
-/**
- * @brief Returns the current runtime mode.
- */
 const RunMode &Config::runMode() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return runMode_;
 }
 
-/**
- * @brief Returns the configuration file path.
- */
 const std::string &Config::filePath() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return filePath_;
 }
 
-/**
- * @brief Converts the runtime mode to a string.
- *
- * @return "server" or "agent" depending on the current mode.
- */
 std::string Config::modeToString() const {
     std::lock_guard<std::mutex> lock(configMutex_);
 

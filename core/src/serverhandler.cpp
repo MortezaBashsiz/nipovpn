@@ -1,26 +1,5 @@
 #include "serverhandler.hpp"
 
-/**
- * @brief Constructs a `ServerHandler` instance with buffers, configuration,
- *        logging, client connection, and session identifier.
- *
- * @details
- * - Stores references to the configuration, logging, and client objects.
- * - Stores references to the read and write stream buffers.
- * - Creates an internal `HTTP` helper object for parsing and generating HTTP data.
- * - Stores the client connection string and UUID for logging and tracing.
- * - Initializes the internal state flags:
- *   - `end_` is set to `false`
- *   - `connect_` is set to `false`
- *
- * @param readBuffer Reference to the input stream buffer.
- * @param writeBuffer Reference to the output stream buffer.
- * @param config Shared pointer to the configuration object.
- * @param log Shared pointer to the logging object.
- * @param client Shared pointer to the TCP client used for remote communication.
- * @param clientConnStr String describing the client connection source.
- * @param uuid Unique identifier for this handler instance.
- */
 ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
                              boost::asio::streambuf &writeBuffer,
                              const std::shared_ptr<Config> &config,
@@ -40,37 +19,11 @@ ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
     connect_ = false;
 }
 
-/**
- * @brief Destroys the `ServerHandler` instance.
- *
- * @details
- * - Performs no explicit cleanup.
- * - Resource management is handled by referenced objects and smart pointers.
- */
 ServerHandler::~ServerHandler() {}
 
-/**
- * @brief Handles an incoming agent request, decrypts it, forwards it to the target,
- *        and prepares the response.
- *
- * @details
- * - Ensures thread-safe execution using an internal mutex.
- * - Parses the incoming request received from the agent.
- * - Decrypts the HTTP request body using the configured token.
- * - Converts the decrypted hexadecimal payload back into raw request data.
- * - Re-parses the decrypted request as HTTP or TLS-related traffic.
- * - Handles requests based on detected type:
- *   - `CONNECT`: Establishes a tunnel and returns a connection status response.
- *   - `HTTP` / `HTTPS`: Connects to the destination, forwards the request,
- *     reads the remote response, encrypts it, and wraps it in an HTTP `200 OK` response.
- * - On any parsing, decryption, encryption, or connection failure, closes the client socket.
- */
 void ServerHandler::handle() {
     std::lock_guard lock(mutex_);
 
-    /**
-     * @brief Parses the outer request received from the agent.
-     */
     if (!request_->detectType()) {
         log_->write("[" + to_string(uuid_) +
                             "] [ServerHandler handle] [NOT HTTP Request From Agent] "
@@ -81,91 +34,111 @@ void ServerHandler::handle() {
         return;
     }
 
-    BoolStr decryption{false, std::string("FAILED")};
+    const auto &outerReq = request_->parsedHttpRequest();
+    const std::string method = std::string(outerReq.method_string());
+    const std::string target = std::string(outerReq.target());
 
-    /**
-     * @brief Decrypts the received request body using the configured token.
-     */
-    decryption = aes256Decrypt(
-            decode64(std::string(request_->parsedHttpRequest().body())),
-            config_->general().token);
+    if (method != "POST" || target != "/relay") {
+        copyStringToStreambuf(
+                "HTTP/1.1 404 Not Found\r\n"
+                "Content-Length: 0\r\n"
+                "Connection: close\r\n\r\n",
+                writeBuffer_);
+        return;
+    }
 
-    if (!decryption.ok) {
+    const std::string innerRequest = std::string(outerReq.body());
+
+    const std::size_t headerEnd = innerRequest.find("\r\n\r\n");
+    if (headerEnd == std::string::npos) {
         log_->write("[" + to_string(uuid_) +
-                            "] [ServerHandler handle] [Decryption Failed] : [ " +
-                            decryption.message + "] ",
+                            "] [ServerHandler handle] [INNER REQUEST MISSING HEADER END]",
                     Log::Level::DEBUG);
         client_->socket().close();
         return;
     }
 
-    /**
-     * @brief Converts the decrypted hexadecimal payload into raw request bytes
-     *        and replaces the input buffer contents.
-     */
-    auto tempHexArr = strToHexArr(decryption.message);
-    std::string tempHexArrStr(tempHexArr.begin(), tempHexArr.end());
-    copyStringToStreambuf(tempHexArrStr, readBuffer_);
+    const std::string innerHeaders = innerRequest.substr(0, headerEnd + 4);
+    const std::string pendingTunnelData = innerRequest.substr(headerEnd + 4);
 
-    /**
-     * @brief Parses the decrypted inner request.
-     */
-    if (!request_->detectType()) {
+    copyStringToStreambuf(innerHeaders, readBuffer_);
+    HTTP::pointer inner = HTTP::create(config_, log_, readBuffer_, uuid_);
+
+    if (!inner->detectType()) {
         log_->write("[" + to_string(uuid_) +
-                            "] [ServerHandler handle] [NOT HTTP Request] [Request] : " +
+                            "] [ServerHandler handle] [NOT INNER HTTP Request] [Request] : " +
                             streambufToString(readBuffer_),
                     Log::Level::DEBUG);
         client_->socket().close();
         return;
     }
 
-    /**
-     * @brief Processes the request according to its detected type.
-     */
-    switch (request_->httpType()) {
+    switch (inner->httpType()) {
         case HTTP::HttpType::connect: {
-            connect_ = true;
-
-            boost::asio::streambuf tempBuff;
-            std::iostream os(&tempBuff);
-
-            /**
-             * @brief Establishes a CONNECT tunnel to the requested destination.
-             */
-            if (client_->doConnect(request_->dstIP(), request_->dstPort())) {
-                log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " +
-                                    clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
-                                    std::to_string(request_->dstPort()) + "]",
+            if (client_->doConnect(inner->dstIP(), inner->dstPort())) {
+                log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " + clientConnStr_ +
+                                    "] [DST " + inner->dstIP() + ":" +
+                                    std::to_string(inner->dstPort()) + "]",
                             Log::Level::INFO);
-                os << "HTTP/1.1 200 Connection established COMP\r\n\r\n";
+
+                if (!pendingTunnelData.empty()) {
+                    boost::asio::streambuf pendingBuf;
+                    copyStringToStreambuf(pendingTunnelData, pendingBuf);
+                    client_->doWrite(pendingBuf);
+                }
+
+                const std::string connectEstablished =
+                        "HTTP/1.1 200 Connection Established\r\n\r\n";
+
+                std::ostringstream outer;
+                outer << "HTTP/1.1 200 OK\r\n"
+                      << "Content-Type: application/octet-stream\r\n"
+                      << "Content-Length: " << connectEstablished.size() << "\r\n"
+                      << "Connection: keep-alive\r\n"
+                      << "\r\n"
+                      << connectEstablished;
+
+                copyStringToStreambuf(outer.str(), writeBuffer_);
+                connect_ = true;
+                end_ = false;
+                return;
             } else {
-                log_->write(std::string("[") + to_string(uuid_) +
+                log_->write("[" + to_string(uuid_) +
                                     "] [CONNECT] [ERROR] [Resolving Host] [SRC " +
-                                    clientConnStr_ + "] [DST " + request_->dstIP() + ":" +
-                                    std::to_string(request_->dstPort()) + "]",
+                                    clientConnStr_ + "] [DST " + inner->dstIP() + ":" +
+                                    std::to_string(inner->dstPort()) + "]",
                             Log::Level::INFO);
-                os << "HTTP/1.1 500 Connection failed COMP\r\n\r\n";
-            }
 
-            moveStreambuf(tempBuff, writeBuffer_);
-            return;
+                const std::string connectFailed =
+                        "HTTP/1.1 502 Bad Gateway\r\n\r\n";
+
+                std::ostringstream outer;
+                outer << "HTTP/1.1 502 Bad Gateway\r\n"
+                      << "Content-Type: application/octet-stream\r\n"
+                      << "Content-Length: " << connectFailed.size() << "\r\n"
+                      << "Connection: close\r\n"
+                      << "\r\n"
+                      << connectFailed;
+
+                copyStringToStreambuf(outer.str(), writeBuffer_);
+                connect_ = false;
+                end_ = true;
+                return;
+            }
         }
 
         case HTTP::HttpType::http:
         case HTTP::HttpType::https: {
-            /**
-             * @brief Connects to the target destination if no active socket is open.
-             */
+
+            copyStringToStreambuf(innerRequest, readBuffer_);
+
             if (!client_->socket().is_open()) {
-                if (!client_->doConnect(request_->dstIP(), request_->dstPort())) {
+                if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
                     client_->socket().close();
                     return;
                 }
             }
 
-            /**
-             * @brief Forwards the request to the destination and reads the response.
-             */
             client_->doWrite(readBuffer_);
             client_->doReadServer();
 
@@ -174,33 +147,18 @@ void ServerHandler::handle() {
                 return;
             }
 
-            BoolStr encryption{false, std::string("FAILED")};
+            const std::string innerResponse = streambufToString(client_->readBuffer());
 
-            /**
-             * @brief Encrypts the received response payload.
-             */
-            encryption =
-                    aes256Encrypt(streambufToString(client_->readBuffer()),
-                                  config_->general().token);
+            std::ostringstream outer;
+            outer << "HTTP/1.1 200 OK\r\n"
+                  << "Content-Type: application/octet-stream\r\n"
+                  << "Content-Length: " << innerResponse.size() << "\r\n"
+                  << "Connection: keep-alive\r\n"
+                  << "\r\n"
+                  << innerResponse;
 
-            if (!encryption.ok) {
-                log_->write("[" + to_string(uuid_) +
-                                    "] [ServerHandler handle] [Encryption Failed] : [ " +
-                                    encryption.message + "] ",
-                            Log::Level::DEBUG);
-                client_->socket().close();
-                return;
-            }
-
-            /**
-             * @brief Wraps the encrypted response in an HTTP `200 OK` response
-             *        and writes it to the output buffer.
-             */
-            std::string newRes(
-                    request_->genHttpOkResString(encode64(encryption.message)));
-            copyStringToStreambuf(newRes, writeBuffer_);
-
-            connect_ = true;
+            copyStringToStreambuf(outer.str(), writeBuffer_);
+            connect_ = false;
             end_ = false;
             return;
         }
