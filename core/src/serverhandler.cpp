@@ -47,8 +47,20 @@ void ServerHandler::handle() {
         return;
     }
 
-    const std::string innerRequest = std::string(outerReq.body());
 
+    BoolStr decryption{false, std::string("FAILED")};
+    decryption = aes256Decrypt(decode64(std::string(outerReq.body())), config_->general().token);
+
+    if (decryption.ok) {
+        copyStringToStreambuf(decryption.message, writeBuffer_);
+        log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Decryption Done]", Log::Level::DEBUG);
+    } else {
+        log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Decryption Failed] : [ " +
+                            decryption.message + "] ",
+                    Log::Level::DEBUG);
+    }
+
+    const std::string innerRequest = hexToASCII(decryption.message);
     const std::size_t headerEnd = innerRequest.find("\r\n\r\n");
     if (headerEnd == std::string::npos) {
         log_->write("[" + to_string(uuid_) +
@@ -90,13 +102,24 @@ void ServerHandler::handle() {
                 const std::string connectEstablished =
                         "HTTP/1.1 200 Connection Established\r\n\r\n";
 
+                BoolStr encryption{false, std::string("FAILED")};
+                encryption = aes256Encrypt(connectEstablished, config_->general().token);
+
+                if (encryption.ok) {
+                    log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Encryption Done]", Log::Level::DEBUG);
+                } else {
+                    log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Encryption Failed] : [ " +
+                                        encryption.message + "] ",
+                                Log::Level::DEBUG);
+                }
+
                 std::ostringstream outer;
                 outer << "HTTP/1.1 200 OK\r\n"
                       << "Content-Type: application/octet-stream\r\n"
-                      << "Content-Length: " << connectEstablished.size() << "\r\n"
+                      << "Content-Length: " << encryption.message.size() << "\r\n"
                       << "Connection: keep-alive\r\n"
                       << "\r\n"
-                      << connectEstablished;
+                      << encryption.message;
 
                 copyStringToStreambuf(outer.str(), writeBuffer_);
                 connect_ = true;
@@ -112,13 +135,24 @@ void ServerHandler::handle() {
                 const std::string connectFailed =
                         "HTTP/1.1 502 Bad Gateway\r\n\r\n";
 
+                BoolStr encryption{false, std::string("FAILED")};
+                encryption = aes256Encrypt(connectFailed, config_->general().token);
+
+                if (encryption.ok) {
+                    log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Encryption Done]", Log::Level::DEBUG);
+                } else {
+                    log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Encryption Failed] : [ " +
+                                        encryption.message + "] ",
+                                Log::Level::DEBUG);
+                }
+
                 std::ostringstream outer;
                 outer << "HTTP/1.1 502 Bad Gateway\r\n"
                       << "Content-Type: application/octet-stream\r\n"
-                      << "Content-Length: " << connectFailed.size() << "\r\n"
+                      << "Content-Length: " << encryption.message.size() << "\r\n"
                       << "Connection: close\r\n"
                       << "\r\n"
-                      << connectFailed;
+                      << encryption.message;
 
                 copyStringToStreambuf(outer.str(), writeBuffer_);
                 connect_ = false;
@@ -147,7 +181,17 @@ void ServerHandler::handle() {
                 return;
             }
 
-            const std::string innerResponse = streambufToString(client_->readBuffer());
+            BoolStr encryption{false, std::string("FAILED")};
+            encryption = aes256Encrypt(streambufToString(client_->readBuffer()), config_->general().token);
+
+            if (encryption.ok) {
+                log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Encryption Done]", Log::Level::DEBUG);
+            } else {
+                log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Encryption Failed] : [ " +
+                                    encryption.message + "] ",
+                            Log::Level::DEBUG);
+            }
+            const std::string innerResponse = encryption.message;
 
             std::ostringstream outer;
             outer << "HTTP/1.1 200 OK\r\n"
