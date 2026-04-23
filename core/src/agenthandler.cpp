@@ -82,7 +82,18 @@ void AgentHandler::handle() {
         }
     }
 
-    const std::string innerRequest = streambufToString(readBuffer_);
+    BoolStr encryption{false, std::string("FAILED")};
+    encryption = aes256Encrypt(hexStreambufToStr(readBuffer_), config_->general().token);
+
+    if (encryption.ok) {
+        log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Done]", Log::Level::DEBUG);
+    } else {
+        log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Failed] : [ " +
+                            encryption.message + "] ",
+                    Log::Level::DEBUG);
+    }
+
+    const std::string innerRequest = encode64(encryption.message);
 
     std::string hostHeader = config_->general().fakeUrl;
     auto pos = hostHeader.find("://");
@@ -121,7 +132,19 @@ void AgentHandler::handle() {
         return;
     }
 
-    const std::string innerResponse = outerResponse.substr(bodyPos + 4);
+    BoolStr decryption{false, std::string("FAILED")};
+    decryption = aes256Decrypt(outerResponse.substr(bodyPos + 4), config_->general().token);
+    if (decryption.ok) {
+        copyStringToStreambuf(decryption.message, writeBuffer_);
+        log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Done]", Log::Level::DEBUG);
+    } else {
+        log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Failed] : [ " +
+                            decryption.message + "] ",
+                    Log::Level::DEBUG);
+    }
+
+
+    const std::string innerResponse = decryption.message;
 
     if (request_->httpType() == HTTP::HttpType::connect) {
         copyStringToStreambuf(innerResponse, writeBuffer_);
