@@ -163,9 +163,24 @@ const std::string HTTP::genHttpPostReqString(const std::string &body) const {
                        config_->agent().httpVersion + "\r\n") +
            "Host: " + config_->general().fakeUrl + "\r\n" +
            "User-Agent: " + config_->agent().userAgent + "\r\n" +
-           "Accept: */*\r\n" + "Connection: keep-alive\r\n" +
+           "Accept: */*\r\n" +
+           "Connection: keep-alive\r\n" +
            "Content-Length: " + std::to_string(body.length()) + "\r\n" +
-           "Content-Type: application/x-www-form-urlencoded\r\n" + "\r\n" + body + "COMP\r\n\r\n";
+           "Content-Type: application/x-www-form-urlencoded\r\n" +
+           "\r\n" +
+           body;
+}
+
+const std::string HTTP::genHttpOkResString(const std::string &body) const {
+    return std::string("HTTP/1.1 200 OK\r\n") +
+           "Content-Type: application/x-www-form-urlencoded\r\n" +
+           "Content-Length: " + std::to_string(body.length()) + "\r\n" +
+           config_->general().chunkHeader + ": " + chunkHeader_ + "\r\n" +
+           "Connection: keep-alive\r\n" +
+           "Cache-Control: no-cache\r\n" +
+           "Pragma: no-cache\r\n" +
+           "\r\n" +
+           body;
 }
 
 const std::string HTTP::genHttpRestPostReqString() const {
@@ -174,17 +189,10 @@ const std::string HTTP::genHttpRestPostReqString() const {
                        config_->agent().httpVersion + "\r\n") +
            "Host: " + config_->general().fakeUrl + "\r\n" +
            "User-Agent: " + config_->agent().userAgent + "\r\n" +
-           "Accept: */*\r\n" + "Connection: keep-alive\r\n" +
-           "Rest: yes\r\n" + "COMP\r\n\r\n";
-}
-
-const std::string HTTP::genHttpOkResString(const std::string &body) const {
-    return std::string("HTTP/1.1 200 OK\r\n") +
-           "Content-Type: application/x-www-form-urlencoded\r\n" +
-           "Content-Length: " + std::to_string(body.length()) + "\r\n" +
-           config_->general().chunkHeader + ": " + chunkHeader_ + "\r\n" +
-           "Connection: keep-alive\r\n" + "Cache-Control: no-cache\r\n" +
-           "Pragma: no-cache\r\n" + "\r\n" + body + "COMP\r\n\r\n";
+           "Accept: */*\r\n"
+           "Connection: keep-alive\r\n"
+           "Rest: yes\r\n"
+           "\r\n";
 }
 
 void HTTP::setIPPort() {
