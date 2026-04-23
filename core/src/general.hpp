@@ -366,3 +366,55 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
     result.message = "OK";
     return result;
 }
+
+inline std::string toLowerCopy(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return s;
+}
+
+inline std::string extractHeaders(const std::string &msg) {
+    auto pos = msg.find("\r\n\r\n");
+    if (pos == std::string::npos) return {};
+    return msg.substr(0, pos + 4);
+}
+
+inline std::string extractBody(const std::string &msg) {
+    auto pos = msg.find("\r\n\r\n");
+    if (pos == std::string::npos) return {};
+    return msg.substr(pos + 4);
+}
+
+inline bool parseContentLength(const std::string &headers, std::size_t &value) {
+    std::istringstream iss(headers);
+    std::string line;
+    while (std::getline(iss, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        auto lower = toLowerCopy(line);
+        if (lower.rfind("content-length:", 0) == 0) {
+            auto raw = line.substr(std::string("Content-Length:").size());
+            raw.erase(0, raw.find_first_not_of(" \t"));
+            try {
+                value = static_cast<std::size_t>(std::stoull(raw));
+                return true;
+            } catch (...) {
+                return false;
+            }
+        }
+    }
+    return false;
+}
+
+inline bool isChunked(const std::string &headers) {
+    std::istringstream iss(headers);
+    std::string line;
+    while (std::getline(iss, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        auto lower = toLowerCopy(line);
+        if (lower.rfind("transfer-encoding:", 0) == 0 &&
+            lower.find("chunked") != std::string::npos) {
+            return true;
+        }
+    }
+    return false;
+}
