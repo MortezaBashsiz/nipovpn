@@ -34,8 +34,8 @@ server:
   # listenIp: which must be IPv4 which is used on server
   listenIp: "0.0.0.0"
   # listenPort: the port number which will be used on server
-  listenPort: 8081
-  tlsEnable: false
+  listenPort: 443
+  tlsEnable: true
   tlsVerifyPeer: false
   tlsCertFile: "/etc/nipovpn/server.crt"
   tlsKeyFile: "/etc/nipovpn/server.key"
@@ -52,11 +52,11 @@ agent:
   # serverIp: IPv4 of the nipoServer
   serverIp: "127.0.0.10"
   # serverPort: port number of the nipoServer
-  serverPort: 8081
+  serverPort: 443
   # httpVersion: This version will be used between agent and server
   httpVersion: "1.1"
   # userAgent: This is the http user agent which will be used between agent and server
   userAgent : "NipoAgent"
-  tlsEnable: false
+  tlsEnable: true
   tlsVerifyPeer: false
   tlsCaFile: ""

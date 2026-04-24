@@ -38,7 +38,7 @@ void ServerHandler::handle() {
     const std::string method = std::string(outerReq.method_string());
     const std::string target = std::string(outerReq.target());
 
-    if (method != "POST" || target != "/relay") {
+    if (method != "POST" || target != "/") {
         copyStringToStreambuf(
                 "HTTP/1.1 404 Not Found\r\n"
                 "Content-Length: 0\r\n"

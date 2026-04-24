@@ -102,7 +102,7 @@ void AgentHandler::handle() {
     if (pos != std::string::npos) hostHeader = hostHeader.substr(0, pos);
 
     std::ostringstream outer;
-    outer << "POST /relay HTTP/1.1\r\n"
+    outer << "POST / HTTP/1.1\r\n"
           << "Host: " << hostHeader << "\r\n"
           << "User-Agent: Mozilla/5.0\r\n"
           << "Accept: */*\r\n"
