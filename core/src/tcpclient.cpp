@@ -303,6 +303,7 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
         resetTimeout();
 
         if (tlsEnabled_ && sslSocket_) {
+            OUT(streambufToString(writeBuffer_));
             log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [DST " +
                                 sslSocket_->lowest_layer().remote_endpoint().address().to_string() +
                                 ":" +
@@ -311,6 +312,7 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
                         Log::Level::DEBUG);
             boost::asio::write(*sslSocket_, writeBuffer_, error);
         } else {
+            OUT(streambufToString(writeBuffer_));
             log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [DST " +
                                 socket_.remote_endpoint().address().to_string() + ":" +
                                 std::to_string(socket_.remote_endpoint().port()) +
