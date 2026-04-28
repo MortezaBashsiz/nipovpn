@@ -224,7 +224,7 @@ void TCPConnection::doReadAgent() {
 
         resetTimeout();
         boost::asio::async_read(
-                socket_, readBuffer_, boost::asio::transfer_exactly(1),
+                socket_, readBuffer_, boost::asio::transfer_at_least(1),
                 boost::asio::bind_executor(
                         strand_,
                         boost::bind(&TCPConnection::handleReadAgent, shared_from_this(),
