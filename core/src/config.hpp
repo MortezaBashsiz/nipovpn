@@ -21,7 +21,6 @@ private:
         std::string fakeUrl;
         std::string method;
         unsigned short timeout;
-        std::string chunkHeader;
     };
 
     struct Log {

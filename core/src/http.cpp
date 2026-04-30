@@ -11,7 +11,6 @@ HTTP::HTTP(const std::shared_ptr<Config> &config,
       httpType_(HTTP::HttpType::https),
       parsedTlsRequest_{"", "", TlsTypes::TLSHandshake},
       uuid_(uuid) {
-    chunkHeader_ = "no";
 }
 
 HTTP::HTTP(const HTTP &http)
@@ -21,7 +20,6 @@ HTTP::HTTP(const HTTP &http)
       parsedHttpRequest_(http.parsedHttpRequest_),
       parsedTlsRequest_(http.parsedTlsRequest_),
       uuid_(http.uuid_) {
-    chunkHeader_ = "no";
 }
 
 
@@ -182,7 +180,6 @@ const std::string HTTP::genHttpOkResString(const std::string &body) const {
     return std::string("HTTP/1.1 200 OK\r\n") +
            "Content-Type: application/x-www-form-urlencoded\r\n" +
            "Content-Length: " + std::to_string(body.length()) + "\r\n" +
-           config_->general().chunkHeader + ": " + chunkHeader_ + "\r\n" +
            "Connection: keep-alive\r\n" + "Cache-Control: no-cache\r\n" +
            "Pragma: no-cache\r\n" + "\r\n" + body + "COMP\r\n\r\n";
 }
@@ -228,7 +225,6 @@ void HTTP::setIPPort() {
                                    ? withoutScheme
                                    : withoutScheme.substr(0, slashPos);
             } else {
-                // origin-form like "/relay"
                 auto hostIt = parsedHttpRequest_.find("Host");
                 if (hostIt != parsedHttpRequest_.end()) {
                     hostPort = boost::lexical_cast<std::string>(hostIt->value());

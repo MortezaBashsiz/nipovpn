@@ -45,6 +45,7 @@ private:
                  const std::string &clientConnStr,
                  boost::uuids::uuid uuid);
 
+    std::string relayHostHeader(const std::shared_ptr<Config> &config);
     const std::shared_ptr<Config> &config_;
     const std::shared_ptr<Log> &log_;
     const TCPClient::pointer &client_;
