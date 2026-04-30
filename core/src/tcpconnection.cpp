@@ -378,7 +378,7 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
                 self->socketShutdown();
                 return;
             }
-            self->socketShutdown();// Pure HTTP request/response: close after every /relay request.
+            self->socketShutdown();
         };
 
         if (config_->server().tlsEnable) {
@@ -416,7 +416,7 @@ std::string TCPConnection::postTunnelAction(const std::string &action, const std
 
     const std::string encodedBody = encode64(enc.message);
     std::ostringstream req;
-    req << "POST /relay HTTP/1.1\r\n"
+    req << config_->general().method + " / HTTP/1.1\r\n"
         << "Host: " << makeRelayHostHeader() << "\r\n"
         << "User-Agent: Mozilla/5.0\r\n"
         << "Accept: */*\r\n"

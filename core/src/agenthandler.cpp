@@ -2,17 +2,6 @@
 
 #include <sstream>
 
-namespace {
-    std::string relayHostHeader(const std::shared_ptr<Config> &config) {
-        std::string hostHeader = config->general().fakeUrl;
-        auto pos = hostHeader.find("://");
-        if (pos != std::string::npos) hostHeader = hostHeader.substr(pos + 3);
-        pos = hostHeader.find('/');
-        if (pos != std::string::npos) hostHeader = hostHeader.substr(0, pos);
-        return hostHeader;
-    }
-}// namespace
-
 AgentHandler::AgentHandler(boost::asio::streambuf &readBuffer,
                            boost::asio::streambuf &writeBuffer,
                            const std::shared_ptr<Config> &config,
@@ -97,7 +86,7 @@ void AgentHandler::handle() {
             request_->httpType() == HTTP::HttpType::connect ? "open" : "request";
 
     std::ostringstream outer;
-    outer << "POST /relay HTTP/1.1\r\n"
+    outer << config_->general().method + " / HTTP/1.1\r\n"
           << "Host: " << relayHostHeader(config_) << "\r\n"
           << "User-Agent: Mozilla/5.0\r\n"
           << "Accept: */*\r\n"
@@ -151,4 +140,13 @@ void AgentHandler::handle() {
 
     connect_ = request_->httpType() == HTTP::HttpType::connect;
     end_ = false;
+}
+
+std::string AgentHandler::relayHostHeader(const std::shared_ptr<Config> &config) {
+    std::string hostHeader = config->general().fakeUrl;
+    auto pos = hostHeader.find("://");
+    if (pos != std::string::npos) hostHeader = hostHeader.substr(pos + 3);
+    pos = hostHeader.find('/');
+    if (pos != std::string::npos) hostHeader = hostHeader.substr(0, pos);
+    return hostHeader;
 }

@@ -109,10 +109,10 @@ void ServerHandler::handle() {
     const std::string method = std::string(outerReq.method_string());
     const std::string target = std::string(outerReq.target());
 
-    if (method != "POST" || target != "/relay") {
-        makePlainHttpResponse("", "404 Not Found", "close");
-        return;
-    }
+    // if (method != "POST" || target != "/relay") {
+    //     makePlainHttpResponse("", "404 Not Found", "close");
+    //     return;
+    // }
 
     const std::string outerRaw = streambufToString(readBuffer_);
     const auto outerHeaderEnd = outerRaw.find("\r\n\r\n");

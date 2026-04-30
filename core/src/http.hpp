@@ -83,8 +83,6 @@ public:
 
     const std::string restoString() const;
 
-    std::string chunkHeader_;
-
 private:
     explicit HTTP(const std::shared_ptr<Config> &config,
                   const std::shared_ptr<Log> &log,

@@ -4,19 +4,16 @@ general:
   # token: 32 bytes of string. this will be used on agent and server side to encryption
   token: "af445adb-2434-4975-9445-2c1b2231"
   # fakeUrl: string
-  # Defines the fake url and endpoint between agent and server
-  fakeUrl: "http://nipo.ciron.net"
+  # Defines the fake url between agent and server
+  fakeUrl: "nipo.ciron.net"
   # method: "HEAD|GET|POST|PUT|DELETE"
   # Defines with which method
   #   you like to send requests from agent to server
-  method: "POST"
+  method: "GET"
   # timeout: unsigned short
   # Defines the timeout for I/O Operation in seconds. 0 indicates no timeout.
   #   Useful to automatically close stalled connections.
   timeout: 10
-  # chunkHeader: String
-  # Defines the chunk header that you want to inform Agent/Server if it is end or not.
-  chunkHeader: "END"
 
 
 # This block is to define log directives
