@@ -6,10 +6,13 @@
 #include <boost/bind/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <chrono>
 #include <memory>
 #include <mutex>
+#include <string>
 
 #include "agenthandler.hpp"
 #include "general.hpp"
@@ -18,8 +21,7 @@
 class TCPConnection : public boost::enable_shared_from_this<TCPConnection> {
 public:
     using pointer = boost::shared_ptr<TCPConnection>;
-    using ssl_stream =
-            boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
+    using ssl_stream = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
 
     static pointer create(boost::asio::io_context &io_context,
                           const std::shared_ptr<Config> &config,
@@ -29,13 +31,10 @@ public:
     }
 
     boost::asio::ip::tcp::socket &socket();
-
     inline TCPClient::pointer client() { return client_; }
-
     ssl_stream &tlsSocket();
 
     bool initTlsServerContext();
-
     bool doHandshakeServer();
 
     inline void writeBuffer(boost::asio::streambuf &buffer) {
@@ -43,33 +42,22 @@ public:
     }
 
     inline const boost::asio::streambuf &readBuffer() & { return readBuffer_; }
-
-    inline const boost::asio::streambuf &&readBuffer() && {
-        return std::move(readBuffer_);
-    }
-
+    inline const boost::asio::streambuf &&readBuffer() && { return std::move(readBuffer_); }
     inline boost::uuids::uuid uuid() { return uuid_; }
 
     void startAgent();
-
     void startServer();
 
     void doReadAgent();
-
     void doReadServer();
-
-    void handleReadAgent(const boost::system::error_code &error,
-                         size_t bytes_transferred);
-
-    void handleReadServer(const boost::system::error_code &error,
-                          size_t bytes_transferred);
+    void handleReadAgent(const boost::system::error_code &error, size_t bytes_transferred);
+    void handleReadServer(const boost::system::error_code &error, size_t bytes_transferred);
 
     void socketShutdown();
 
+    // Kept for ABI/source compatibility. They are intentionally unused in pure HTTP mode.
     void enableTunnelMode();
-
     void relayClientToRemote();
-
     void relayRemoteToClient();
 
 private:
@@ -79,10 +67,15 @@ private:
                            TCPClient::pointer client);
 
     void resetTimeout();
-
     void cancelTimeout();
-
     void onTimeout(const boost::system::error_code &error);
+
+    // Pure HTTP tunnel mode used after CONNECT.
+    void startTunnelReadFromBrowser();
+    void startTunnelPollServer();
+    std::string postTunnelAction(const std::string &action, const std::string &rawBody);
+    std::string makeRelayHostHeader() const;
+    void closeTunnelSession();
 
     boost::asio::ip::tcp::socket socket_;
     boost::asio::ssl::context sslContext_;
@@ -97,6 +90,7 @@ private:
     boost::asio::streambuf writeBuffer_;
 
     boost::asio::steady_timer timeout_;
+    boost::asio::steady_timer pollTimer_;
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 
     boost::uuids::uuid uuid_;
@@ -105,7 +99,9 @@ private:
     bool end_;
     bool connect_;
     bool tunnelMode_;
+    bool tunnelClosed_;
+    bool pollInProgress_;
 
-    std::array<char, 16384> downstreamBuf_;
-    std::array<char, 16384> upstreamBuf_;
+    std::array<char, 65536> downstreamBuf_;
+    std::array<char, 65536> upstreamBuf_;
 };

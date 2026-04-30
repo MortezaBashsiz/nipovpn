@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
+#include <string>
 
 #include "config.hpp"
 #include "general.hpp"
@@ -19,8 +21,7 @@ public:
                           const TCPClient::pointer &client,
                           const std::string &clientConnStr,
                           boost::uuids::uuid uuid) {
-        return pointer(new ServerHandler(readBuffer, writeBuffer, config, log,
-                                         client, clientConnStr, uuid));
+        return pointer(new ServerHandler(readBuffer, writeBuffer, config, log, client, clientConnStr, uuid));
     }
 
     ~ServerHandler();
@@ -28,7 +29,6 @@ public:
     void handle();
 
     inline const HTTP::pointer &request() & { return request_; }
-
     inline const HTTP::pointer &&request() && { return std::move(request_); }
 
     bool end_;
@@ -43,6 +43,13 @@ private:
                            const std::string &clientConnStr,
                            boost::uuids::uuid uuid);
 
+    void makeEncryptedHttpResponse(const std::string &plainBody,
+                                   const std::string &status = "200 OK",
+                                   const std::string &connection = "close");
+    void makePlainHttpResponse(const std::string &body,
+                               const std::string &status = "200 OK",
+                               const std::string &connection = "close");
+
     const std::shared_ptr<Config> &config_;
     const std::shared_ptr<Log> &log_;
     const TCPClient::pointer &client_;
@@ -51,6 +58,5 @@ private:
     HTTP::pointer request_;
     const std::string &clientConnStr_;
     boost::uuids::uuid uuid_;
-
     std::mutex mutex_;
 };
