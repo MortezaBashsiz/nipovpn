@@ -1,5 +1,6 @@
 #include "config.hpp"
 
+
 Config::Config(const RunMode &mode, const std::string &filePath)
     : runMode_(mode),
       filePath_(filePath),
