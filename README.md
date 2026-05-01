@@ -1,4 +1,4 @@
-# NipoVPN (Not ready yet :D)
+# NipoVPN
 
 ## Overview
 
