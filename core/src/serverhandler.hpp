@@ -3,6 +3,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 
 #include "config.hpp"
 #include "general.hpp"
@@ -35,6 +36,13 @@ public:
     bool connect_;
 
 private:
+    struct HttpUtils {
+        static std::string lowerCopy(std::string s);
+        static std::string trimCopy(std::string s);
+        static std::string getRawHeader(const std::string &headers, const std::string &name);
+        static std::string extractHttpBody(const std::string &msg);
+    };
+
     explicit ServerHandler(boost::asio::streambuf &readBuffer,
                            boost::asio::streambuf &writeBuffer,
                            const std::shared_ptr<Config> &config,
@@ -46,9 +54,13 @@ private:
     void makeEncryptedHttpResponse(const std::string &plainBody,
                                    const std::string &status = "200 OK",
                                    const std::string &connection = "close");
+
     void makePlainHttpResponse(const std::string &body,
                                const std::string &status = "200 OK",
                                const std::string &connection = "close");
+
+    static std::mutex sessionsMutex_;
+    static std::unordered_map<std::string, TCPClient::pointer> sessions_;
 
     const std::shared_ptr<Config> &config_;
     const std::shared_ptr<Log> &log_;
