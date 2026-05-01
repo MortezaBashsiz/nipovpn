@@ -3,7 +3,7 @@ name: Build and Release Debian Package
 on:
   push:
     branches:
-      - mori/cf
+      - mori/mori
     paths:
       - 'core/src/**'
       - '.github/workflows/**'
@@ -30,17 +30,17 @@ jobs:
           cd ..
           mkdir -p nipovpn/usr/bin/
           cp build/core/nipovpn nipovpn/usr/bin/nipovpn
-          dpkg-deb --build nipovpn/ build/nipovpn_cf_v1-1-${{ github.run_number }}.deb
+          dpkg-deb --build nipovpn/ build/nipovpn_mori_v1-1-${{ github.run_number }}.deb
 
       - name: Upload the Debian nipovpn as an artifact
         uses: actions/upload-artifact@v4
         with:
           name: nipovpn
-          path: build/nipovpn_cf_v1-1-${{ github.run_number }}.deb
+          path: build/nipovpn_mori_v1-1-${{ github.run_number }}.deb
 
       - name: Show nipovpn information
         run: |
-          dpkg -I build/nipovpn_cf_v1-1-${{ github.run_number }}.deb
+          dpkg -I build/nipovpn_mori_v1-1-${{ github.run_number }}.deb
 
   release:
     needs: build
@@ -59,8 +59,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
         with:
-          tag_name: 'v.10.1.1.${{ github.run_number }}'
-          release_name: Staging v.10.1.1.${{ github.run_number }}
+          tag_name: 'v.11.1.1.${{ github.run_number }}'
+          release_name: Mori v.11.1.1.${{ github.run_number }}
           draft: false
           prerelease: true
 
@@ -70,6 +70,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./nipovpn_cf_v1-1-${{ github.run_number }}.deb
-          asset_name: nipovpn_cf_v1-1-${{ github.run_number }}.deb
+          asset_path: ./nipovpn_mori_v1-1-${{ github.run_number }}.deb
+          asset_name: nipovpn_mori_v1-1-${{ github.run_number }}.deb
           asset_content_type: application/octet-stream
