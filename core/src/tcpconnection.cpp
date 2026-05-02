@@ -167,7 +167,6 @@ TCPConnection::TCPConnection(boost::asio::io_context &io_context,
     uuid_ = boost::uuids::random_generator()();
     end_ = false;
     connect_ = false;
-    tunnelMode_ = false;
     tunnelClosed_ = false;
     pollInProgress_ = false;
 }
@@ -612,14 +611,6 @@ void TCPConnection::closeTunnelSession() {
 
     postTunnelAction("close", "");
 }
-
-void TCPConnection::enableTunnelMode() {
-    tunnelMode_ = true;
-}
-
-void TCPConnection::relayClientToRemote() {}
-
-void TCPConnection::relayRemoteToClient() {}
 
 void TCPConnection::resetTimeout() {
     if (!config_->general().timeout) return;

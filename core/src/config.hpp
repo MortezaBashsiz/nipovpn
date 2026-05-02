@@ -21,6 +21,7 @@ private:
         std::string fakeUrl;
         std::string method;
         unsigned short timeout;
+        bool tunnelEnable;
     };
 
     struct Log {

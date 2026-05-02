@@ -56,10 +56,6 @@ public:
 
     void socketShutdown();
 
-    void enableTunnelMode();
-    void relayClientToRemote();
-    void relayRemoteToClient();
-
 private:
     struct HttpUtils {
         static std::string toLowerCopy(std::string s);
