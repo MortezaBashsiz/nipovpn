@@ -10,6 +10,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -55,12 +56,55 @@ public:
 
     void socketShutdown();
 
-    // Kept for ABI/source compatibility. They are intentionally unused in pure HTTP mode.
-    void enableTunnelMode();
-    void relayClientToRemote();
-    void relayRemoteToClient();
+    void enableDirectTunnelMode();
+
+    void relayClientToServer();
+    void relayServerToClient();
+
+    void relayAgentToTarget();
+    void relayTargetToAgent();
+
+    void asyncWriteToAgentConnection(
+            const char *data,
+            std::size_t bytes,
+            std::function<void(const boost::system::error_code &)> done);
+
+    void asyncReadFromAgentConnection(
+            std::array<char, 8192> &buffer,
+            std::function<void(const boost::system::error_code &, std::size_t)> done);
+
+    void asyncWriteToAgentServerConnection(
+            const char *data,
+            std::size_t bytes,
+            std::function<void(const boost::system::error_code &)> done);
+
+    void asyncReadFromAgentServerConnection(
+            std::array<char, 8192> &buffer,
+            std::function<void(const boost::system::error_code &, std::size_t)> done);
 
 private:
+    struct HttpUtils {
+        static std::string toLowerCopy(std::string s);
+        static std::string extractHeaders(const std::string &msg);
+        static std::string extractBody(const std::string &msg);
+        static bool parseContentLength(const std::string &headers, std::size_t &value);
+        static bool isChunked(const std::string &headers);
+
+        static bool readRemainingHttpBody(boost::asio::ip::tcp::socket &stream,
+                                          boost::asio::streambuf &buf,
+                                          boost::system::error_code &ec);
+
+        static bool readRemainingHttpBody(ssl_stream &stream,
+                                          boost::asio::streambuf &buf,
+                                          boost::system::error_code &ec);
+
+        static bool readRemainingHttpBodyImpl(
+                boost::asio::streambuf &buf,
+                boost::system::error_code &ec,
+                const std::function<std::size_t(boost::asio::mutable_buffer,
+                                                boost::system::error_code &)> &readSome);
+    };
+
     explicit TCPConnection(boost::asio::io_context &io_context,
                            const std::shared_ptr<Config> &config,
                            const std::shared_ptr<Log> &log,
@@ -70,8 +114,7 @@ private:
     void cancelTimeout();
     void onTimeout(const boost::system::error_code &error);
 
-    // Pure HTTP tunnel mode used after CONNECT.
-    void startTunnelReadFromBrowser();
+    void startTunnelReadFromClient();
     void startTunnelPollServer();
     std::string postTunnelAction(const std::string &action, const std::string &rawBody);
     std::string makeRelayHostHeader() const;
@@ -102,6 +145,6 @@ private:
     bool tunnelClosed_;
     bool pollInProgress_;
 
-    std::array<char, 65536> downstreamBuf_;
-    std::array<char, 65536> upstreamBuf_;
+    std::array<char, 8192> downstreamBuf_;
+    std::array<char, 8192> upstreamBuf_;
 };

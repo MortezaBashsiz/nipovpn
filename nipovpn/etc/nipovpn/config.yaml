@@ -14,6 +14,10 @@ general:
   # Defines the timeout for I/O Operation in seconds. 0 indicates no timeout.
   #   Useful to automatically close stalled connections.
   timeout: 10
+  # tunnelEnable: bool
+  # Degines the connection mode between agent and server. If enabled then the traffic
+  #   will be TCP/TLS tunnel like.
+  tunnelEnable: false
 
 
 # This block is to define log directives
