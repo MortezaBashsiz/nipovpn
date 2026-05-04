@@ -5,6 +5,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/uuid/uuid.hpp>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -27,35 +28,25 @@ public:
     }
 
     tcp::socket &socket();
-
     ssl_stream &sslSocket();
 
     bool tlsEnabled() const;
-
     bool isOpen() const;
 
     bool enableTlsClient();
-
     bool doHandshakeClient();
+    bool doConnect(const std::string &dstIP, const unsigned short &dstPort);
 
     void writeBuffer(boost::asio::streambuf &buffer);
 
     inline boost::asio::streambuf &writeBuffer() & { return writeBuffer_; }
-
-    inline boost::asio::streambuf &&writeBuffer() && {
-        return std::move(writeBuffer_);
-    }
+    inline boost::asio::streambuf &&writeBuffer() && { return std::move(writeBuffer_); }
 
     inline boost::asio::streambuf &readBuffer() & { return readBuffer_; }
-
     inline boost::asio::streambuf &&readBuffer() && { return std::move(readBuffer_); }
 
-    bool doConnect(const std::string &dstIP, const unsigned short &dstPort);
-
     void doWrite(boost::asio::streambuf &buffer);
-
     void doReadAgent();
-
     void doReadServer();
 
     void socketShutdown();
@@ -64,15 +55,36 @@ public:
     bool end_;
 
 private:
+    struct HttpUtils {
+        static std::string toLowerCopy(std::string s);
+        static std::string extractHeaders(const std::string &msg);
+        static std::string extractBody(const std::string &msg);
+        static bool parseContentLength(const std::string &headers, std::size_t &value);
+        static bool isChunked(const std::string &headers);
+
+        static bool readHttpMessage(tcp::socket &stream,
+                                    boost::asio::streambuf &out,
+                                    boost::system::error_code &ec);
+
+        static bool readHttpMessage(ssl_stream &stream,
+                                    boost::asio::streambuf &out,
+                                    boost::system::error_code &ec);
+
+        static bool readHttpMessageImpl(
+                boost::asio::streambuf &out,
+                boost::system::error_code &ec,
+                const std::function<std::size_t(boost::asio::mutable_buffer,
+                                                boost::system::error_code &)> &readSome,
+                const std::function<bool(boost::asio::streambuf &,
+                                         boost::system::error_code &)> &readHeaders);
+    };
+
     explicit TCPClient(boost::asio::io_context &io_context,
                        const std::shared_ptr<Config> &config,
                        const std::shared_ptr<Log> &log);
 
     void resetTimeout();
-
-
     void cancelTimeout();
-
     void onTimeout(const boost::system::error_code &error);
 
     const std::shared_ptr<Config> &config_;

@@ -5,119 +5,7 @@
 #include <algorithm>
 #include <cctype>
 #include <sstream>
-
-namespace {
-
-    std::string toLowerCopy(std::string s) {
-        std::transform(s.begin(), s.end(), s.begin(),
-                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        return s;
-    }
-
-    std::string extractHeaders(const std::string &msg) {
-        auto pos = msg.find("\r\n\r\n");
-        if (pos == std::string::npos) return {};
-        return msg.substr(0, pos + 4);
-    }
-
-    std::string extractBody(const std::string &msg) {
-        auto pos = msg.find("\r\n\r\n");
-        if (pos == std::string::npos) return {};
-        return msg.substr(pos + 4);
-    }
-
-    bool parseContentLength(const std::string &headers, std::size_t &value) {
-        std::istringstream iss(headers);
-        std::string line;
-        while (std::getline(iss, line)) {
-            if (!line.empty() && line.back() == '\r') line.pop_back();
-            auto lower = toLowerCopy(line);
-            if (lower.rfind("content-length:", 0) == 0) {
-                auto raw = line.substr(std::string("Content-Length:").size());
-                raw.erase(0, raw.find_first_not_of(" \t"));
-                try {
-                    value = static_cast<std::size_t>(std::stoull(raw));
-                    return true;
-                } catch (...) {
-                    return false;
-                }
-            }
-        }
-        return false;
-    }
-
-    bool isChunked(const std::string &headers) {
-        std::istringstream iss(headers);
-        std::string line;
-        while (std::getline(iss, line)) {
-            if (!line.empty() && line.back() == '\r') line.pop_back();
-            auto lower = toLowerCopy(line);
-            if (lower.rfind("transfer-encoding:", 0) == 0 &&
-                lower.find("chunked") != std::string::npos) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    template<typename SyncReadStream>
-    bool readHttpMessage(SyncReadStream &stream,
-                         boost::asio::streambuf &out,
-                         boost::system::error_code &ec) {
-        out.consume(out.size());
-
-        boost::asio::read_until(stream, out, "\r\n\r\n", ec);
-        if (ec) return false;
-
-        std::string current = streambufToString(out);
-        std::string headers = extractHeaders(current);
-        std::string body = extractBody(current);
-
-        std::size_t contentLength = 0;
-        if (parseContentLength(headers, contentLength)) {
-            if (body.size() < contentLength) {
-                boost::asio::read(stream, out,
-                                  boost::asio::transfer_exactly(contentLength - body.size()),
-                                  ec);
-                if (ec) return false;
-            }
-            return true;
-        }
-
-        if (isChunked(headers)) {
-            for (;;) {
-                current = streambufToString(out);
-                auto bodyPos = current.find("\r\n\r\n");
-                if (bodyPos == std::string::npos) return false;
-
-                std::string bodyPart = current.substr(bodyPos + 4);
-                auto lastChunkPos = bodyPart.find("\r\n0\r\n\r\n");
-                if (lastChunkPos != std::string::npos || bodyPart == "0\r\n\r\n") {
-                    return true;
-                }
-
-                std::array<char, 4096> tmp{};
-                std::size_t n = stream.read_some(boost::asio::buffer(tmp), ec);
-                if (ec) return false;
-                std::ostream os(&out);
-                os.write(tmp.data(), static_cast<std::streamsize>(n));
-            }
-        }
-
-        for (;;) {
-            std::array<char, 4096> tmp{};
-            std::size_t n = stream.read_some(boost::asio::buffer(tmp), ec);
-            if (ec == boost::asio::error::eof) {
-                ec.clear();
-                return true;
-            }
-            if (ec) return false;
-            std::ostream os(&out);
-            os.write(tmp.data(), static_cast<std::streamsize>(n));
-        }
-    }
-
-}// namespace
+#include <vector>
 
 TCPClient::TCPClient(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
@@ -408,9 +296,9 @@ void TCPClient::doReadAgent() {
 
         bool ok = false;
         if (tlsEnabled_ && sslSocket_) {
-            ok = readHttpMessage(*sslSocket_, readBuffer_, error);
+            ok = HttpUtils::readHttpMessage(*sslSocket_, readBuffer_, error);
         } else {
-            ok = readHttpMessage(socket_, readBuffer_, error);
+            ok = HttpUtils::readHttpMessage(socket_, readBuffer_, error);
         }
 
         cancelTimeout();
@@ -560,5 +448,184 @@ void TCPClient::socketShutdown() {
         log_->write("[" + to_string(uuid_) +
                             "] [TCPClient socketShutdown] [catch] " + error.what(),
                     Log::Level::DEBUG);
+    }
+}
+
+std::string TCPClient::HttpUtils::toLowerCopy(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) {
+                       return static_cast<char>(std::tolower(c));
+                   });
+    return s;
+}
+
+std::string TCPClient::HttpUtils::extractHeaders(const std::string &msg) {
+    auto pos = msg.find("\r\n\r\n");
+    if (pos == std::string::npos) return {};
+    return msg.substr(0, pos + 4);
+}
+
+std::string TCPClient::HttpUtils::extractBody(const std::string &msg) {
+    auto pos = msg.find("\r\n\r\n");
+    if (pos == std::string::npos) return {};
+    return msg.substr(pos + 4);
+}
+
+bool TCPClient::HttpUtils::parseContentLength(const std::string &headers, std::size_t &value) {
+    std::istringstream iss(headers);
+    std::string line;
+
+    while (std::getline(iss, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+
+        auto lower = toLowerCopy(line);
+
+        if (lower.rfind("content-length:", 0) == 0) {
+            auto raw = line.substr(std::string("Content-Length:").size());
+            raw.erase(0, raw.find_first_not_of(" \t"));
+
+            try {
+                value = static_cast<std::size_t>(std::stoull(raw));
+                return true;
+            } catch (...) {
+                return false;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool TCPClient::HttpUtils::isChunked(const std::string &headers) {
+    std::istringstream iss(headers);
+    std::string line;
+
+    while (std::getline(iss, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+
+        auto lower = toLowerCopy(line);
+
+        if (lower.rfind("transfer-encoding:", 0) == 0 &&
+            lower.find("chunked") != std::string::npos) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool TCPClient::HttpUtils::readHttpMessage(
+        tcp::socket &stream,
+        boost::asio::streambuf &out,
+        boost::system::error_code &ec) {
+    return readHttpMessageImpl(
+            out,
+            ec,
+            [&stream](boost::asio::mutable_buffer buffer,
+                      boost::system::error_code &error) {
+                return stream.read_some(buffer, error);
+            },
+            [&stream](boost::asio::streambuf &buffer,
+                      boost::system::error_code &error) {
+                boost::asio::read_until(stream, buffer, "\r\n\r\n", error);
+                return !error;
+            });
+}
+
+bool TCPClient::HttpUtils::readHttpMessage(
+        ssl_stream &stream,
+        boost::asio::streambuf &out,
+        boost::system::error_code &ec) {
+    return readHttpMessageImpl(
+            out,
+            ec,
+            [&stream](boost::asio::mutable_buffer buffer,
+                      boost::system::error_code &error) {
+                return stream.read_some(buffer, error);
+            },
+            [&stream](boost::asio::streambuf &buffer,
+                      boost::system::error_code &error) {
+                boost::asio::read_until(stream, buffer, "\r\n\r\n", error);
+                return !error;
+            });
+}
+
+bool TCPClient::HttpUtils::readHttpMessageImpl(
+        boost::asio::streambuf &out,
+        boost::system::error_code &ec,
+        const std::function<std::size_t(boost::asio::mutable_buffer,
+                                        boost::system::error_code &)> &readSome,
+        const std::function<bool(boost::asio::streambuf &,
+                                 boost::system::error_code &)> &readHeaders) {
+    out.consume(out.size());
+
+    if (!readHeaders(out, ec)) {
+        return false;
+    }
+
+    std::string current = streambufToString(out);
+    std::string headers = extractHeaders(current);
+    std::string body = extractBody(current);
+
+    std::size_t contentLength = 0;
+
+    if (parseContentLength(headers, contentLength)) {
+        if (body.size() < contentLength) {
+            std::vector<char> tmp(contentLength - body.size());
+            std::size_t total = 0;
+
+            while (total < tmp.size()) {
+                std::size_t n = readSome(
+                        boost::asio::buffer(tmp.data() + total, tmp.size() - total),
+                        ec);
+
+                if (ec) return false;
+                total += n;
+            }
+
+            std::ostream os(&out);
+            os.write(tmp.data(), static_cast<std::streamsize>(tmp.size()));
+        }
+
+        return true;
+    }
+
+    if (isChunked(headers)) {
+        for (;;) {
+            current = streambufToString(out);
+
+            auto bodyPos = current.find("\r\n\r\n");
+            if (bodyPos == std::string::npos) return false;
+
+            std::string bodyPart = current.substr(bodyPos + 4);
+
+            auto lastChunkPos = bodyPart.find("\r\n0\r\n\r\n");
+            if (lastChunkPos != std::string::npos || bodyPart == "0\r\n\r\n") {
+                return true;
+            }
+
+            std::array<char, 4096> tmp{};
+            std::size_t n = readSome(boost::asio::buffer(tmp), ec);
+
+            if (ec) return false;
+
+            std::ostream os(&out);
+            os.write(tmp.data(), static_cast<std::streamsize>(n));
+        }
+    }
+
+    for (;;) {
+        std::array<char, 4096> tmp{};
+        std::size_t n = readSome(boost::asio::buffer(tmp), ec);
+
+        if (ec == boost::asio::error::eof) {
+            ec.clear();
+            return true;
+        }
+
+        if (ec) return false;
+
+        std::ostream os(&out);
+        os.write(tmp.data(), static_cast<std::streamsize>(n));
     }
 }

@@ -3,7 +3,7 @@ name: Build and Release Debian Package
 on:
   push:
     branches:
-      - mori/mori
+      - mori
     paths:
       - 'core/src/**'
       - '.github/workflows/**'
