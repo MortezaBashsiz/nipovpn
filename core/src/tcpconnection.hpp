@@ -58,8 +58,8 @@ public:
 
     void enableDirectTunnelMode();
 
-    void relayBrowserToServer();
-    void relayServerToBrowser();
+    void relayClientToServer();
+    void relayServerToClient();
 
     void relayAgentToTarget();
     void relayTargetToAgent();
@@ -114,7 +114,7 @@ private:
     void cancelTimeout();
     void onTimeout(const boost::system::error_code &error);
 
-    void startTunnelReadFromBrowser();
+    void startTunnelReadFromClient();
     void startTunnelPollServer();
     std::string postTunnelAction(const std::string &action, const std::string &rawBody);
     std::string makeRelayHostHeader() const;

@@ -393,11 +393,11 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
 
                                 if (self->config_->general().tunnelEnable) {
                                     self->enableDirectTunnelMode();
-                                    self->relayBrowserToServer();
-                                    self->relayServerToBrowser();
+                                    self->relayClientToServer();
+                                    self->relayServerToClient();
                                 } else {
                                     self->client_->socketShutdown();
-                                    self->startTunnelReadFromBrowser();
+                                    self->startTunnelReadFromClient();
                                     self->startTunnelPollServer();
                                 }
 
@@ -581,7 +581,7 @@ std::string TCPConnection::postTunnelAction(const std::string &action, const std
     return dec.message;
 }
 
-void TCPConnection::startTunnelReadFromBrowser() {
+void TCPConnection::startTunnelReadFromClient() {
     if (tunnelClosed_ || !socket_.is_open()) return;
 
     socket_.async_read_some(
@@ -598,7 +598,7 @@ void TCPConnection::startTunnelReadFromBrowser() {
                         std::string raw(self->downstreamBuf_.data(), bytes);
 
                         self->postTunnelAction("send", raw);
-                        self->startTunnelReadFromBrowser();
+                        self->startTunnelReadFromClient();
                     }));
 }
 
@@ -787,7 +787,7 @@ void TCPConnection::asyncReadFromAgentServerConnection(
             boost::asio::bind_executor(strand_, done));
 }
 
-void TCPConnection::relayBrowserToServer() {
+void TCPConnection::relayClientToServer() {
     if (tunnelClosed_ || !socket_.is_open() || !client_->isOpen()) {
         socketShutdown();
         return;
@@ -814,12 +814,12 @@ void TCPConnection::relayBrowserToServer() {
                                         return;
                                     }
 
-                                    self->relayBrowserToServer();
+                                    self->relayClientToServer();
                                 });
                     }));
 }
 
-void TCPConnection::relayServerToBrowser() {
+void TCPConnection::relayServerToClient() {
     if (tunnelClosed_ || !socket_.is_open() || !client_->isOpen()) {
         socketShutdown();
         return;
@@ -846,7 +846,7 @@ void TCPConnection::relayServerToBrowser() {
                                         return;
                                     }
 
-                                    self->relayServerToBrowser();
+                                    self->relayServerToClient();
                                 }));
             });
 }
