@@ -120,32 +120,33 @@ void ServerHandler::makeEncryptedHttpResponse(const std::string &plainBody,
 }
 
 void ServerHandler::handle() {
-    std::lock_guard lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
 
     if (!request_->detectType()) {
-        log_->write("[" + to_string(uuid_) +
-                            "] [ServerHandler handle] [NOT HTTP Request From Agent] [Request] : " +
-                            streambufToString(readBuffer_),
-                    Log::Level::DEBUG);
+        log_->write(
+                "[" + to_string(uuid_) +
+                        "] [ServerHandler handle] [NOT HTTP Request From Agent] [Request] : " +
+                        streambufToString(readBuffer_),
+                Log::Level::DEBUG);
 
         client_->socket().close();
         return;
     }
 
     const auto &outerReq = request_->parsedHttpRequest();
-    const std::string method = std::string(outerReq.method_string());
-    const std::string target = std::string(outerReq.target());
 
     const std::string outerRaw = streambufToString(readBuffer_);
     const auto outerHeaderEnd = outerRaw.find("\r\n\r\n");
-
     const std::string outerHeaders =
             outerHeaderEnd == std::string::npos
                     ? ""
                     : outerRaw.substr(0, outerHeaderEnd + 2);
 
-    const std::string session = HttpUtils::getRawHeader(outerHeaders, "X-Nipo-Session");
-    const std::string action = HttpUtils::getRawHeader(outerHeaders, "X-Nipo-Action");
+    const std::string session =
+            HttpUtils::getRawHeader(outerHeaders, "X-Nipo-Session");
+
+    const std::string action =
+            HttpUtils::getRawHeader(outerHeaders, "X-Nipo-Action");
 
     std::string requestBody = std::string(outerReq.body());
 
@@ -156,34 +157,41 @@ void ServerHandler::handle() {
     BoolStr decryption{false, std::string("FAILED")};
 
     try {
-        decryption = aes256Decrypt(decode64(requestBody), config_->general().token);
+        decryption = aes256Decrypt(
+                decode64(requestBody),
+                config_->general().token);
     } catch (const std::exception &e) {
-        log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Base64 Decode Failed] " + e.what(),
-                    Log::Level::DEBUG);
+        log_->write(
+                "[" + to_string(uuid_) +
+                        "] [ServerHandler handle] [Base64 Decode Failed] " + e.what(),
+                Log::Level::DEBUG);
 
         makePlainHttpResponse("", "400 Bad Request", "close");
         return;
     }
 
     if (!decryption.ok) {
-        log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Decryption Failed] : [ " +
-                            decryption.message + "] ",
-                    Log::Level::DEBUG);
+        log_->write(
+                "[" + to_string(uuid_) +
+                        "] [ServerHandler handle] [Decryption Failed] : [ " +
+                        decryption.message + "] ",
+                Log::Level::DEBUG);
 
         makePlainHttpResponse("", "400 Bad Request", "close");
         return;
     }
 
-    log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [Decryption Done]",
-                Log::Level::DEBUG);
+    log_->write(
+            "[" + to_string(uuid_) + "] [ServerHandler handle] [Decryption Done]",
+            Log::Level::DEBUG);
 
     if (action == "send") {
         TCPClient::pointer targetClient;
 
         {
-            std::lock_guard sessionLock(sessionsMutex_);
-
+            std::lock_guard<std::mutex> sessionLock(sessionsMutex_);
             auto it = sessions_.find(session);
+
             if (it != sessions_.end()) {
                 targetClient = it->second;
             }
@@ -196,7 +204,6 @@ void ServerHandler::handle() {
 
         boost::asio::streambuf tunnelBuf;
         copyStringToStreambuf(hexToASCII(decryption.message), tunnelBuf);
-
         targetClient->doWrite(tunnelBuf);
 
         makeEncryptedHttpResponse("", "200 OK", "close");
@@ -207,9 +214,9 @@ void ServerHandler::handle() {
         TCPClient::pointer targetClient;
 
         {
-            std::lock_guard sessionLock(sessionsMutex_);
-
+            std::lock_guard<std::mutex> sessionLock(sessionsMutex_);
             auto it = sessions_.find(session);
+
             if (it != sessions_.end()) {
                 targetClient = it->second;
             }
@@ -229,21 +236,25 @@ void ServerHandler::handle() {
         }
 
         std::vector<char> data(std::min<std::size_t>(available, 65536));
-
-        std::size_t n = targetClient->socket().read_some(boost::asio::buffer(data), ec);
+        std::size_t n = targetClient->socket().read_some(
+                boost::asio::buffer(data),
+                ec);
 
         if (ec || n == 0) {
             makeEncryptedHttpResponse("", "200 OK", "close");
             return;
         }
 
-        makeEncryptedHttpResponse(std::string(data.data(), n), "200 OK", "close");
+        makeEncryptedHttpResponse(
+                std::string(data.data(), n),
+                "200 OK",
+                "close");
+
         return;
     }
 
     if (action == "close") {
-        std::lock_guard sessionLock(sessionsMutex_);
-
+        std::lock_guard<std::mutex> sessionLock(sessionsMutex_);
         auto it = sessions_.find(session);
 
         if (it != sessions_.end()) {
@@ -256,12 +267,14 @@ void ServerHandler::handle() {
     }
 
     const std::string innerRequest = hexToASCII(decryption.message);
+
     const std::size_t headerEnd = innerRequest.find("\r\n\r\n");
 
     if (headerEnd == std::string::npos) {
-        log_->write("[" + to_string(uuid_) +
-                            "] [ServerHandler handle] [INNER REQUEST MISSING HEADER END]",
-                    Log::Level::DEBUG);
+        log_->write(
+                "[" + to_string(uuid_) +
+                        "] [ServerHandler handle] [INNER REQUEST MISSING HEADER END]",
+                Log::Level::DEBUG);
 
         makeEncryptedHttpResponse("", "400 Bad Request", "close");
         return;
@@ -275,10 +288,11 @@ void ServerHandler::handle() {
     HTTP::pointer inner = HTTP::create(config_, log_, readBuffer_, uuid_);
 
     if (!inner->detectType()) {
-        log_->write("[" + to_string(uuid_) +
-                            "] [ServerHandler handle] [NOT INNER HTTP Request] [Request] : " +
-                            streambufToString(readBuffer_),
-                    Log::Level::DEBUG);
+        log_->write(
+                "[" + to_string(uuid_) +
+                        "] [ServerHandler handle] [NOT INNER HTTP Request] [Request] : " +
+                        streambufToString(readBuffer_),
+                Log::Level::DEBUG);
 
         makeEncryptedHttpResponse("", "400 Bad Request", "close");
         return;
@@ -286,6 +300,42 @@ void ServerHandler::handle() {
 
     switch (inner->httpType()) {
         case HTTP::HttpType::connect: {
+            if (config_->general().tunnelEnable) {
+                if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
+                    log_->write(
+                            "[" + to_string(uuid_) +
+                                    "] [CONNECT] [ERROR] [Resolving Host] [SRC " +
+                                    clientConnStr_ + "] [DST " +
+                                    inner->dstIP() + ":" + std::to_string(inner->dstPort()) + "]",
+                            Log::Level::INFO);
+
+                    makeEncryptedHttpResponse(
+                            "HTTP/1.1 502 Bad Gateway\r\n\r\n",
+                            "502 Bad Gateway",
+                            "close");
+
+                    connect_ = false;
+                    end_ = false;
+                    return;
+                }
+
+                log_->write(
+                        "[" + to_string(uuid_) +
+                                "] [CONNECT] [TUNNEL] [SRC " +
+                                clientConnStr_ + "] [DST " +
+                                inner->dstIP() + ":" + std::to_string(inner->dstPort()) + "]",
+                        Log::Level::INFO);
+
+                makeEncryptedHttpResponse(
+                        "HTTP/1.1 200 Connection Established\r\n\r\n",
+                        "200 OK",
+                        "keep-alive");
+
+                connect_ = true;
+                end_ = false;
+                return;
+            }
+
             TCPClient::pointer targetClient = TCPClient::create(
                     static_cast<boost::asio::io_context &>(
                             client_->socket().get_executor().context()),
@@ -295,20 +345,29 @@ void ServerHandler::handle() {
             targetClient->uuid_ = uuid_;
 
             if (!targetClient->doConnect(inner->dstIP(), inner->dstPort())) {
-                log_->write("[" + to_string(uuid_) + "] [CONNECT] [ERROR] [Resolving Host] [SRC " +
-                                    clientConnStr_ + "] [DST " + inner->dstIP() + ":" +
-                                    std::to_string(inner->dstPort()) + "]",
-                            Log::Level::INFO);
+                log_->write(
+                        "[" + to_string(uuid_) +
+                                "] [CONNECT] [ERROR] [Resolving Host] [SRC " +
+                                clientConnStr_ + "] [DST " +
+                                inner->dstIP() + ":" + std::to_string(inner->dstPort()) + "]",
+                        Log::Level::INFO);
 
-                makeEncryptedHttpResponse("HTTP/1.1 502 Bad Gateway\r\n\r\n",
-                                          "502 Bad Gateway",
-                                          "close");
+                makeEncryptedHttpResponse(
+                        "HTTP/1.1 502 Bad Gateway\r\n\r\n",
+                        "502 Bad Gateway",
+                        "close");
+
+                connect_ = false;
+                end_ = false;
                 return;
             }
 
-            log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " + clientConnStr_ + "] [DST " +
-                                inner->dstIP() + ":" + std::to_string(inner->dstPort()) + "]",
-                        Log::Level::INFO);
+            log_->write(
+                    "[" + to_string(uuid_) +
+                            "] [CONNECT] [SRC " +
+                            clientConnStr_ + "] [DST " +
+                            inner->dstIP() + ":" + std::to_string(inner->dstPort()) + "]",
+                    Log::Level::INFO);
 
             if (!pendingTunnelData.empty()) {
                 boost::asio::streambuf pendingBuf;
@@ -317,14 +376,14 @@ void ServerHandler::handle() {
             }
 
             {
-                std::lock_guard sessionLock(sessionsMutex_);
-
+                std::lock_guard<std::mutex> sessionLock(sessionsMutex_);
                 sessions_[session.empty() ? to_string(uuid_) : session] = targetClient;
             }
 
-            makeEncryptedHttpResponse("HTTP/1.1 200 Connection Established\r\n\r\n",
-                                      "200 OK",
-                                      "close");
+            makeEncryptedHttpResponse(
+                    "HTTP/1.1 200 Connection Established\r\n\r\n",
+                    "200 OK",
+                    "close");
 
             connect_ = false;
             end_ = false;
@@ -352,9 +411,10 @@ void ServerHandler::handle() {
                 return;
             }
 
-            makeEncryptedHttpResponse(streambufToString(client_->readBuffer()),
-                                      "200 OK",
-                                      "close");
+            makeEncryptedHttpResponse(
+                    streambufToString(client_->readBuffer()),
+                    "200 OK",
+                    "close");
 
             connect_ = false;
             end_ = false;

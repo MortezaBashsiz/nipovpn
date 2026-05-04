@@ -56,6 +56,32 @@ public:
 
     void socketShutdown();
 
+    void enableDirectTunnelMode();
+
+    void relayBrowserToServer();
+    void relayServerToBrowser();
+
+    void relayAgentToTarget();
+    void relayTargetToAgent();
+
+    void asyncWriteToAgentConnection(
+            const char *data,
+            std::size_t bytes,
+            std::function<void(const boost::system::error_code &)> done);
+
+    void asyncReadFromAgentConnection(
+            std::array<char, 8192> &buffer,
+            std::function<void(const boost::system::error_code &, std::size_t)> done);
+
+    void asyncWriteToAgentServerConnection(
+            const char *data,
+            std::size_t bytes,
+            std::function<void(const boost::system::error_code &)> done);
+
+    void asyncReadFromAgentServerConnection(
+            std::array<char, 8192> &buffer,
+            std::function<void(const boost::system::error_code &, std::size_t)> done);
+
 private:
     struct HttpUtils {
         static std::string toLowerCopy(std::string s);
@@ -119,6 +145,6 @@ private:
     bool tunnelClosed_;
     bool pollInProgress_;
 
-    std::array<char, 65536> downstreamBuf_;
-    std::array<char, 65536> upstreamBuf_;
+    std::array<char, 8192> downstreamBuf_;
+    std::array<char, 8192> upstreamBuf_;
 };
