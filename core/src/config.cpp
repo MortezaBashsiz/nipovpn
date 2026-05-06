@@ -10,7 +10,8 @@ Config::Config(const RunMode &mode, const std::string &filePath)
       listenPort_(0),
       general_({configYaml_["general"]["token"].as<std::string>(),
                 configYaml_["general"]["fakeUrl"].as<std::string>(),
-                configYaml_["general"]["method"].as<std::string>(),
+                configYaml_["general"]["methods"].as<std::vector<std::string>>(),
+                configYaml_["general"]["endPoints"].as<std::vector<std::string>>(),
                 configYaml_["general"]["timeout"].as<unsigned short>(),
                 configYaml_["general"]["tunnelEnable"].as<bool>(false)}),
       log_({configYaml_["log"]["logLevel"].as<std::string>(),
@@ -67,28 +68,53 @@ Config::~Config() = default;
 
 std::string Config::toString() const {
     std::lock_guard<std::mutex> lock(configMutex_);
+
     std::stringstream ss;
 
     ss << "\nConfig :\n"
        << " General :\n"
        << "   token: " << general_.token << "\n"
        << "   fakeUrl: " << general_.fakeUrl << "\n"
-       << "   method: " << general_.method << "\n"
+       << "   methods: ";
+
+    for (std::size_t i = 0; i < general_.methods.size(); ++i) {
+        ss << general_.methods[i];
+
+        if (i != general_.methods.size() - 1) {
+            ss << ", ";
+        }
+    }
+
+    ss << "\n"
+       << "   endPoints: ";
+
+    for (std::size_t i = 0; i < general_.endPoints.size(); ++i) {
+        ss << general_.endPoints[i];
+
+        if (i != general_.endPoints.size() - 1) {
+            ss << ", ";
+        }
+    }
+
+    ss << "\n"
        << "   timeout: " << general_.timeout << "\n"
-       << "   tunnelEnable: " << general_.tunnelEnable << "\n"
+       << "   tunnelEnable: " << std::boolalpha << general_.tunnelEnable << "\n"
+
        << " Log :\n"
        << "   logLevel: " << log_.level << "\n"
        << "   logFile: " << log_.file << "\n"
-       << " server :\n"
+
+       << " Server :\n"
        << "   threads: " << server_.threads << "\n"
        << "   listenIp: " << server_.listenIp << "\n"
        << "   listenPort: " << server_.listenPort << "\n"
-       << "   tlsEnable: " << server_.tlsEnable << "\n"
-       << "   tlsVerifyPeer: " << server_.tlsVerifyPeer << "\n"
+       << "   tlsEnable: " << std::boolalpha << server_.tlsEnable << "\n"
+       << "   tlsVerifyPeer: " << std::boolalpha << server_.tlsVerifyPeer << "\n"
        << "   tlsCertFile: " << server_.tlsCertFile << "\n"
        << "   tlsKeyFile: " << server_.tlsKeyFile << "\n"
        << "   tlsCaFile: " << server_.tlsCaFile << "\n"
-       << " agent :\n"
+
+       << " Agent :\n"
        << "   threads: " << agent_.threads << "\n"
        << "   listenIp: " << agent_.listenIp << "\n"
        << "   listenPort: " << agent_.listenPort << "\n"
@@ -96,8 +122,8 @@ std::string Config::toString() const {
        << "   serverPort: " << agent_.serverPort << "\n"
        << "   httpVersion: " << agent_.httpVersion << "\n"
        << "   userAgent: " << agent_.userAgent << "\n"
-       << "   tlsEnable: " << agent_.tlsEnable << "\n"
-       << "   tlsVerifyPeer: " << agent_.tlsVerifyPeer << "\n"
+       << "   tlsEnable: " << std::boolalpha << agent_.tlsEnable << "\n"
+       << "   tlsVerifyPeer: " << std::boolalpha << agent_.tlsVerifyPeer << "\n"
        << "   tlsCaFile: " << agent_.tlsCaFile << "\n";
 
     return ss.str();
@@ -174,4 +200,36 @@ std::string Config::modeToString() const {
         default:
             return "UNKNOWN MODE";
     }
+}
+
+std::string Config::randomMethod() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+
+    if (general_.methods.empty()) {
+        return "GET";// fallback
+    }
+
+    static thread_local std::mt19937 generator{std::random_device{}()};
+
+    std::uniform_int_distribution<std::size_t> distribution(
+            0,
+            general_.methods.size() - 1);
+
+    return general_.methods[distribution(generator)];
+}
+
+std::string Config::randomEndPoint() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+
+    if (general_.endPoints.empty()) {
+        return "api";// fallback
+    }
+
+    static thread_local std::mt19937 generator{std::random_device{}()};
+
+    std::uniform_int_distribution<std::size_t> distribution(
+            0,
+            general_.endPoints.size() - 1);
+
+    return general_.endPoints[distribution(generator)];
 }
