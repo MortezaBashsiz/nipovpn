@@ -64,21 +64,21 @@ public:
     void relayAgentToTarget();
     void relayTargetToAgent();
 
-    void asyncWriteToAgentConnection(
+    inline void asyncWriteToAgentConnection(
             const char *data,
             std::size_t bytes,
             std::function<void(const boost::system::error_code &)> done);
 
-    void asyncReadFromAgentConnection(
+    inline void asyncReadFromAgentConnection(
             std::array<char, 8192> &buffer,
             std::function<void(const boost::system::error_code &, std::size_t)> done);
 
-    void asyncWriteToAgentServerConnection(
+    inline void asyncWriteToAgentServerConnection(
             const char *data,
             std::size_t bytes,
             std::function<void(const boost::system::error_code &)> done);
 
-    void asyncReadFromAgentServerConnection(
+    inline void asyncReadFromAgentServerConnection(
             std::array<char, 8192> &buffer,
             std::function<void(const boost::system::error_code &, std::size_t)> done);
 

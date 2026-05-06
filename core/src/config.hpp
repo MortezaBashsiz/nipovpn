@@ -4,8 +4,10 @@
 
 #include <memory>
 #include <mutex>
+#include <random>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "general.hpp"
 
@@ -19,7 +21,7 @@ private:
     struct General {
         std::string token;
         std::string fakeUrl;
-        std::string method;
+        std::vector<std::string> methods;
         unsigned short timeout;
         bool tunnelEnable;
     };
@@ -107,4 +109,6 @@ public:
     std::string modeToString() const;
 
     std::string toString() const;
+
+    std::string randomMethod() const;
 };

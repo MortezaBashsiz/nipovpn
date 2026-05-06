@@ -156,7 +156,7 @@ bool HTTP::parseTls() {
 }
 
 const std::string HTTP::genHttpPostReqString(const std::string &body) const {
-    return std::string(config_->general().method + " " +
+    return std::string(config_->randomMethod() + " " +
                        config_->general().fakeUrl + " HTTP/" +
                        config_->agent().httpVersion + "\r\n") +
            "Host: " + config_->general().fakeUrl + "\r\n" +
@@ -167,7 +167,7 @@ const std::string HTTP::genHttpPostReqString(const std::string &body) const {
 }
 
 const std::string HTTP::genHttpRestPostReqString() const {
-    return std::string(config_->general().method + " " +
+    return std::string(config_->randomMethod() + " " +
                        config_->general().fakeUrl + " HTTP/" +
                        config_->agent().httpVersion + "\r\n") +
            "Host: " + config_->general().fakeUrl + "\r\n" +
