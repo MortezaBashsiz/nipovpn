@@ -22,6 +22,7 @@ private:
         std::string token;
         std::string fakeUrl;
         std::vector<std::string> methods;
+        std::vector<std::string> endPoints;
         unsigned short timeout;
         bool tunnelEnable;
     };
@@ -111,4 +112,6 @@ public:
     std::string toString() const;
 
     std::string randomMethod() const;
+
+    std::string randomEndPoint() const;
 };

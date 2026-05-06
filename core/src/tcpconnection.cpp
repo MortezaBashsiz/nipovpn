@@ -404,7 +404,7 @@ std::string TCPConnection::postTunnelAction(const std::string &action, const std
     const std::string encodedBody = encode64(enc.message);
 
     std::ostringstream req;
-    req << config_->randomMethod() + " / HTTP/1.1\r\n"
+    req << config_->randomMethod() + " /" + config_->randomEndPoint() + " HTTP/1.1\r\n"
         << "Host: " << makeRelayHostHeader() << "\r\n"
         << "User-Agent: Mozilla/5.0\r\n"
         << "Accept: */*\r\n"

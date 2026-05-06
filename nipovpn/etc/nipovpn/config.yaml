@@ -9,12 +9,22 @@ general:
   # method:
   # Defines the list of using methods
   #   you like to send requests from agent to server
-  method:
+  # Program will choose randomly from this list
+  methods:
     - HEAD
     - GET
     - POST
     - PUT
     - DELETE
+  # endPoint:
+  # Defines the list of using endpoints
+  #   you like to send requests from agent to server
+  # Program will choose randomly from this list
+  endPoints:
+    - api
+    - login
+    - user
+    - update
   # timeout: unsigned short
   # Defines the timeout for I/O Operation in seconds. 0 indicates no timeout.
   #   Useful to automatically close stalled connections.

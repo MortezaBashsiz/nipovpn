@@ -326,7 +326,8 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
     try {
         configYaml["general"]["token"].as<std::string>();
         configYaml["general"]["fakeUrl"].as<std::string>();
-        configYaml["general"]["method"].as<std::vector<std::string>>();
+        configYaml["general"]["methods"].as<std::vector<std::string>>();
+        configYaml["general"]["endPoints"].as<std::vector<std::string>>();
         configYaml["general"]["timeout"].as<unsigned short>();
         configYaml["general"]["tunnelEnable"].as<bool>();
     } catch (const std::exception &e) {
