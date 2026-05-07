@@ -177,7 +177,7 @@ const std::string HTTP::genHttpRestPostReqString() const {
 }
 
 const std::string HTTP::genHttpOkResString(const std::string &body) const {
-    return std::string("HTTP/1.1 200 OK\r\n") +
+    return std::string("HTTP/" + config_->agent().httpVersion + " 200 OK\r\n") +
            "Content-Type: application/x-www-form-urlencoded\r\n" +
            "Content-Length: " + std::to_string(body.length()) + "\r\n" +
            "Connection: keep-alive\r\n" + "Cache-Control: no-cache\r\n" +
