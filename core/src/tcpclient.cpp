@@ -167,14 +167,14 @@ bool TCPClient::doHandshakeClient() {
                 if (SSL_set_alpn_protos(sslSocket_->native_handle(),
                                         alpn, sizeof(alpn)) != 0) {
                     log_->write("[" + to_string(uuid_) +
-                                        "] [TLS] Failed to set ALPN http/1.1",
+                                        "] [TLS] Failed to set ALPN http/" + config_->agent().httpVersion,
                                 Log::Level::ERROR);
                     return false;
                 }
 
                 log_->write("[" + to_string(uuid_) +
                                     "] [TLS] Using SNI/ALPN host: " + sniHost +
-                                    " [ALPN http/1.1]",
+                                    " [ALPN http/" + config_->agent().httpVersion + "]",
                             Log::Level::DEBUG);
             }
         }
@@ -193,7 +193,7 @@ bool TCPClient::doHandshakeClient() {
                                 "] [TLS] Negotiated ALPN: " + negotiated,
                         Log::Level::DEBUG);
 
-            if (negotiated != "http/1.1") {
+            if (negotiated != "http/" + config_->agent().httpVersion) {
                 log_->write("[" + to_string(uuid_) +
                                     "] [TLS] Unsupported negotiated ALPN: " + negotiated,
                             Log::Level::ERROR);

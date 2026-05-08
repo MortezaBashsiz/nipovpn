@@ -90,7 +90,7 @@ void ServerHandler::makePlainHttpResponse(const std::string &body,
                                           const std::string &connection) {
     std::ostringstream outer;
 
-    outer << "HTTP/1.1 " << status << "\r\n"
+    outer << "HTTP/" << config_->agent().httpVersion << status << "\r\n"
           << "Content-Type: application/octet-stream\r\n"
           << "Content-Length: " << body.size() << "\r\n"
           << "Connection: " << connection << "\r\n"
@@ -310,7 +310,7 @@ void ServerHandler::handle() {
                             Log::Level::INFO);
 
                     makeEncryptedHttpResponse(
-                            "HTTP/1.1 502 Bad Gateway\r\n\r\n",
+                            "HTTP/" + config_->agent().httpVersion + "502 Bad Gateway\r\n\r\n",
                             "502 Bad Gateway",
                             "close");
 
@@ -327,7 +327,7 @@ void ServerHandler::handle() {
                         Log::Level::INFO);
 
                 makeEncryptedHttpResponse(
-                        "HTTP/1.1 200 Connection Established\r\n\r\n",
+                        "HTTP/" + config_->agent().httpVersion + " 200 Connection Established\r\n\r\n",
                         "200 OK",
                         "keep-alive");
 
@@ -353,7 +353,7 @@ void ServerHandler::handle() {
                         Log::Level::INFO);
 
                 makeEncryptedHttpResponse(
-                        "HTTP/1.1 502 Bad Gateway\r\n\r\n",
+                        "HTTP/" + config_->agent().httpVersion + " 502 Bad Gateway\r\n\r\n",
                         "502 Bad Gateway",
                         "close");
 
@@ -381,7 +381,7 @@ void ServerHandler::handle() {
             }
 
             makeEncryptedHttpResponse(
-                    "HTTP/1.1 200 Connection Established\r\n\r\n",
+                    "HTTP/" + config_->agent().httpVersion + " 200 Connection Established\r\n\r\n",
                     "200 OK",
                     "close");
 

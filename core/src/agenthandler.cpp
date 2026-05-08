@@ -86,7 +86,7 @@ void AgentHandler::handle() {
             request_->httpType() == HTTP::HttpType::connect ? "open" : "request";
 
     std::ostringstream outer;
-    outer << config_->randomMethod() + " /" + config_->randomEndPoint() + " HTTP/1.1\r\n"
+    outer << config_->randomMethod() + " /" + config_->randomEndPoint() + " HTTP/" + config_->agent().httpVersion + "\r\n"
           << "Host: " << relayHostHeader(config_) << "\r\n"
           << "User-Agent: Mozilla/5.0\r\n"
           << "Accept: */*\r\n"
