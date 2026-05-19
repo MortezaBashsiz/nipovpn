@@ -13,8 +13,7 @@ Config::Config(const RunMode &mode, const std::string &filePath)
                 configYaml_["general"]["methods"].as<std::vector<std::string>>(),
                 configYaml_["general"]["endPoints"].as<std::vector<std::string>>(),
                 configYaml_["general"]["timeout"].as<unsigned short>(),
-                configYaml_["general"]["tunnelEnable"].as<bool>(false),
-                configYaml_["general"]["connectionReuse"].as<bool>(false)}),
+                configYaml_["general"]["tunnelEnable"].as<bool>(false)}),
       log_({configYaml_["log"]["logLevel"].as<std::string>(),
             configYaml_["log"]["logFile"].as<std::string>()}),
       server_({configYaml_["server"]["threads"].as<unsigned short>(),
@@ -100,7 +99,6 @@ std::string Config::toString() const {
     ss << "\n"
        << "   timeout: " << general_.timeout << "\n"
        << "   tunnelEnable: " << std::boolalpha << general_.tunnelEnable << "\n"
-       << "   connectionReuse: " << std::boolalpha << general_.connectionReuse << "\n"
 
        << " Log :\n"
        << "   logLevel: " << log_.level << "\n"
