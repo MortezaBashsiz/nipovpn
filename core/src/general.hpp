@@ -330,7 +330,6 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
         configYaml["general"]["endPoints"].as<std::vector<std::string>>();
         configYaml["general"]["timeout"].as<unsigned short>();
         configYaml["general"]["tunnelEnable"].as<bool>();
-        configYaml["general"]["connectionReuse"].as<bool>();
     } catch (const std::exception &e) {
         result.message = std::string("Error in 'general' block: ") + e.what() + "\n";
         return result;

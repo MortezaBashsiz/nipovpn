@@ -332,21 +332,26 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
 
         resetTimeout();
 
-        auto writeHandler = [self = shared_from_this()](const boost::system::error_code &ec, std::size_t) {
-            self->cancelTimeout();
+        auto writeHandler =
+                [self = shared_from_this()](
+                        const boost::system::error_code &ec,
+                        std::size_t) {
+                    self->cancelTimeout();
 
-            if (ec) {
-                self->socketShutdown();
-                return;
-            }
+                    if (ec) {
+                        self->socketShutdown();
+                        return;
+                    }
 
-            if (self->config_->general().connectionReuse) {
-                self->doReadServer();
-                return;
-            }
+                    if (self->connect_ && self->config_->general().tunnelEnable) {
+                        self->enableDirectTunnelMode();
+                        self->relayAgentToTarget();
+                        self->relayTargetToAgent();
+                        return;
+                    }
 
-            self->socketShutdown();
-        };
+                    self->socketShutdown();
+                };
 
         if (config_->server().tlsEnable) {
             boost::asio::async_write(
@@ -383,22 +388,12 @@ std::string TCPConnection::makeRelayHostHeader() const {
 }
 
 std::string TCPConnection::postTunnelAction(const std::string &action, const std::string &rawBody) {
-    if (!tunnelRelayClient_) {
-        tunnelRelayClient_ = TCPClient::create(io_context_, config_, log_);
-        tunnelRelayClient_->uuid_ = uuid_;
-    }
+    TCPClient::pointer c = TCPClient::create(io_context_, config_, log_);
+    c->uuid_ = uuid_;
 
-    TCPClient::pointer c = tunnelRelayClient_;
-
-    if (config_->agent().tlsEnable && !c->tlsEnabled()) {
-        if (!c->enableTlsClient()) return "";
-    }
-
-    if (!c->isOpen()) {
-        if (!c->doConnect(config_->agent().serverIp, config_->agent().serverPort)) return "";
-
-        if (c->tlsEnabled() && !c->doHandshakeClient()) return "";
-    }
+    if (config_->agent().tlsEnable && !c->enableTlsClient()) return "";
+    if (!c->doConnect(config_->agent().serverIp, config_->agent().serverPort)) return "";
+    if (c->tlsEnabled() && !c->doHandshakeClient()) return "";
 
     BoolStr enc = aes256Encrypt(
             hexArrToStr(reinterpret_cast<const unsigned char *>(rawBody.data()), rawBody.size()),
@@ -417,9 +412,7 @@ std::string TCPConnection::postTunnelAction(const std::string &action, const std
         << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
         << "X-Nipo-Action: " << action << "\r\n"
         << "Content-Length: " << encodedBody.size() << "\r\n"
-        << "Connection: "
-        << (config_->general().connectionReuse ? "keep-alive" : "close")
-        << "\r\n"
+        << "Connection: close\r\n"
         << "\r\n"
         << encodedBody;
 
@@ -431,10 +424,7 @@ std::string TCPConnection::postTunnelAction(const std::string &action, const std
 
     const std::string response = streambufToString(c->readBuffer());
 
-    if (!config_->general().connectionReuse || action == "close") {
-        c->socketShutdown();
-        tunnelRelayClient_.reset();
-    }
+    c->socketShutdown();
 
     const auto pos = response.find("\r\n\r\n");
     if (pos == std::string::npos) return "";
