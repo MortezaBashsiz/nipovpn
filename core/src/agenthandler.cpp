@@ -94,9 +94,7 @@ void AgentHandler::handle() {
           << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
           << "X-Nipo-Action: " << action << "\r\n"
           << "Content-Length: " << innerRequest.size() << "\r\n"
-          << "Connection: "
-          << (config_->general().connectionReuse ? "keep-alive" : "close")
-          << "\r\n"
+          << "Connection: close\r\n"
           << "\r\n"
           << innerRequest;
 
