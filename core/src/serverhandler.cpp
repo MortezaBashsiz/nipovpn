@@ -412,11 +412,13 @@ void ServerHandler::handle() {
         case HTTP::HttpType::https: {
             copyStringToStreambuf(innerRequest, readBuffer_);
 
-            if (!client_->socket().is_open()) {
-                if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
-                    client_->socket().close();
-                    makeEncryptedHttpResponse("", "502 Bad Gateway", "close");
-                    return;
+            if (!config_->general().connectionReuse) {
+                if (!client_->socket().is_open()) {
+                    if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
+                        client_->socket().close();
+                        makeEncryptedHttpResponse("", "502 Bad Gateway", "close");
+                        return;
+                    }
                 }
             }
 
