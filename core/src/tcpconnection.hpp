@@ -34,6 +34,7 @@ public:
     boost::asio::ip::tcp::socket &socket();
     inline TCPClient::pointer client() { return client_; }
     ssl_stream &tlsSocket();
+    TCPClient::pointer tunnelRelayClient_;
 
     bool initTlsServerContext();
     bool doHandshakeServer();

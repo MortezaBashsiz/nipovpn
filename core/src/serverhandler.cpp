@@ -198,7 +198,10 @@ void ServerHandler::handle() {
         }
 
         if (!targetClient || !targetClient->isOpen()) {
-            makeEncryptedHttpResponse("", "200 OK", "close");
+            makeEncryptedHttpResponse(
+                    "",
+                    "200 OK",
+                    config_->general().connectionReuse ? "keep-alive" : "close");
             return;
         }
 
@@ -206,7 +209,10 @@ void ServerHandler::handle() {
         copyStringToStreambuf(hexToASCII(decryption.message), tunnelBuf);
         targetClient->doWrite(tunnelBuf);
 
-        makeEncryptedHttpResponse("", "200 OK", "close");
+        makeEncryptedHttpResponse(
+                "",
+                "200 OK",
+                config_->general().connectionReuse ? "keep-alive" : "close");
         return;
     }
 
@@ -223,7 +229,10 @@ void ServerHandler::handle() {
         }
 
         if (!targetClient || !targetClient->isOpen()) {
-            makeEncryptedHttpResponse("", "200 OK", "close");
+            makeEncryptedHttpResponse(
+                    "",
+                    "200 OK",
+                    config_->general().connectionReuse ? "keep-alive" : "close");
             return;
         }
 
@@ -231,7 +240,10 @@ void ServerHandler::handle() {
         std::size_t available = targetClient->socket().available(ec);
 
         if (ec || available == 0) {
-            makeEncryptedHttpResponse("", "200 OK", "close");
+            makeEncryptedHttpResponse(
+                    "",
+                    "200 OK",
+                    config_->general().connectionReuse ? "keep-alive" : "close");
             return;
         }
 
@@ -241,7 +253,10 @@ void ServerHandler::handle() {
                 ec);
 
         if (ec || n == 0) {
-            makeEncryptedHttpResponse("", "200 OK", "close");
+            makeEncryptedHttpResponse(
+                    "",
+                    "200 OK",
+                    config_->general().connectionReuse ? "keep-alive" : "close");
             return;
         }
 
@@ -262,7 +277,10 @@ void ServerHandler::handle() {
             sessions_.erase(it);
         }
 
-        makeEncryptedHttpResponse("", "200 OK", "close");
+        makeEncryptedHttpResponse(
+                "",
+                "200 OK",
+                config_->general().connectionReuse ? "keep-alive" : "close");
         return;
     }
 
@@ -394,11 +412,13 @@ void ServerHandler::handle() {
         case HTTP::HttpType::https: {
             copyStringToStreambuf(innerRequest, readBuffer_);
 
-            if (!client_->socket().is_open()) {
-                if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
-                    client_->socket().close();
-                    makeEncryptedHttpResponse("", "502 Bad Gateway", "close");
-                    return;
+            if (!config_->general().connectionReuse) {
+                if (!client_->socket().is_open()) {
+                    if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
+                        client_->socket().close();
+                        makeEncryptedHttpResponse("", "502 Bad Gateway", "close");
+                        return;
+                    }
                 }
             }
 
@@ -407,14 +427,21 @@ void ServerHandler::handle() {
 
             if (client_->readBuffer().size() == 0) {
                 client_->socket().close();
-                makeEncryptedHttpResponse("", "200 OK", "close");
+                makeEncryptedHttpResponse(
+                        "",
+                        "200 OK",
+                        config_->general().connectionReuse ? "keep-alive" : "close");
                 return;
             }
 
             makeEncryptedHttpResponse(
                     streambufToString(client_->readBuffer()),
                     "200 OK",
-                    "close");
+                    config_->general().connectionReuse ? "keep-alive" : "close");
+
+            if (!config_->general().connectionReuse) {
+                client_->socketShutdown();
+            }
 
             connect_ = false;
             end_ = false;
