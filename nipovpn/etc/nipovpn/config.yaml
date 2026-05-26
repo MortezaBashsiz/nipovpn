@@ -33,6 +33,8 @@ general:
   # Degines the connection mode between agent and server. If enabled then the traffic
   #   will be TCP/TLS tunnel like.
   tunnelEnable: false
+  # connectionReuse: bool
+  connectionReuse: true
 
 
 # This block is to define log directives

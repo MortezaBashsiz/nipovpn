@@ -253,7 +253,9 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
                                     self->relayClientToServer();
                                     self->relayServerToClient();
                                 } else {
-                                    self->client_->socketShutdown();
+                                    if (!self->config_->general().connectionReuse) {
+                                        self->client_->socketShutdown();
+                                    }
                                     self->startTunnelReadFromClient();
                                     self->startTunnelPollServer();
                                 }
@@ -350,7 +352,11 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
                         return;
                     }
 
-                    self->socketShutdown();
+                    if (self->config_->general().connectionReuse) {
+                        self->doReadServer();
+                    } else {
+                        self->socketShutdown();
+                    }
                 };
 
         if (config_->server().tlsEnable) {
@@ -388,12 +394,16 @@ std::string TCPConnection::makeRelayHostHeader() const {
 }
 
 std::string TCPConnection::postTunnelAction(const std::string &action, const std::string &rawBody) {
-    TCPClient::pointer c = TCPClient::create(io_context_, config_, log_);
-    c->uuid_ = uuid_;
+    client_->uuid_ = uuid_;
 
-    if (config_->agent().tlsEnable && !c->enableTlsClient()) return "";
-    if (!c->doConnect(config_->agent().serverIp, config_->agent().serverPort)) return "";
-    if (c->tlsEnabled() && !c->doHandshakeClient()) return "";
+    if (config_->agent().tlsEnable && !client_->tlsEnabled()) {
+        if (!client_->enableTlsClient()) return "";
+    }
+
+    if (!client_->isOpen()) {
+        if (!client_->doConnect(config_->agent().serverIp, config_->agent().serverPort)) return "";
+        if (client_->tlsEnabled() && !client_->doHandshakeClient()) return "";
+    }
 
     BoolStr enc = aes256Encrypt(
             hexArrToStr(reinterpret_cast<const unsigned char *>(rawBody.data()), rawBody.size()),
@@ -404,27 +414,29 @@ std::string TCPConnection::postTunnelAction(const std::string &action, const std
     const std::string encodedBody = encode64(enc.message);
 
     std::ostringstream req;
-    req << config_->randomMethod() + " /" + config_->randomEndPoint() + " HTTP/1.1\r\n"
+    req << config_->randomMethod() + " /" + config_->randomEndPoint() + " HTTP/" << config_->agent().httpVersion << "\r\n"
         << "Host: " << makeRelayHostHeader() << "\r\n"
-        << "User-Agent: Mozilla/5.0\r\n"
+        << "User-Agent: " << config_->agent().userAgent << "\r\n"
         << "Accept: */*\r\n"
-        << "Content-Type: application/octet-stream\r\n"
+        << "Content-Type: application/text\r\n"
         << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
         << "X-Nipo-Action: " << action << "\r\n"
         << "Content-Length: " << encodedBody.size() << "\r\n"
-        << "Connection: close\r\n"
+        << "Connection: " << (config_->general().connectionReuse ? "keep-alive" : "close") << "\r\n"
         << "\r\n"
         << encodedBody;
 
     boost::asio::streambuf out;
     copyStringToStreambuf(req.str(), out);
 
-    c->doWrite(out);
-    c->doReadAgent();
+    client_->doWrite(out);
+    client_->doReadAgent();
 
-    const std::string response = streambufToString(c->readBuffer());
+    const std::string response = streambufToString(client_->readBuffer());
 
-    c->socketShutdown();
+    if (!config_->general().connectionReuse || action == "close") {
+        client_->socketShutdown();
+    }
 
     const auto pos = response.find("\r\n\r\n");
     if (pos == std::string::npos) return "";
@@ -539,12 +551,14 @@ void TCPConnection::socketShutdown() {
         timeout_.cancel();
 
         if (tlsSocket_) {
+            log_->write("[TCPConnection socketShutdown] [SSL]", Log::Level::DEBUG);
             tlsSocket_->shutdown(ignored);
             tlsSocket_->lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
             tlsSocket_->lowest_layer().close(ignored);
         }
 
         if (socket_.is_open()) {
+            log_->write("[TCPConnection socketShutdown] [TCP]", Log::Level::DEBUG);
             socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
             socket_.close(ignored);
         }

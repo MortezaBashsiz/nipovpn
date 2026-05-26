@@ -245,7 +245,7 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
         resetTimeout();
 
         if (tlsEnabled_ && sslSocket_) {
-            log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [DST " +
+            log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [SSL] [DST " +
                                 sslSocket_->lowest_layer().remote_endpoint().address().to_string() +
                                 ":" +
                                 std::to_string(sslSocket_->lowest_layer().remote_endpoint().port()) +
@@ -253,7 +253,7 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
                         Log::Level::DEBUG);
             boost::asio::write(*sslSocket_, writeBuffer_, error);
         } else {
-            log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [DST " +
+            log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [TCP] [DST " +
                                 socket_.remote_endpoint().address().to_string() + ":" +
                                 std::to_string(socket_.remote_endpoint().port()) +
                                 "] [Bytes " + std::to_string(writeBuffer_.size()) + "] ",
@@ -433,6 +433,7 @@ void TCPClient::socketShutdown() {
         boost::system::error_code ignored;
 
         if (sslSocket_) {
+            log_->write("[TCPClient socketShutdown] [SSL]", Log::Level::DEBUG);
             sslSocket_->shutdown(ignored);
             sslSocket_->lowest_layer().shutdown(
                     boost::asio::ip::tcp::socket::shutdown_both, ignored);
@@ -440,6 +441,7 @@ void TCPClient::socketShutdown() {
         }
 
         if (socket_.is_open()) {
+            log_->write("[TCPClient socketShutdown] [TCP]", Log::Level::DEBUG);
             socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
             socket_.close(ignored);
         }

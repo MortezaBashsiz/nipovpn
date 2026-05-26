@@ -25,6 +25,7 @@ private:
         std::vector<std::string> endPoints;
         unsigned short timeout;
         bool tunnelEnable;
+        bool connectionReuse;
     };
 
     struct Log {
