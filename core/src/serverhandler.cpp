@@ -91,7 +91,7 @@ void ServerHandler::makePlainHttpResponse(const std::string &body,
     std::ostringstream outer;
 
     outer << "HTTP/1.1 " << status << "\r\n"
-          << "Content-Type: application/octet-stream\r\n"
+          << "Content-Type: application/text\r\n"
           << "Content-Length: " << body.size() << "\r\n"
           << "Connection: " << connection << "\r\n"
           << "\r\n"
@@ -198,7 +198,7 @@ void ServerHandler::handle() {
         }
 
         if (!targetClient || !targetClient->isOpen()) {
-            makeEncryptedHttpResponse("", "200 OK", "close");
+            makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
             return;
         }
 
@@ -206,7 +206,7 @@ void ServerHandler::handle() {
         copyStringToStreambuf(hexToASCII(decryption.message), tunnelBuf);
         targetClient->doWrite(tunnelBuf);
 
-        makeEncryptedHttpResponse("", "200 OK", "close");
+        makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
         return;
     }
 
@@ -223,7 +223,7 @@ void ServerHandler::handle() {
         }
 
         if (!targetClient || !targetClient->isOpen()) {
-            makeEncryptedHttpResponse("", "200 OK", "close");
+            makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
             return;
         }
 
@@ -231,7 +231,7 @@ void ServerHandler::handle() {
         std::size_t available = targetClient->socket().available(ec);
 
         if (ec || available == 0) {
-            makeEncryptedHttpResponse("", "200 OK", "close");
+            makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
             return;
         }
 
@@ -241,14 +241,14 @@ void ServerHandler::handle() {
                 ec);
 
         if (ec || n == 0) {
-            makeEncryptedHttpResponse("", "200 OK", "close");
+            makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
             return;
         }
 
         makeEncryptedHttpResponse(
                 std::string(data.data(), n),
                 "200 OK",
-                "close");
+                (config_->general().connectionReuse ? "keep-alive" : "close"));
 
         return;
     }
@@ -262,7 +262,7 @@ void ServerHandler::handle() {
             sessions_.erase(it);
         }
 
-        makeEncryptedHttpResponse("", "200 OK", "close");
+        makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
         return;
     }
 
@@ -383,7 +383,7 @@ void ServerHandler::handle() {
             makeEncryptedHttpResponse(
                     "HTTP/1.1 200 Connection Established\r\n\r\n",
                     "200 OK",
-                    "close");
+                    "keep-alive");
 
             connect_ = false;
             end_ = false;
@@ -407,14 +407,14 @@ void ServerHandler::handle() {
 
             if (client_->readBuffer().size() == 0) {
                 client_->socket().close();
-                makeEncryptedHttpResponse("", "200 OK", "close");
+                makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
                 return;
             }
 
             makeEncryptedHttpResponse(
                     streambufToString(client_->readBuffer()),
                     "200 OK",
-                    "close");
+                    (config_->general().connectionReuse ? "keep-alive" : "close"));
 
             connect_ = false;
             end_ = false;

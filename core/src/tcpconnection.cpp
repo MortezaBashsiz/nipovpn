@@ -253,7 +253,9 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
                                     self->relayClientToServer();
                                     self->relayServerToClient();
                                 } else {
-                                    self->client_->socketShutdown();
+                                    if (!self->config_->general().connectionReuse) {
+                                        self->client_->socketShutdown();
+                                    }
                                     self->startTunnelReadFromClient();
                                     self->startTunnelPollServer();
                                 }
@@ -350,7 +352,11 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
                         return;
                     }
 
-                    self->socketShutdown();
+                    if (self->config_->general().connectionReuse) {
+                        self->doReadServer();
+                    } else {
+                        self->socketShutdown();
+                    }
                 };
 
         if (config_->server().tlsEnable) {
@@ -387,44 +393,78 @@ std::string TCPConnection::makeRelayHostHeader() const {
     return hostHeader;
 }
 
-std::string TCPConnection::postTunnelAction(const std::string &action, const std::string &rawBody) {
-    TCPClient::pointer c = TCPClient::create(io_context_, config_, log_);
-    c->uuid_ = uuid_;
+std::string TCPConnection::postTunnelAction(const std::string &action,
+                                            const std::string &rawBody) {
+    client_->uuid_ = uuid_;
 
-    if (config_->agent().tlsEnable && !c->enableTlsClient()) return "";
-    if (!c->doConnect(config_->agent().serverIp, config_->agent().serverPort)) return "";
-    if (c->tlsEnabled() && !c->doHandshakeClient()) return "";
+    auto sendOnce = [&]() -> std::string {
+        const bool alreadyOpen = client_->isOpen();
 
-    BoolStr enc = aes256Encrypt(
-            hexArrToStr(reinterpret_cast<const unsigned char *>(rawBody.data()), rawBody.size()),
-            config_->general().token);
+        if (!alreadyOpen) {
+            if (config_->agent().tlsEnable) {
+                if (!client_->enableTlsClient()) return "";
+            }
 
-    if (!enc.ok) return "";
+            if (!client_->doConnect(config_->agent().serverIp,
+                                    config_->agent().serverPort)) {
+                return "";
+            }
 
-    const std::string encodedBody = encode64(enc.message);
+            if (client_->tlsEnabled()) {
+                if (!client_->doHandshakeClient()) return "";
+            }
+        }
 
-    std::ostringstream req;
-    req << config_->randomMethod() + " /" + config_->randomEndPoint() + " HTTP/1.1\r\n"
-        << "Host: " << makeRelayHostHeader() << "\r\n"
-        << "User-Agent: Mozilla/5.0\r\n"
-        << "Accept: */*\r\n"
-        << "Content-Type: application/octet-stream\r\n"
-        << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
-        << "X-Nipo-Action: " << action << "\r\n"
-        << "Content-Length: " << encodedBody.size() << "\r\n"
-        << "Connection: close\r\n"
-        << "\r\n"
-        << encodedBody;
+        BoolStr enc = aes256Encrypt(
+                hexArrToStr(
+                        reinterpret_cast<const unsigned char *>(rawBody.data()),
+                        rawBody.size()),
+                config_->general().token);
 
-    boost::asio::streambuf out;
-    copyStringToStreambuf(req.str(), out);
+        if (!enc.ok) return "";
 
-    c->doWrite(out);
-    c->doReadAgent();
+        const std::string encodedBody = encode64(enc.message);
 
-    const std::string response = streambufToString(c->readBuffer());
+        const bool keepAlive =
+                config_->general().connectionReuse && action != "close";
 
-    c->socketShutdown();
+        std::ostringstream req;
+        req << config_->randomMethod() + " /" + config_->randomEndPoint()
+            << " HTTP/" << config_->agent().httpVersion << "\r\n"
+            << "Host: " << makeRelayHostHeader() << "\r\n"
+            << "User-Agent: " << config_->agent().userAgent << "\r\n"
+            << "Accept: */*\r\n"
+            << "Content-Type: application/text\r\n"
+            << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
+            << "X-Nipo-Action: " << action << "\r\n"
+            << "Content-Length: " << encodedBody.size() << "\r\n"
+            << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
+            << "\r\n"
+            << encodedBody;
+
+        boost::asio::streambuf out;
+        copyStringToStreambuf(req.str(), out);
+
+        client_->doWrite(out);
+        client_->doReadAgent();
+
+        const std::string response = streambufToString(client_->readBuffer());
+
+        if (!keepAlive) {
+            client_->socketShutdown();
+        }
+
+        return response;
+    };
+
+    std::string response = sendOnce();
+
+    if (response.empty() &&
+        config_->general().connectionReuse &&
+        action != "close") {
+        client_->socketShutdown();
+        response = sendOnce();
+    }
 
     const auto pos = response.find("\r\n\r\n");
     if (pos == std::string::npos) return "";
@@ -539,12 +579,14 @@ void TCPConnection::socketShutdown() {
         timeout_.cancel();
 
         if (tlsSocket_) {
+            log_->write("[TCPConnection socketShutdown] [SSL]", Log::Level::DEBUG);
             tlsSocket_->shutdown(ignored);
             tlsSocket_->lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
             tlsSocket_->lowest_layer().close(ignored);
         }
 
         if (socket_.is_open()) {
+            log_->write("[TCPConnection socketShutdown] [TCP]", Log::Level::DEBUG);
             socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
             socket_.close(ignored);
         }
