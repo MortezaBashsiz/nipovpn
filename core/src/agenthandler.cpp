@@ -86,15 +86,21 @@ void AgentHandler::handle() {
             request_->httpType() == HTTP::HttpType::connect ? "open" : "request";
 
     std::ostringstream outer;
-    outer << config_->randomMethod() + " /" + config_->randomEndPoint() + " HTTP/1.1\r\n"
+    const bool directTunnelOpen =
+            config_->general().tunnelEnable &&
+            request_->httpType() == HTTP::HttpType::connect;
+
+    outer << config_->randomMethod() + " /" + config_->randomEndPoint() + " HTTP/" << config_->agent().httpVersion << "\r\n"
           << "Host: " << relayHostHeader(config_) << "\r\n"
-          << "User-Agent: Mozilla/5.0\r\n"
+          << "User-Agent: " << config_->agent().userAgent << "\r\n"
           << "Accept: */*\r\n"
-          << "Content-Type: application/octet-stream\r\n"
+          << "Content-Type: application/text\r\n"
           << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
           << "X-Nipo-Action: " << action << "\r\n"
           << "Content-Length: " << innerRequest.size() << "\r\n"
-          << "Connection: close\r\n"
+          << "Connection: "
+          << ((config_->general().connectionReuse || directTunnelOpen) ? "keep-alive" : "close")
+          << "\r\n"
           << "\r\n"
           << innerRequest;
 
@@ -103,7 +109,7 @@ void AgentHandler::handle() {
     client_->doWrite(readBuffer_);
     client_->doReadAgent();
 
-    if (client_->readBuffer().size() == 0) {
+    if (client_->readBuffer().size() == 0 && !config_->general().connectionReuse) {
         client_->socketShutdown();
         return;
     }
