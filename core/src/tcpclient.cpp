@@ -464,9 +464,17 @@ void TCPClient::socketShutdown() {
                     ignored);
             sslSocket_->lowest_layer().close(ignored);
 
-            // IMPORTANT for connectionReuse: false + tlsEnable: true
-            sslSocket_.reset();
-            tlsEnabled_ = false;
+            if (sslSocket_) {
+                log_->write("[TCPClient socketShutdown] [SSL]", Log::Level::DEBUG);
+
+                sslSocket_->shutdown(ignored);
+                sslSocket_->lowest_layer().shutdown(
+                        boost::asio::ip::tcp::socket::shutdown_both, ignored);
+                sslSocket_->lowest_layer().close(ignored);
+
+                sslSocket_.reset();
+                tlsEnabled_ = false;
+            }
         }
 
         if (socket_.is_open()) {
@@ -635,9 +643,19 @@ bool TCPClient::HttpUtils::readHttpMessageImpl(
 
             std::string bodyPart = current.substr(bodyPos + 4);
 
-            auto lastChunkPos = bodyPart.find("\r\n0\r\n\r\n");
-            if (lastChunkPos != std::string::npos || bodyPart == "0\r\n\r\n") {
-                return true;
+            auto zeroChunk = bodyPart.find("\r\n0\r\n");
+            if (zeroChunk != std::string::npos) {
+                auto trailerEnd = bodyPart.find("\r\n\r\n", zeroChunk + 5);
+                if (trailerEnd != std::string::npos) {
+                    return true;
+                }
+            }
+
+            if (bodyPart.rfind("0\r\n", 0) == 0) {
+                auto trailerEnd = bodyPart.find("\r\n\r\n", 3);
+                if (trailerEnd != std::string::npos) {
+                    return true;
+                }
             }
 
             std::array<char, 4096> tmp{};

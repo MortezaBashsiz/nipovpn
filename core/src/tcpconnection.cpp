@@ -393,49 +393,77 @@ std::string TCPConnection::makeRelayHostHeader() const {
     return hostHeader;
 }
 
-std::string TCPConnection::postTunnelAction(const std::string &action, const std::string &rawBody) {
+std::string TCPConnection::postTunnelAction(const std::string &action,
+                                            const std::string &rawBody) {
     client_->uuid_ = uuid_;
 
-    if (config_->agent().tlsEnable && !client_->tlsEnabled()) {
-        if (!client_->enableTlsClient()) return "";
-    }
+    auto sendOnce = [&]() -> std::string {
+        const bool alreadyOpen = client_->isOpen();
 
-    if (!client_->isOpen()) {
-        if (!client_->doConnect(config_->agent().serverIp, config_->agent().serverPort)) return "";
-        if (client_->tlsEnabled() && !client_->doHandshakeClient()) return "";
-    }
+        if (!alreadyOpen) {
+            if (config_->agent().tlsEnable) {
+                if (!client_->enableTlsClient()) return "";
+            }
 
-    BoolStr enc = aes256Encrypt(
-            hexArrToStr(reinterpret_cast<const unsigned char *>(rawBody.data()), rawBody.size()),
-            config_->general().token);
+            if (!client_->doConnect(config_->agent().serverIp,
+                                    config_->agent().serverPort)) {
+                return "";
+            }
 
-    if (!enc.ok) return "";
+            if (client_->tlsEnabled()) {
+                if (!client_->doHandshakeClient()) return "";
+            }
+        }
 
-    const std::string encodedBody = encode64(enc.message);
+        BoolStr enc = aes256Encrypt(
+                hexArrToStr(
+                        reinterpret_cast<const unsigned char *>(rawBody.data()),
+                        rawBody.size()),
+                config_->general().token);
 
-    std::ostringstream req;
-    req << config_->randomMethod() + " /" + config_->randomEndPoint() + " HTTP/" << config_->agent().httpVersion << "\r\n"
-        << "Host: " << makeRelayHostHeader() << "\r\n"
-        << "User-Agent: " << config_->agent().userAgent << "\r\n"
-        << "Accept: */*\r\n"
-        << "Content-Type: application/text\r\n"
-        << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
-        << "X-Nipo-Action: " << action << "\r\n"
-        << "Content-Length: " << encodedBody.size() << "\r\n"
-        << "Connection: " << (config_->general().connectionReuse ? "keep-alive" : "close") << "\r\n"
-        << "\r\n"
-        << encodedBody;
+        if (!enc.ok) return "";
 
-    boost::asio::streambuf out;
-    copyStringToStreambuf(req.str(), out);
+        const std::string encodedBody = encode64(enc.message);
 
-    client_->doWrite(out);
-    client_->doReadAgent();
+        const bool keepAlive =
+                config_->general().connectionReuse && action != "close";
 
-    const std::string response = streambufToString(client_->readBuffer());
+        std::ostringstream req;
+        req << config_->randomMethod() + " /" + config_->randomEndPoint()
+            << " HTTP/" << config_->agent().httpVersion << "\r\n"
+            << "Host: " << makeRelayHostHeader() << "\r\n"
+            << "User-Agent: " << config_->agent().userAgent << "\r\n"
+            << "Accept: */*\r\n"
+            << "Content-Type: application/text\r\n"
+            << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
+            << "X-Nipo-Action: " << action << "\r\n"
+            << "Content-Length: " << encodedBody.size() << "\r\n"
+            << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
+            << "\r\n"
+            << encodedBody;
 
-    if (!config_->general().connectionReuse || action == "close") {
+        boost::asio::streambuf out;
+        copyStringToStreambuf(req.str(), out);
+
+        client_->doWrite(out);
+        client_->doReadAgent();
+
+        const std::string response = streambufToString(client_->readBuffer());
+
+        if (!keepAlive) {
+            client_->socketShutdown();
+        }
+
+        return response;
+    };
+
+    std::string response = sendOnce();
+
+    if (response.empty() &&
+        config_->general().connectionReuse &&
+        action != "close") {
         client_->socketShutdown();
+        response = sendOnce();
     }
 
     const auto pos = response.find("\r\n\r\n");
