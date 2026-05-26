@@ -30,10 +30,12 @@ general:
   #   Useful to automatically close stalled connections.
   timeout: 10
   # tunnelEnable: bool
-  # Degines the connection mode between agent and server. If enabled then the traffic
+  # Defines the connection mode between agent and server. If enabled then the traffic
   #   will be TCP/TLS tunnel like.
   tunnelEnable: false
   # connectionReuse: bool
+  # If false then it will use same connection between agent and server to handle client request
+  #   If true then it will create new connection for each request between agent and server
   connectionReuse: false
 
 
