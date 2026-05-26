@@ -86,6 +86,10 @@ void AgentHandler::handle() {
             request_->httpType() == HTTP::HttpType::connect ? "open" : "request";
 
     std::ostringstream outer;
+    const bool directTunnelOpen =
+            config_->general().tunnelEnable &&
+            request_->httpType() == HTTP::HttpType::connect;
+
     outer << config_->randomMethod() + " /" + config_->randomEndPoint() + " HTTP/" << config_->agent().httpVersion << "\r\n"
           << "Host: " << relayHostHeader(config_) << "\r\n"
           << "User-Agent: " << config_->agent().userAgent << "\r\n"
@@ -94,7 +98,9 @@ void AgentHandler::handle() {
           << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
           << "X-Nipo-Action: " << action << "\r\n"
           << "Content-Length: " << innerRequest.size() << "\r\n"
-          << "Connection: " << (config_->general().connectionReuse ? "keep-alive" : "close") << "\r\n"
+          << "Connection: "
+          << ((config_->general().connectionReuse || directTunnelOpen) ? "keep-alive" : "close")
+          << "\r\n"
           << "\r\n"
           << innerRequest;
 

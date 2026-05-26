@@ -95,13 +95,24 @@ bool TCPClient::doConnect(const std::string &dstIP, const unsigned short &dstPor
     std::lock_guard lock(mutex_);
 
     try {
+        if (tlsEnabled_ && sslSocket_ && sslSocket_->lowest_layer().is_open()) {
+            return true;
+        }
+
+        if (!tlsEnabled_ && socket_.is_open()) {
+            return true;
+        }
+
         log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " + dstIP +
                             ":" + std::to_string(dstPort) + "]",
                     Log::Level::DEBUG);
 
         boost::system::error_code error_code;
-        auto endpoint =
-                resolver_.resolve(dstIP.c_str(), std::to_string(dstPort).c_str(), error_code);
+
+        auto endpoint = resolver_.resolve(
+                dstIP.c_str(),
+                std::to_string(dstPort).c_str(),
+                error_code);
 
         if (error_code) {
             log_->write("[" + to_string(uuid_) +
@@ -111,9 +122,17 @@ bool TCPClient::doConnect(const std::string &dstIP, const unsigned short &dstPor
             return false;
         }
 
-        if (tlsEnabled_ && sslSocket_) {
+        if (tlsEnabled_) {
+            if (!sslSocket_) {
+                sslSocket_ = std::make_unique<ssl_stream>(io_context_, sslContext_);
+            }
+
             boost::asio::connect(sslSocket_->lowest_layer(), endpoint, error_code);
         } else {
+            if (!socket_.is_open()) {
+                socket_ = tcp::socket(io_context_);
+            }
+
             boost::asio::connect(socket_, endpoint, error_code);
         }
 
@@ -128,7 +147,8 @@ bool TCPClient::doConnect(const std::string &dstIP, const unsigned short &dstPor
         return true;
 
     } catch (std::exception &error) {
-        log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] " +
+        log_->write("[" + to_string(uuid_) +
+                            "] [TCPClient doConnect] " +
                             error.what(),
                     Log::Level::ERROR);
         return false;
@@ -432,23 +452,37 @@ void TCPClient::socketShutdown() {
     try {
         boost::system::error_code ignored;
 
+        cancelTimeout();
+
         if (sslSocket_) {
             log_->write("[TCPClient socketShutdown] [SSL]", Log::Level::DEBUG);
+
+            sslSocket_->lowest_layer().cancel(ignored);
             sslSocket_->shutdown(ignored);
             sslSocket_->lowest_layer().shutdown(
-                    boost::asio::ip::tcp::socket::shutdown_both, ignored);
+                    boost::asio::ip::tcp::socket::shutdown_both,
+                    ignored);
             sslSocket_->lowest_layer().close(ignored);
+
+            // IMPORTANT for connectionReuse: false + tlsEnable: true
+            sslSocket_.reset();
+            tlsEnabled_ = false;
         }
 
         if (socket_.is_open()) {
             log_->write("[TCPClient socketShutdown] [TCP]", Log::Level::DEBUG);
-            socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
+
+            socket_.cancel(ignored);
+            socket_.shutdown(
+                    boost::asio::ip::tcp::socket::shutdown_both,
+                    ignored);
             socket_.close(ignored);
         }
 
     } catch (std::exception &error) {
         log_->write("[" + to_string(uuid_) +
-                            "] [TCPClient socketShutdown] [catch] " + error.what(),
+                            "] [TCPClient socketShutdown] [catch] " +
+                            error.what(),
                     Log::Level::DEBUG);
     }
 }
