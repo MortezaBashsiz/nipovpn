@@ -34,7 +34,6 @@ bool TCPClient::isOpen() const {
 }
 
 bool TCPClient::enableTlsClient() {
-    std::lock_guard lock(mutex_);
 
     try {
         if (tlsEnabled_) return true;
@@ -92,7 +91,6 @@ bool TCPClient::enableTlsClient() {
 }
 
 bool TCPClient::doConnect(const std::string &dstIP, const unsigned short &dstPort) {
-    std::lock_guard lock(mutex_);
 
     try {
         if (tlsEnabled_ && sslSocket_ && sslSocket_->lowest_layer().is_open()) {
@@ -156,7 +154,6 @@ bool TCPClient::doConnect(const std::string &dstIP, const unsigned short &dstPor
 }
 
 bool TCPClient::doHandshakeClient() {
-    std::lock_guard lock(mutex_);
 
     try {
         if (!tlsEnabled_ || !sslSocket_) return true;
@@ -237,13 +234,11 @@ bool TCPClient::doHandshakeClient() {
 }
 
 void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
-    std::lock_guard lock(mutex_);
     moveStreambuf(buffer, writeBuffer_);
 }
 
 
 void TCPClient::doWrite(boost::asio::streambuf &buffer) {
-    std::lock_guard lock(mutex_);
 
     try {
         moveStreambuf(buffer, writeBuffer_);
@@ -301,7 +296,6 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
 
 void TCPClient::doReadAgent() {
     boost::system::error_code error;
-    std::lock_guard lock(mutex_);
     readBuffer_.consume(readBuffer_.size());
 
     try {
@@ -354,7 +348,6 @@ void TCPClient::doReadAgent() {
 void TCPClient::doReadServer() {
     boost::system::error_code error;
     end_ = false;
-    std::lock_guard lock(mutex_);
     readBuffer_.consume(readBuffer_.size());
 
     try {
@@ -449,49 +442,32 @@ void TCPClient::onTimeout(const boost::system::error_code &error) {
 }
 
 void TCPClient::socketShutdown() {
-    try {
-        boost::system::error_code ignored;
+    std::lock_guard<std::mutex> lock(mutex_);
 
-        cancelTimeout();
+    boost::system::error_code ignored;
+    cancelTimeout();
 
-        if (sslSocket_) {
-            log_->write("[TCPClient socketShutdown] [SSL]", Log::Level::DEBUG);
+    if (sslSocket_) {
+        log_->write("[TCPClient socketShutdown] [SSL]", Log::Level::DEBUG);
 
-            sslSocket_->lowest_layer().cancel(ignored);
+        auto &lowest = sslSocket_->lowest_layer();
+
+        if (lowest.is_open()) {
+            lowest.cancel(ignored);
             sslSocket_->shutdown(ignored);
-            sslSocket_->lowest_layer().shutdown(
-                    boost::asio::ip::tcp::socket::shutdown_both,
-                    ignored);
-            sslSocket_->lowest_layer().close(ignored);
-
-            if (sslSocket_) {
-                log_->write("[TCPClient socketShutdown] [SSL]", Log::Level::DEBUG);
-
-                sslSocket_->shutdown(ignored);
-                sslSocket_->lowest_layer().shutdown(
-                        boost::asio::ip::tcp::socket::shutdown_both, ignored);
-                sslSocket_->lowest_layer().close(ignored);
-
-                sslSocket_.reset();
-                tlsEnabled_ = false;
-            }
+            lowest.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
+            lowest.close(ignored);
         }
 
-        if (socket_.is_open()) {
-            log_->write("[TCPClient socketShutdown] [TCP]", Log::Level::DEBUG);
+        sslSocket_.reset();
+        tlsEnabled_ = false;
+    }
 
-            socket_.cancel(ignored);
-            socket_.shutdown(
-                    boost::asio::ip::tcp::socket::shutdown_both,
-                    ignored);
-            socket_.close(ignored);
-        }
-
-    } catch (std::exception &error) {
-        log_->write("[" + to_string(uuid_) +
-                            "] [TCPClient socketShutdown] [catch] " +
-                            error.what(),
-                    Log::Level::DEBUG);
+    if (socket_.is_open()) {
+        log_->write("[TCPClient socketShutdown] [TCP]", Log::Level::DEBUG);
+        socket_.cancel(ignored);
+        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
+        socket_.close(ignored);
     }
 }
 
@@ -597,10 +573,13 @@ bool TCPClient::HttpUtils::readHttpMessage(
 bool TCPClient::HttpUtils::readHttpMessageImpl(
         boost::asio::streambuf &out,
         boost::system::error_code &ec,
-        const std::function<std::size_t(boost::asio::mutable_buffer,
-                                        boost::system::error_code &)> &readSome,
-        const std::function<bool(boost::asio::streambuf &,
-                                 boost::system::error_code &)> &readHeaders) {
+        const std::function<std::size_t(
+                boost::asio::mutable_buffer,
+                boost::system::error_code &)> &readSome,
+        const std::function<bool(
+                boost::asio::streambuf &,
+                boost::system::error_code &)> &readHeaders) {
+
     out.consume(out.size());
 
     if (!readHeaders(out, ec)) {
@@ -612,74 +591,61 @@ bool TCPClient::HttpUtils::readHttpMessageImpl(
     std::string body = extractBody(current);
 
     std::size_t contentLength = 0;
-
     if (parseContentLength(headers, contentLength)) {
-        if (body.size() < contentLength) {
-            std::vector<char> tmp(contentLength - body.size());
-            std::size_t total = 0;
-
-            while (total < tmp.size()) {
-                std::size_t n = readSome(
-                        boost::asio::buffer(tmp.data() + total, tmp.size() - total),
-                        ec);
-
-                if (ec) return false;
-                total += n;
+        while (body.size() < contentLength) {
+            char tmp[8192];
+            std::size_t remaining =
+                    contentLength - body.size();
+            std::size_t toRead =
+                    std::min<std::size_t>(
+                            sizeof(tmp),
+                            remaining);
+            std::size_t n =
+                    readSome(
+                            boost::asio::buffer(
+                                    tmp,
+                                    toRead),
+                            ec);
+            if (ec) {
+                return false;
             }
-
-            std::ostream os(&out);
-            os.write(tmp.data(), static_cast<std::streamsize>(tmp.size()));
+            if (n == 0) {
+                ec = boost::asio::error::eof;
+                return false;
+            }
+            boost::asio::buffer_copy(
+                    out.prepare(n),
+                    boost::asio::buffer(tmp, n));
+            out.commit(n);
+            body.append(tmp, n);
         }
-
         return true;
     }
-
     if (isChunked(headers)) {
-        for (;;) {
-            current = streambufToString(out);
-
-            auto bodyPos = current.find("\r\n\r\n");
-            if (bodyPos == std::string::npos) return false;
-
-            std::string bodyPart = current.substr(bodyPos + 4);
-
-            auto zeroChunk = bodyPart.find("\r\n0\r\n");
-            if (zeroChunk != std::string::npos) {
-                auto trailerEnd = bodyPart.find("\r\n\r\n", zeroChunk + 5);
-                if (trailerEnd != std::string::npos) {
-                    return true;
-                }
+        while (
+                body.find("\r\n0\r\n\r\n") ==
+                        std::string::npos &&
+                body.find("\r\n0\r\n") ==
+                        std::string::npos) {
+            char tmp[8192];
+            std::size_t n =
+                    readSome(
+                            boost::asio::buffer(tmp),
+                            ec);
+            if (ec) {
+                return false;
             }
-
-            if (bodyPart.rfind("0\r\n", 0) == 0) {
-                auto trailerEnd = bodyPart.find("\r\n\r\n", 3);
-                if (trailerEnd != std::string::npos) {
-                    return true;
-                }
+            if (n == 0) {
+                ec = boost::asio::error::eof;
+                return false;
             }
-
-            std::array<char, 4096> tmp{};
-            std::size_t n = readSome(boost::asio::buffer(tmp), ec);
-
-            if (ec) return false;
-
-            std::ostream os(&out);
-            os.write(tmp.data(), static_cast<std::streamsize>(n));
+            boost::asio::buffer_copy(
+                    out.prepare(n),
+                    boost::asio::buffer(tmp, n));
+            out.commit(n);
+            body.append(tmp, n);
         }
+        return true;
     }
-
-    for (;;) {
-        std::array<char, 4096> tmp{};
-        std::size_t n = readSome(boost::asio::buffer(tmp), ec);
-
-        if (ec == boost::asio::error::eof) {
-            ec.clear();
-            return true;
-        }
-
-        if (ec) return false;
-
-        std::ostream os(&out);
-        os.write(tmp.data(), static_cast<std::streamsize>(n));
-    }
+    return true;
 }
