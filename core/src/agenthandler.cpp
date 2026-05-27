@@ -40,7 +40,7 @@ void AgentHandler::handle() {
                     Log::Level::INFO);
     }
 
-    if (config_->agent().tlsEnable && !client_->tlsEnabled()) {
+    if (config_->general().tlsEnable && !client_->tlsEnabled()) {
         if (!client_->enableTlsClient()) {
             log_->write("[" + to_string(uuid_) + "] [TLS] [ERROR] [Init Client Context] [SRC " +
                                 clientConnStr_ + "] [DST " + config_->agent().serverIp + ":" +

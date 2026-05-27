@@ -14,27 +14,24 @@ Config::Config(const RunMode &mode, const std::string &filePath)
                 configYaml_["general"]["endPoints"].as<std::vector<std::string>>(),
                 configYaml_["general"]["timeout"].as<unsigned short>(),
                 configYaml_["general"]["tunnelEnable"].as<bool>(false),
-                configYaml_["general"]["connectionReuse"].as<bool>(false)}),
+                configYaml_["general"]["connectionReuse"].as<bool>(false),
+                configYaml_["general"]["tlsEnable"].as<bool>(false),
+                configYaml_["general"]["tlsVerifyPeer"].as<bool>(false),
+                configYaml_["general"]["tlsCertFile"].as<std::string>(""),
+                configYaml_["general"]["tlsKeyFile"].as<std::string>(""),
+                configYaml_["general"]["tlsCaFile"].as<std::string>("")}),
       log_({configYaml_["log"]["logLevel"].as<std::string>(),
             configYaml_["log"]["logFile"].as<std::string>()}),
       server_({configYaml_["server"]["threads"].as<unsigned short>(),
                configYaml_["server"]["listenIp"].as<std::string>(),
-               configYaml_["server"]["listenPort"].as<unsigned short>(),
-               configYaml_["server"]["tlsEnable"].as<bool>(false),
-               configYaml_["server"]["tlsVerifyPeer"].as<bool>(false),
-               configYaml_["server"]["tlsCertFile"].as<std::string>(""),
-               configYaml_["server"]["tlsKeyFile"].as<std::string>(""),
-               configYaml_["server"]["tlsCaFile"].as<std::string>("")}),
+               configYaml_["server"]["listenPort"].as<unsigned short>()}),
       agent_({configYaml_["agent"]["threads"].as<unsigned short>(),
               configYaml_["agent"]["listenIp"].as<std::string>(),
               configYaml_["agent"]["listenPort"].as<unsigned short>(),
               configYaml_["agent"]["serverIp"].as<std::string>(),
               configYaml_["agent"]["serverPort"].as<unsigned short>(),
               configYaml_["agent"]["httpVersion"].as<std::string>(),
-              configYaml_["agent"]["userAgent"].as<std::string>(),
-              configYaml_["agent"]["tlsEnable"].as<bool>(false),
-              configYaml_["agent"]["tlsVerifyPeer"].as<bool>(false),
-              configYaml_["agent"]["tlsCaFile"].as<std::string>("")}) {
+              configYaml_["agent"]["userAgent"].as<std::string>()}) {
 
     std::lock_guard<std::mutex> lock(configMutex_);
 
@@ -101,6 +98,11 @@ std::string Config::toString() const {
        << "   timeout: " << general_.timeout << "\n"
        << "   tunnelEnable: " << std::boolalpha << general_.tunnelEnable << "\n"
        << "   connectionReuse: " << std::boolalpha << general_.connectionReuse << "\n"
+       << "   tlsEnable: " << std::boolalpha << general_.tlsEnable << "\n"
+       << "   tlsVerifyPeer: " << std::boolalpha << general_.tlsVerifyPeer << "\n"
+       << "   tlsCertFile: " << general_.tlsCertFile << "\n"
+       << "   tlsKeyFile: " << general_.tlsKeyFile << "\n"
+       << "   tlsCaFile: " << general_.tlsCaFile << "\n"
 
        << " Log :\n"
        << "   logLevel: " << log_.level << "\n"
@@ -110,11 +112,7 @@ std::string Config::toString() const {
        << "   threads: " << server_.threads << "\n"
        << "   listenIp: " << server_.listenIp << "\n"
        << "   listenPort: " << server_.listenPort << "\n"
-       << "   tlsEnable: " << std::boolalpha << server_.tlsEnable << "\n"
-       << "   tlsVerifyPeer: " << std::boolalpha << server_.tlsVerifyPeer << "\n"
-       << "   tlsCertFile: " << server_.tlsCertFile << "\n"
-       << "   tlsKeyFile: " << server_.tlsKeyFile << "\n"
-       << "   tlsCaFile: " << server_.tlsCaFile << "\n"
+
 
        << " Agent :\n"
        << "   threads: " << agent_.threads << "\n"
@@ -122,11 +120,7 @@ std::string Config::toString() const {
        << "   listenPort: " << agent_.listenPort << "\n"
        << "   serverIp: " << agent_.serverIp << "\n"
        << "   serverPort: " << agent_.serverPort << "\n"
-       << "   httpVersion: " << agent_.httpVersion << "\n"
-       << "   userAgent: " << agent_.userAgent << "\n"
-       << "   tlsEnable: " << std::boolalpha << agent_.tlsEnable << "\n"
-       << "   tlsVerifyPeer: " << std::boolalpha << agent_.tlsVerifyPeer << "\n"
-       << "   tlsCaFile: " << agent_.tlsCaFile << "\n";
+       << "   httpVersion: " << agent_.httpVersion << "\n";
 
     return ss.str();
 }

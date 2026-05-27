@@ -147,4 +147,6 @@ private:
 
     std::array<char, 8192> downstreamBuf_;
     std::array<char, 8192> upstreamBuf_;
+
+    std::atomic_bool closed_{false};
 };
