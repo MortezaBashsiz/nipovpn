@@ -6,7 +6,7 @@ on:
       - mori
     paths:
       - 'core/src/**'
-      - '.github/workflows/**'
+      - '.github/workflows/debian-mori.yml'
 
 jobs:
   build:
