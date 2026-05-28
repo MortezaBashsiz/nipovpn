@@ -26,6 +26,11 @@ private:
         unsigned short timeout;
         bool tunnelEnable;
         bool connectionReuse;
+        bool tlsEnable;
+        bool tlsVerifyPeer;
+        std::string tlsCertFile;
+        std::string tlsKeyFile;
+        std::string tlsCaFile;
     };
 
     struct Log {
@@ -37,12 +42,6 @@ private:
         unsigned short threads;
         std::string listenIp;
         unsigned short listenPort;
-
-        bool tlsEnable;
-        bool tlsVerifyPeer;
-        std::string tlsCertFile;
-        std::string tlsKeyFile;
-        std::string tlsCaFile;
     };
 
     struct Agent {
@@ -53,10 +52,6 @@ private:
         unsigned short serverPort;
         std::string httpVersion;
         std::string userAgent;
-
-        bool tlsEnable;
-        bool tlsVerifyPeer;
-        std::string tlsCaFile;
     };
 
     const RunMode &runMode_;

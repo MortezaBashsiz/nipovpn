@@ -103,4 +103,5 @@ private:
     tcp::resolver resolver_;
     boost::asio::steady_timer timeout_;
     mutable std::mutex mutex_;
+    bool closed_ = false;
 };

@@ -36,16 +36,18 @@ bool TCPConnection::initTlsServerContext() {
     try {
         sslContext_ = boost::asio::ssl::context(boost::asio::ssl::context::tls_server);
 
-        sslContext_.set_options(boost::asio::ssl::context::default_workarounds |
-                                boost::asio::ssl::context::no_sslv2 |
-                                boost::asio::ssl::context::no_sslv3 |
-                                boost::asio::ssl::context::single_dh_use);
+        sslContext_.set_options(
+                boost::asio::ssl::context::default_workarounds |
+                boost::asio::ssl::context::no_sslv2 |
+                boost::asio::ssl::context::no_sslv3 |
+                boost::asio::ssl::context::single_dh_use);
 
         SSL_CTX_set_min_proto_version(sslContext_.native_handle(), TLS1_2_VERSION);
 
-        sslContext_.use_certificate_chain_file(config_->server().tlsCertFile);
-        sslContext_.use_private_key_file(config_->server().tlsKeyFile,
-                                         boost::asio::ssl::context::pem);
+        sslContext_.use_certificate_chain_file(config_->general().tlsCertFile);
+        sslContext_.use_private_key_file(
+                config_->general().tlsKeyFile,
+                boost::asio::ssl::context::pem);
 
         if (!SSL_CTX_check_private_key(sslContext_.native_handle())) {
             log_->write("[" + to_string(uuid_) +
@@ -56,12 +58,13 @@ bool TCPConnection::initTlsServerContext() {
 
         sslContext_.set_verify_mode(boost::asio::ssl::verify_none);
 
-        if (SSL_CTX_set_cipher_list(sslContext_.native_handle(),
-                                    "ECDHE-RSA-AES256-GCM-SHA384:"
-                                    "ECDHE-RSA-AES128-GCM-SHA256:"
-                                    "ECDHE-RSA-CHACHA20-POLY1305:"
-                                    "AES256-GCM-SHA384:"
-                                    "AES128-GCM-SHA256") != 1) {
+        if (SSL_CTX_set_cipher_list(
+                    sslContext_.native_handle(),
+                    "ECDHE-RSA-AES256-GCM-SHA384:"
+                    "ECDHE-RSA-AES128-GCM-SHA256:"
+                    "ECDHE-RSA-CHACHA20-POLY1305:"
+                    "AES256-GCM-SHA384:"
+                    "AES128-GCM-SHA256") != 1) {
             log_->write("[" + to_string(uuid_) +
                                 "] [TCPConnection initTlsServerContext] failed to set cipher list",
                         Log::Level::ERROR);
@@ -69,16 +72,21 @@ bool TCPConnection::initTlsServerContext() {
         }
 
 #if defined(TLS1_3_VERSION)
-        SSL_CTX_set_ciphersuites(sslContext_.native_handle(),
-                                 "TLS_AES_256_GCM_SHA384:"
-                                 "TLS_AES_128_GCM_SHA256:"
-                                 "TLS_CHACHA20_POLY1305_SHA256");
+        SSL_CTX_set_ciphersuites(
+                sslContext_.native_handle(),
+                "TLS_AES_256_GCM_SHA384:"
+                "TLS_AES_128_GCM_SHA256:"
+                "TLS_CHACHA20_POLY1305_SHA256");
 #endif
 
         tlsSocket_ = std::make_unique<ssl_stream>(io_context_, sslContext_);
+        closed_ = false;
+
         return true;
     } catch (std::exception &error) {
-        log_->write("[" + to_string(uuid_) + "] [TCPConnection initTlsServerContext] " + error.what(),
+        log_->write("[" + to_string(uuid_) +
+                            "] [TCPConnection initTlsServerContext] " +
+                            error.what(),
                     Log::Level::ERROR);
         return false;
     }
@@ -145,7 +153,7 @@ void TCPConnection::doReadServer() {
                             boost::asio::placeholders::error,
                             boost::asio::placeholders::bytes_transferred));
 
-        if (config_->server().tlsEnable) {
+        if (config_->general().tlsEnable) {
             boost::asio::async_read_until(*tlsSocket_, readBuffer_, "\r\n\r\n", handler);
         } else {
             boost::asio::async_read_until(socket_, readBuffer_, "\r\n\r\n", handler);
@@ -283,7 +291,7 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
         boost::system::error_code bodyError;
         std::string remotePeer;
 
-        if (config_->server().tlsEnable) {
+        if (config_->general().tlsEnable) {
             if (!HttpUtils::readRemainingHttpBody(*tlsSocket_, readBuffer_, bodyError)) {
                 socketShutdown();
                 return;
@@ -359,7 +367,7 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
                     }
                 };
 
-        if (config_->server().tlsEnable) {
+        if (config_->general().tlsEnable) {
             boost::asio::async_write(
                     *tlsSocket_,
                     writeBuffer_.data(),
@@ -401,7 +409,7 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
         const bool alreadyOpen = client_->isOpen();
 
         if (!alreadyOpen) {
-            if (config_->agent().tlsEnable) {
+            if (config_->general().tlsEnable) {
                 if (!client_->enableTlsClient()) return "";
             }
 
@@ -548,22 +556,35 @@ void TCPConnection::closeTunnelSession() {
 
 void TCPConnection::resetTimeout() {
     if (!config_->general().timeout) return;
+    if (closed_) return;
+
+    timeout_.cancel();
 
     timeout_.expires_after(std::chrono::seconds(config_->general().timeout));
-    timeout_.async_wait(boost::bind(&TCPConnection::onTimeout,
-                                    shared_from_this(),
-                                    boost::asio::placeholders::error));
+
+    timeout_.async_wait(
+            boost::asio::bind_executor(
+                    strand_,
+                    [self = shared_from_this()](const boost::system::error_code &error) {
+                        self->onTimeout(error);
+                    }));
 }
 
 void TCPConnection::cancelTimeout() {
-    if (config_->general().timeout) timeout_.cancel();
+    if (!config_->general().timeout) return;
+
+    boost::system::error_code ignored;
+    timeout_.cancel();
 }
 
 void TCPConnection::onTimeout(const boost::system::error_code &error) {
-    if (error || error == boost::asio::error::operation_aborted) return;
+    if (error == boost::asio::error::operation_aborted) return;
+    if (error) return;
     if (connect_) return;
+    if (closed_) return;
 
-    log_->write("[" + to_string(uuid_) + "] [TCPConnection onTimeout] [expiration] " +
+    log_->write("[" + to_string(uuid_) +
+                        "] [TCPConnection onTimeout] [expiration] " +
                         std::to_string(+config_->general().timeout) +
                         " seconds has passed, and the timeout has expired",
                 Log::Level::TRACE);
@@ -572,34 +593,64 @@ void TCPConnection::onTimeout(const boost::system::error_code &error) {
 }
 
 void TCPConnection::socketShutdown() {
-    try {
-        boost::system::error_code ignored;
+    if (closed_.exchange(true)) {
+        return;
+    }
 
+    boost::system::error_code ignored;
+
+    try {
         pollTimer_.cancel();
+        ignored.clear();
+
         timeout_.cancel();
+        ignored.clear();
 
         if (tlsSocket_) {
-            log_->write("[TCPConnection socketShutdown] [SSL]", Log::Level::DEBUG);
-            tlsSocket_->shutdown(ignored);
-            tlsSocket_->lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
-            tlsSocket_->lowest_layer().close(ignored);
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPConnection socketShutdown] [SSL]",
+                        Log::Level::DEBUG);
+
+            auto &lowest = tlsSocket_->lowest_layer();
+
+            lowest.cancel(ignored);
+            ignored.clear();
+
+            if (lowest.is_open()) {
+                lowest.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
+                ignored.clear();
+
+                lowest.close(ignored);
+                ignored.clear();
+            }
         }
 
         if (socket_.is_open()) {
-            log_->write("[TCPConnection socketShutdown] [TCP]", Log::Level::DEBUG);
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPConnection socketShutdown] [TCP]",
+                        Log::Level::DEBUG);
+
+            socket_.cancel(ignored);
+            ignored.clear();
+
             socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
+            ignored.clear();
+
             socket_.close(ignored);
+            ignored.clear();
         }
 
         if (client_) {
             client_->socketShutdown();
         }
+
     } catch (std::exception &error) {
-        log_->write("[" + to_string(uuid_) + "] [TCPConnection socketShutdown] [catch] " + error.what(),
+        log_->write("[" + to_string(uuid_) +
+                            "] [TCPConnection socketShutdown] [catch] " +
+                            error.what(),
                     Log::Level::DEBUG);
     }
 }
-
 void TCPConnection::enableDirectTunnelMode() {
     tunnelMode_ = true;
 }
@@ -608,7 +659,7 @@ void TCPConnection::asyncWriteToAgentConnection(
         const char *data,
         std::size_t bytes,
         std::function<void(const boost::system::error_code &)> done) {
-    if (config_->server().tlsEnable && tlsSocket_) {
+    if (config_->general().tlsEnable && tlsSocket_) {
         boost::asio::async_write(
                 *tlsSocket_,
                 boost::asio::buffer(data, bytes),
@@ -633,7 +684,7 @@ void TCPConnection::asyncWriteToAgentConnection(
 void TCPConnection::asyncReadFromAgentConnection(
         std::array<char, 8192> &buffer,
         std::function<void(const boost::system::error_code &, std::size_t)> done) {
-    if (config_->server().tlsEnable && tlsSocket_) {
+    if (config_->general().tlsEnable && tlsSocket_) {
         tlsSocket_->async_read_some(
                 boost::asio::buffer(buffer),
                 boost::asio::bind_executor(strand_, done));

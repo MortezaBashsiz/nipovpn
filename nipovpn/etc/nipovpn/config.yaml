@@ -5,8 +5,8 @@ general:
   token: "af445adb-2434-4975-9445-2c1b2231"
   # fakeUrl: string
   # Defines the fake url between agent and server
-  fakeUrl: "nipo.ciron.net"
-  # method:
+  fakeUrl: "www.google.com"
+  # methods:
   # Defines the list of using methods
   #   you like to send requests from agent to server
   # Program will choose randomly from this list
@@ -16,7 +16,7 @@ general:
     - POST
     - PUT
     - DELETE
-  # endPoint:
+  # endPoints:
   # Defines the list of using endpoints
   #   you like to send requests from agent to server
   # Program will choose randomly from this list
@@ -37,6 +37,16 @@ general:
   # If false then it will use same connection between agent and server to handle client request
   #   If true then it will create new connection for each request between agent and server
   connectionReuse: false
+  # tlsEnable: bool
+  # It enables or disables tls between agent and server
+  tlsEnable: false
+  # tlsVerifyPeer: bool
+  # Use it to controll if the certificate should be validated or not
+  tlsVerifyPeer: false
+  # Use following configurations to specify the key and cert which will be used between agent and server
+  tlsCertFile: "/etc/nipovpn/server.crt"
+  tlsKeyFile: "/etc/nipovpn/server.key"
+  tlsCaFile: ""
 
 
 # This block is to define log directives
@@ -55,11 +65,7 @@ server:
   listenIp: "0.0.0.0"
   # listenPort: the port number which will be used on server
   listenPort: 80
-  tlsEnable: false
-  tlsVerifyPeer: false
-  tlsCertFile: "/etc/nipovpn/server.crt"
-  tlsKeyFile: "/etc/nipovpn/server.key"
-  tlsCaFile: ""
+
 
 # This block is to define agent directives
 agent:
@@ -70,13 +76,10 @@ agent:
   # listenPort: the port number which will be used on agent
   listenPort: 8080
   # serverIp: IPv4 of the nipoServer
-  serverIp: "127.0.0.10"
+  serverIp: "127.0.0.1"
   # serverPort: port number of the nipoServer
   serverPort: 80
   # httpVersion: This version will be used between agent and server
   httpVersion: "1.1"
   # userAgent: This is the http user agent which will be used between agent and server
-  userAgent : "NipoAgent"
-  tlsEnable: false
-  tlsVerifyPeer: false
-  tlsCaFile: ""
+  userAgent : "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0"

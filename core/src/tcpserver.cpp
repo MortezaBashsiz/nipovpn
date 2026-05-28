@@ -31,7 +31,7 @@ void TCPServer::handleAccept(TCPConnection::pointer connection,
     try {
         if (!error) {
             if (config_->runMode() == RunMode::server) {
-                if (config_->server().tlsEnable) {
+                if (config_->general().tlsEnable) {
                     if (!connection->initTlsServerContext()) {
                         log_->write("[TCPServer handleAccept] TLS server context init failed",
                                     Log::Level::ERROR);
