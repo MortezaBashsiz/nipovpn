@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/bind/bind.hpp>
@@ -144,6 +145,7 @@ private:
     bool tunnelMode_;
     bool tunnelClosed_;
     bool pollInProgress_;
+    std::atomic_bool closed_{false};
 
     std::array<char, 8192> downstreamBuf_;
     std::array<char, 8192> upstreamBuf_;
