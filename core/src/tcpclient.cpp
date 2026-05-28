@@ -47,11 +47,11 @@ bool TCPClient::enableTlsClient() {
 
         SSL_CTX_set_min_proto_version(sslContext_.native_handle(), TLS1_2_VERSION);
 
-        if (config_->agent().tlsVerifyPeer) {
+        if (config_->general().tlsVerifyPeer) {
             sslContext_.set_verify_mode(boost::asio::ssl::verify_peer);
 
-            if (!config_->agent().tlsCaFile.empty()) {
-                sslContext_.load_verify_file(config_->agent().tlsCaFile);
+            if (!config_->general().tlsCaFile.empty()) {
+                sslContext_.load_verify_file(config_->general().tlsCaFile);
             }
         } else {
             sslContext_.set_verify_mode(boost::asio::ssl::verify_none);
