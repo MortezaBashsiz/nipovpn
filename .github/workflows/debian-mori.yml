@@ -3,10 +3,10 @@ name: Build and Release Debian Package - DEV
 on:
   push:
     branches:
-      - dev
+      - mori
     paths:
       - 'core/src/**'
-      - '.github/workflows/debian-dev.yml'
+      - '.github/workflows/debian-mori.yml'
       - 'nipovpn/**'
 
 permissions:
@@ -53,15 +53,16 @@ jobs:
           cp build/core/nipovpn package/usr/bin/nipovpn
           chmod 755 package/usr/bin/nipovpn
 
-          cat > package/DEBIAN/control <<EOF
+          cat > package/DEBIAN/control <<'EOF'
 Package: nipovpn
-Version: ${PACKAGE_VERSION}
+Version: PLACEHOLDER_VERSION
 Maintainer: Morteza Bashsiz
 Architecture: amd64
 Description: Powerful and Secure HTTP/S Proxy
 Depends: libyaml-cpp0.8
 Homepage: https://github.com/MortezaBashsiz/nipovpn
 EOF
+          sed -i "s/PLACEHOLDER_VERSION/${PACKAGE_VERSION}/" package/DEBIAN/control
 
           dpkg-deb --build package "build/${PACKAGE_FILE}"
 
@@ -94,7 +95,7 @@ EOF
       - name: Create GitHub DEV Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: dev-v${{ env.PACKAGE_VERSION }}
+          tag_name: mori-v${{ env.PACKAGE_VERSION }}
           name: DEV Version v${{ env.PACKAGE_VERSION }}
           prerelease: true
           files: ${{ env.PACKAGE_FILE }}
