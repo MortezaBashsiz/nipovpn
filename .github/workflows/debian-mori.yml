@@ -91,11 +91,11 @@ jobs:
         run: |
           ls -lah
 
-      - name: Create GitHub DEV Release
+      - name: Create GitHub MORI Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: mori-v${{ env.PACKAGE_VERSION }}
-          name: DEV Version v${{ env.PACKAGE_VERSION }}
+          name: MORI Version v${{ env.PACKAGE_VERSION }}
           prerelease: true
           files: ${{ env.PACKAGE_FILE }}
         env:
