@@ -17,6 +17,13 @@ env:
   PACKAGE_VERSION: 0.2.${{ github.run_number }}
   PACKAGE_FILE: nipovpn_mori_0.2.${{ github.run_number }}_amd64.deb
 
+permissions:
+  contents: write
+
+env:
+  PACKAGE_VERSION: 0.1.${{ github.run_number }}
+  PACKAGE_FILE: nipovpn_mori_0.1.${{ github.run_number }}_amd64.deb
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -54,14 +61,22 @@ jobs:
           cp build/core/nipovpn nipovpn/usr/bin/nipovpn
           chmod 755 nipovpn/usr/bin/nipovpn
 
-          sed -i "s/^Version:.*/Version: ${PACKAGE_VERSION}/" nipovpn/DEBIAN/control
+          printf '%s\n' \
+            "Package: nipovpn" \
+            "Version: ${PACKAGE_VERSION}" \
+            "Maintainer: Morteza Bashsiz" \
+            "Architecture: amd64" \
+            "Depends: libyaml-cpp0.8" \
+            "Homepage: https://github.com/MortezaBashsiz/nipovpn" \
+            "Description: Powerful and Secure HTTP/S Proxy" \
+            > package/DEBIAN/control
 
-          dpkg-deb --build nipovpn "build/${PACKAGE_FILE}"
+          dpkg-deb --build package "build/${PACKAGE_FILE}"
 
       - name: Show package information
         run: |
           dpkg -I "build/${PACKAGE_FILE}"
-          dpkg -c "build/${PACKAGE_FILE}"
+          ls -lah build/
 
       - name: Upload Debian package as artifact
         uses: actions/upload-artifact@v4
@@ -74,13 +89,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download Debian package artifact
+      - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: nipovpn-mori-deb
           path: ./
 
-      - name: Create MORI GitHub Release
+      - name: Check downloaded files
+        run: |
+          ls -lah
+
+      - name: Create GitHub MORI Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: mori-v${{ env.PACKAGE_VERSION }}
