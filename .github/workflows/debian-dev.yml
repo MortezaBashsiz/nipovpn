@@ -53,16 +53,15 @@ jobs:
           cp build/core/nipovpn package/usr/bin/nipovpn
           chmod 755 package/usr/bin/nipovpn
 
-          cat > package/DEBIAN/control <<'EOF'
-Package: nipovpn
-Version: PLACEHOLDER_VERSION
-Maintainer: Morteza Bashsiz
-Architecture: amd64
-Description: Powerful and Secure HTTP/S Proxy
-Depends: libyaml-cpp0.8
-Homepage: https://github.com/MortezaBashsiz/nipovpn
-EOF
-          sed -i "s/PLACEHOLDER_VERSION/${PACKAGE_VERSION}/" package/DEBIAN/control
+          printf '%s\n' \
+            "Package: nipovpn" \
+            "Version: ${PACKAGE_VERSION}" \
+            "Maintainer: Morteza Bashsiz" \
+            "Architecture: amd64" \
+            "Depends: libyaml-cpp0.8" \
+            "Homepage: https://github.com/MortezaBashsiz/nipovpn" \
+            "Description: Powerful and Secure HTTP/S Proxy" \
+            > package/DEBIAN/control
 
           dpkg-deb --build package "build/${PACKAGE_FILE}"
 
