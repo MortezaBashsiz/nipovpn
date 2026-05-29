@@ -1,4 +1,4 @@
-name: Build and Release Debian Package
+name: Build and Release Debian Package - MAIN
 
 on:
   push:
@@ -9,6 +9,13 @@ on:
       - '.github/workflows/debian.yml'
       - 'nipovpn/**'
 
+permissions:
+  contents: write
+
+env:
+  PACKAGE_VERSION: 1.1.${{ github.run_number }}
+  PACKAGE_FILE: nipovpn_1.1.${{ github.run_number }}_amd64.deb
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -17,22 +24,12 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Set package version
-        run: echo "PACKAGE_VERSION=1.1.${{ github.run_number }}" >> "$GITHUB_ENV"
-
       - name: Set up dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            dpkg-dev \
-            build-essential \
-            lintian \
-            fakeroot \
-            devscripts \
-            cmake \
-            libssl-dev \
-            libboost-all-dev \
-            libyaml-cpp-dev
+            dpkg-dev build-essential lintian fakeroot devscripts cmake \
+            libssl-dev libboost-all-dev libyaml-cpp-dev
 
       - name: Build the package
         run: |
@@ -43,53 +40,55 @@ jobs:
           cd ..
 
           rm -rf package
-          mkdir -p package/DEBIAN
-          mkdir -p package/usr/bin
+          mkdir -p package/DEBIAN package/usr/bin
 
           cp build/core/nipovpn package/usr/bin/nipovpn
           chmod 755 package/usr/bin/nipovpn
 
           cat > package/DEBIAN/control <<EOF
-          Package: nipovpn
-          Version: ${PACKAGE_VERSION}
-          Maintainer: Morteza Bashsiz
-          Architecture: amd64
-          Description: Powerful and Secure HTTP/S Proxy
-          Depends: libyaml-cpp0.8
-          Homepage: https://github.com/MortezaBashsiz/nipovpn
-          EOF
+Package: nipovpn
+Version: ${PACKAGE_VERSION}
+Maintainer: Morteza Bashsiz
+Architecture: amd64
+Description: Powerful and Secure HTTP/S Proxy
+Depends: libyaml-cpp0.8
+Homepage: https://github.com/MortezaBashsiz/nipovpn
+EOF
 
-          dpkg-deb --build package "build/nipovpn_${PACKAGE_VERSION}_amd64.deb"
+          dpkg-deb --build package "build/${PACKAGE_FILE}"
 
       - name: Show package information
         run: |
-          dpkg -I "build/nipovpn_${PACKAGE_VERSION}_amd64.deb"
+          dpkg -I "build/${PACKAGE_FILE}"
+          ls -lah build/
 
       - name: Upload Debian package as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nipovpn
-          path: build/nipovpn_${{ env.PACKAGE_VERSION }}_amd64.deb
+          name: nipovpn-main-deb
+          path: build/${{ env.PACKAGE_FILE }}
 
   release:
     needs: build
     runs-on: ubuntu-latest
-  
-    permissions:
-      contents: write
-  
+
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: nipovpn
+          name: nipovpn-main-deb
           path: ./
-  
-      - name: Create GitHub Release
+
+      - name: Check downloaded files
+        run: |
+          ls -lah
+
+      - name: Create GitHub MAIN Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.PACKAGE_VERSION }}
           name: Version v${{ env.PACKAGE_VERSION }}
-          files: nipovpn_${{ env.PACKAGE_VERSION }}_amd64.deb
+          prerelease: false
+          files: ${{ env.PACKAGE_FILE }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
