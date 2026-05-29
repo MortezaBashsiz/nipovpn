@@ -54,7 +54,12 @@ jobs:
           cp build/core/nipovpn nipovpn/usr/bin/nipovpn
           chmod 755 nipovpn/usr/bin/nipovpn
 
-          sed -i "s/^Version:.*/Version: ${PACKAGE_VERSION}/" nipovpn/DEBIAN/control
+          sed -i -E "s/^Version[[:space:]]*:.*/Version: ${PACKAGE_VERSION}/" nipovpn/DEBIAN/control
+
+          echo "Final control file:"
+          cat nipovpn/DEBIAN/control
+
+          grep "^Version: ${PACKAGE_VERSION}$" nipovpn/DEBIAN/control
 
           dpkg-deb --build nipovpn "build/${PACKAGE_FILE}"
 
