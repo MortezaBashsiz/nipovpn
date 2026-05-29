@@ -6,8 +6,16 @@ on:
       - main
     paths:
       - 'core/src/**'
-      - '.github/workflows/debian.yml'
+      - 'core/**'
       - 'nipovpn/**'
+      - '.github/workflows/debian.yml'
+
+permissions:
+  contents: write
+
+env:
+  PACKAGE_VERSION: 1.1.${{ github.run_number }}
+  PACKAGE_FILE: nipovpn_1.1.${{ github.run_number }}_amd64.deb
 
 permissions:
   contents: write
@@ -31,19 +39,19 @@ jobs:
             dpkg-dev build-essential lintian fakeroot devscripts cmake \
             libssl-dev libboost-all-dev libyaml-cpp-dev
 
-      - name: Build the package
+      - name: Build binary
         run: |
+          rm -rf build
           mkdir -p build
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release ..
           make -j$(nproc)
-          cd ..
 
           rm -rf package
           mkdir -p package/DEBIAN package/usr/bin
 
-          cp build/core/nipovpn package/usr/bin/nipovpn
-          chmod 755 package/usr/bin/nipovpn
+          cp build/core/nipovpn nipovpn/usr/bin/nipovpn
+          chmod 755 nipovpn/usr/bin/nipovpn
 
           printf '%s\n' \
             "Package: nipovpn" \
