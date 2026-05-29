@@ -74,17 +74,17 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-
+  
+    permissions:
+      contents: write
+  
     steps:
-      - name: Set package version
-        run: echo "PACKAGE_VERSION=0.1.${{ github.run_number }}" >> "$GITHUB_ENV"
-
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: nipovpn
           path: ./
-
+  
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -92,4 +92,4 @@ jobs:
           name: Version v${{ env.PACKAGE_VERSION }}
           files: nipovpn_dev_${{ env.PACKAGE_VERSION }}_amd64.deb
         env:
-          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
