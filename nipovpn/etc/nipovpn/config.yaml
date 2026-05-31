@@ -3,9 +3,13 @@
 general:
   # token: 32 bytes of string. this will be used on agent and server side to encryption
   token: "af445adb-2434-4975-9445-2c1b2231"
-  # fakeUrl: string
-  # Defines the fake url between agent and server
-  fakeUrl: "www.google.com"
+  # fakeUrls:
+  # Defines the list of fake urls between agent and server
+  fakeUrls:
+    - www.google.com
+    - nipo.ciron.net
+    - sudoer.net
+    - sudoer.ir
   # methods:
   # Defines the list of using methods
   #   you like to send requests from agent to server
@@ -36,7 +40,7 @@ general:
   # connectionReuse: bool
   # If false then it will use same connection between agent and server to handle client request
   #   If true then it will create new connection for each request between agent and server
-  connectionReuse: false
+  connectionReuse: true
   # tlsEnable: bool
   # It enables or disables tls between agent and server
   tlsEnable: false
@@ -76,7 +80,7 @@ agent:
   # listenPort: the port number which will be used on agent
   listenPort: 8080
   # serverIp: IPv4 of the nipoServer
-  serverIp: "127.0.0.1"
+  serverIp: "127.0.0.10"
   # serverPort: port number of the nipoServer
   serverPort: 80
   # httpVersion: This version will be used between agent and server

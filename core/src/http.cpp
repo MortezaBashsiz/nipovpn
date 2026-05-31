@@ -156,10 +156,11 @@ bool HTTP::parseTls() {
 }
 
 const std::string HTTP::genHttpPostReqString(const std::string &body) const {
+    auto fakeUrl = config_->randomFakeUrl();
     return std::string(config_->randomMethod() + " " +
-                       config_->general().fakeUrl + " HTTP/" +
+                       fakeUrl + " HTTP/" +
                        config_->agent().httpVersion + "\r\n") +
-           "Host: " + config_->general().fakeUrl + "\r\n" +
+           "Host: " + fakeUrl + "\r\n" +
            "User-Agent: " + config_->agent().userAgent + "\r\n" +
            "Accept: */*\r\n" + "Connection: keep-alive\r\n" +
            "Content-Length: " + std::to_string(body.length()) + "\r\n" +
@@ -167,10 +168,11 @@ const std::string HTTP::genHttpPostReqString(const std::string &body) const {
 }
 
 const std::string HTTP::genHttpRestPostReqString() const {
+    auto fakeUrl = config_->randomFakeUrl();
     return std::string(config_->randomMethod() + " " +
-                       config_->general().fakeUrl + " HTTP/" +
+                       fakeUrl + " HTTP/" +
                        config_->agent().httpVersion + "\r\n") +
-           "Host: " + config_->general().fakeUrl + "\r\n" +
+           "Host: " + fakeUrl + "\r\n" +
            "User-Agent: " + config_->agent().userAgent + "\r\n" +
            "Accept: */*\r\n" + "Connection: keep-alive\r\n" +
            "Rest: yes\r\n" + "COMP\r\n\r\n";

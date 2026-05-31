@@ -9,7 +9,7 @@ Config::Config(const RunMode &mode, const std::string &filePath)
       listenIp_("127.0.0.1"),
       listenPort_(0),
       general_({configYaml_["general"]["token"].as<std::string>(),
-                configYaml_["general"]["fakeUrl"].as<std::string>(),
+                configYaml_["general"]["fakeUrls"].as<std::vector<std::string>>(),
                 configYaml_["general"]["methods"].as<std::vector<std::string>>(),
                 configYaml_["general"]["endPoints"].as<std::vector<std::string>>(),
                 configYaml_["general"]["timeout"].as<unsigned short>(),
@@ -72,7 +72,17 @@ std::string Config::toString() const {
     ss << "\nConfig :\n"
        << " General :\n"
        << "   token: " << general_.token << "\n"
-       << "   fakeUrl: " << general_.fakeUrl << "\n"
+       << "   fakeUrls: ";
+
+    for (std::size_t i = 0; i < general_.fakeUrls.size(); ++i) {
+        ss << general_.fakeUrls[i];
+
+        if (i != general_.fakeUrls.size() - 1) {
+            ss << ", ";
+        }
+    }
+
+    ss << "\n"
        << "   methods: ";
 
     for (std::size_t i = 0; i < general_.methods.size(); ++i) {
@@ -198,11 +208,27 @@ std::string Config::modeToString() const {
     }
 }
 
+std::string Config::randomFakeUrl() const {
+    std::lock_guard<std::mutex> lock(configMutex_);
+
+    if (general_.fakeUrls.empty()) {
+        return "www.google.com";
+    }
+
+    static thread_local std::mt19937 generator{std::random_device{}()};
+
+    std::uniform_int_distribution<std::size_t> distribution(
+            0,
+            general_.fakeUrls.size() - 1);
+
+    return general_.fakeUrls[distribution(generator)];
+}
+
 std::string Config::randomMethod() const {
     std::lock_guard<std::mutex> lock(configMutex_);
 
     if (general_.methods.empty()) {
-        return "GET";// fallback
+        return "GET";
     }
 
     static thread_local std::mt19937 generator{std::random_device{}()};
@@ -218,7 +244,7 @@ std::string Config::randomEndPoint() const {
     std::lock_guard<std::mutex> lock(configMutex_);
 
     if (general_.endPoints.empty()) {
-        return "api";// fallback
+        return "api";
     }
 
     static thread_local std::mt19937 generator{std::random_device{}()};
