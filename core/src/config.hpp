@@ -20,7 +20,7 @@ class Config : private Uncopyable {
 private:
     struct General {
         std::string token;
-        std::string fakeUrl;
+        std::vector<std::string> fakeUrls;
         std::vector<std::string> methods;
         std::vector<std::string> endPoints;
         unsigned short timeout;
@@ -106,6 +106,8 @@ public:
     std::string modeToString() const;
 
     std::string toString() const;
+
+    std::string randomFakeUrl() const;
 
     std::string randomMethod() const;
 

@@ -160,7 +160,7 @@ bool TCPClient::doHandshakeClient() {
     try {
         if (!tlsEnabled_ || !sslSocket_) return true;
 
-        std::string sniHost = config_->general().fakeUrl;
+        std::string sniHost = config_->randomFakeUrl();
 
         if (!sniHost.empty()) {
             auto pos = sniHost.find("://");

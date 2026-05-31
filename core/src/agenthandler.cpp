@@ -149,7 +149,7 @@ void AgentHandler::handle() {
 }
 
 std::string AgentHandler::relayHostHeader(const std::shared_ptr<Config> &config) {
-    std::string hostHeader = config->general().fakeUrl;
+    std::string hostHeader = config->randomFakeUrl();
     auto pos = hostHeader.find("://");
     if (pos != std::string::npos) hostHeader = hostHeader.substr(pos + 3);
     pos = hostHeader.find('/');
