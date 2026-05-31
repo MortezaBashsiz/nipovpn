@@ -390,7 +390,7 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
 }
 
 std::string TCPConnection::makeRelayHostHeader() const {
-    std::string hostHeader = config_->general().fakeUrl;
+    std::string hostHeader = config_->randomFakeUrl();
 
     auto pos = hostHeader.find("://");
     if (pos != std::string::npos) hostHeader = hostHeader.substr(pos + 3);
