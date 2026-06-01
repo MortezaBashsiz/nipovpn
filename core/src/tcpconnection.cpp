@@ -512,7 +512,7 @@ void TCPConnection::startTunnelPollServer() {
 
     pollInProgress_ = true;
 
-    pollTimer_.expires_after(std::chrono::milliseconds(10));
+    pollTimer_.expires_after(std::chrono::milliseconds(config_->general().pullTimeout));
     pollTimer_.async_wait(
             boost::asio::bind_executor(
                     strand_,
