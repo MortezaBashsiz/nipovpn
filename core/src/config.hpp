@@ -24,6 +24,7 @@ private:
         std::vector<std::string> methods;
         std::vector<std::string> endPoints;
         unsigned short timeout;
+        unsigned short pullTimeout;
         bool tunnelEnable;
         bool connectionReuse;
         bool tlsEnable;
