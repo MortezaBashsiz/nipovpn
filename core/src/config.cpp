@@ -13,6 +13,7 @@ Config::Config(const RunMode &mode, const std::string &filePath)
                 configYaml_["general"]["methods"].as<std::vector<std::string>>(),
                 configYaml_["general"]["endPoints"].as<std::vector<std::string>>(),
                 configYaml_["general"]["timeout"].as<unsigned short>(),
+                configYaml_["general"]["pullTimeout"].as<unsigned short>(),
                 configYaml_["general"]["tunnelEnable"].as<bool>(false),
                 configYaml_["general"]["connectionReuse"].as<bool>(false),
                 configYaml_["general"]["tlsEnable"].as<bool>(false),
@@ -106,6 +107,7 @@ std::string Config::toString() const {
 
     ss << "\n"
        << "   timeout: " << general_.timeout << "\n"
+       << "   pullTimeout: " << general_.pullTimeout << "\n"
        << "   tunnelEnable: " << std::boolalpha << general_.tunnelEnable << "\n"
        << "   connectionReuse: " << std::boolalpha << general_.connectionReuse << "\n"
        << "   tlsEnable: " << std::boolalpha << general_.tlsEnable << "\n"
