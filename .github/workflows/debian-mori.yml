@@ -58,6 +58,8 @@ jobs:
               -w /src \
               ubuntu:24.04 \
               bash -c '
+                export DEBIAN_FRONTEND=noninteractive
+
                 apt-get update
                 apt-get install -y \
                   build-essential \
@@ -68,12 +70,17 @@ jobs:
 
                 mkdir -p build
                 cd build
+
                 cmake -DCMAKE_BUILD_TYPE=Release ..
                 make -j$(nproc)
               '
+
+            sudo chown -R $USER:$USER build
+
           else
             mkdir -p build
             cd build
+
             cmake -DCMAKE_BUILD_TYPE=Release ..
             make -j$(nproc)
           fi
@@ -96,7 +103,12 @@ jobs:
           grep "^Version: ${PACKAGE_VERSION}$" nipovpn/DEBIAN/control
           grep "^Architecture: ${{ matrix.arch }}$" nipovpn/DEBIAN/control
 
+          mkdir -p build
+          chmod 755 build
+
           dpkg-deb --build nipovpn "build/${PACKAGE_FILE}"
+
+          ls -lah build/
 
       - name: Show package information
         run: |
