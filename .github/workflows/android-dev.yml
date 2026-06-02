@@ -38,12 +38,16 @@ jobs:
             zip \
             unzip \
             tar \
-            pkg-config
+            pkg-config \
+            autoconf \
+            autoconf-archive \
+            automake \
+            libtool
 
       - name: Setup Android NDK r27
         uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r27c
+          ndk-version: r29
           add-to-path: true
 
       - name: Show Android NDK information
