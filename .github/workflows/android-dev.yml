@@ -44,7 +44,7 @@ jobs:
             automake \
             libtool
 
-      - name: Setup Android NDK r27
+      - name: Setup Android NDK r29
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r29
