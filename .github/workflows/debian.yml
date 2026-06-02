@@ -15,15 +15,24 @@ permissions:
 
 env:
   PACKAGE_VERSION: 1.1.${{ github.run_number }}
-  PACKAGE_FILE: nipovpn_1.1.${{ github.run_number }}_amd64.deb
 
 jobs:
   build:
     runs-on: ubuntu-24.04
-
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+          - arch: arm64
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
       - name: Set up dependencies
         run: |
@@ -42,59 +51,97 @@ jobs:
       - name: Build binary
         run: |
           rm -rf build
-          mkdir -p build
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release ..
-          make -j$(nproc)
+
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            docker run --rm --platform linux/arm64 \
+              -v "$PWD:/src" \
+              -w /src \
+              ubuntu:24.04 \
+              bash -c '
+                export DEBIAN_FRONTEND=noninteractive
+
+                apt-get update
+                apt-get install -y \
+                  build-essential \
+                  cmake \
+                  libssl-dev \
+                  libboost-all-dev \
+                  libyaml-cpp-dev
+
+                mkdir -p build
+                cd build
+
+                cmake -DCMAKE_BUILD_TYPE=Release ..
+                make -j$(nproc)
+              '
+
+            sudo chown -R $USER:$USER build
+
+          else
+            mkdir -p build
+            cd build
+
+            cmake -DCMAKE_BUILD_TYPE=Release ..
+            make -j$(nproc)
+          fi
 
       - name: Build Debian package
         run: |
+          PACKAGE_FILE="nipovpn_${PACKAGE_VERSION}_${{ matrix.arch }}.deb"
+
           mkdir -p nipovpn/usr/bin
 
           cp build/core/nipovpn nipovpn/usr/bin/nipovpn
           chmod 755 nipovpn/usr/bin/nipovpn
 
           sed -i -E "s/^Version[[:space:]]*:.*/Version: ${PACKAGE_VERSION}/" nipovpn/DEBIAN/control
+          sed -i -E "s/^Architecture[[:space:]]*:.*/Architecture: ${{ matrix.arch }}/" nipovpn/DEBIAN/control
 
           echo "Final control file:"
           cat nipovpn/DEBIAN/control
 
           grep "^Version: ${PACKAGE_VERSION}$" nipovpn/DEBIAN/control
+          grep "^Architecture: ${{ matrix.arch }}$" nipovpn/DEBIAN/control
+
+          mkdir -p build
+          chmod 755 build
 
           dpkg-deb --build nipovpn "build/${PACKAGE_FILE}"
 
+          ls -lah build/
+
       - name: Show package information
         run: |
+          PACKAGE_FILE="nipovpn_${PACKAGE_VERSION}_${{ matrix.arch }}.deb"
           dpkg -I "build/${PACKAGE_FILE}"
           dpkg -c "build/${PACKAGE_FILE}"
 
       - name: Upload Debian package as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nipovpn-main-deb
-          path: build/${{ env.PACKAGE_FILE }}
+          name: nipovpn-deb-${{ matrix.arch }}
+          path: build/nipovpn_${{ env.PACKAGE_VERSION }}_${{ matrix.arch }}.deb
 
   release:
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download Debian package artifact
+      - name: Download Debian package artifacts
         uses: actions/download-artifact@v4
         with:
-          name: nipovpn-main-deb
+          pattern: nipovpn-deb-*
+          merge-multiple: true
           path: ./
 
-      - name: Check downloaded files
-        run: |
-          ls -lah
-
-      - name: Create MAIN GitHub Release
+      - name: Create Main GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.PACKAGE_VERSION }}
           name: Version v${{ env.PACKAGE_VERSION }}
-          prerelease: false
-          files: ${{ env.PACKAGE_FILE }}
+          prerelease: true
+          files: |
+            nipovpn_${{ env.PACKAGE_VERSION }}_amd64.deb
+            nipovpn_${{ env.PACKAGE_VERSION }}_arm64.deb
         env:
           GITHUB_TOKEN: ${{ github.token }}
