@@ -110,3 +110,30 @@ jobs:
         with:
           name: nipovpn-mori-android-arm64-v8a
           path: out/android/arm64-v8a/
+
+  release-android:
+    needs:
+      - build-android
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nipovpn-mori-android-arm64-v8a
+          path: ./android-artifact
+
+      - name: Show downloaded Android artifact
+        run: |
+          ls -lah android-artifact
+
+      - name: Create Android GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mori-android-v${{ env.PACKAGE_VERSION }}
+          name: Mori Android Binary v${{ env.PACKAGE_VERSION }}
+          prerelease: true
+          files: |
+            android-artifact/libnipovpn_exec.so
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
