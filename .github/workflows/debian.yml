@@ -1,4 +1,4 @@
-name: Build and Release Debian Package - MAIN
+name: Build and Release Package - Main
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 env:
-  PACKAGE_VERSION: 1.1.${{ github.run_number }}
+  PACKAGE_VERSION: 0.1.${{ github.run_number }}
 
 jobs:
   build:
@@ -24,7 +24,10 @@ jobs:
       matrix:
         include:
           - arch: amd64
+            package_arch: amd64
           - arch: arm64
+            package_arch: arm64
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -34,7 +37,7 @@ jobs:
         with:
           platforms: arm64
 
-      - name: Set up dependencies
+      - name: Install host dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -76,7 +79,6 @@ jobs:
               '
 
             sudo chown -R $USER:$USER build
-
           else
             mkdir -p build
             cd build
@@ -89,52 +91,201 @@ jobs:
         run: |
           PACKAGE_FILE="nipovpn_${PACKAGE_VERSION}_${{ matrix.arch }}.deb"
 
-          mkdir -p nipovpn/usr/bin
+          rm -rf package-root
+          cp -a nipovpn package-root
 
-          cp build/core/nipovpn nipovpn/usr/bin/nipovpn
-          chmod 755 nipovpn/usr/bin/nipovpn
+          mkdir -p package-root/usr/bin
+          cp build/core/nipovpn package-root/usr/bin/nipovpn
+          chmod 755 package-root/usr/bin/nipovpn
 
-          sed -i -E "s/^Version[[:space:]]*:.*/Version: ${PACKAGE_VERSION}/" nipovpn/DEBIAN/control
-          sed -i -E "s/^Architecture[[:space:]]*:.*/Architecture: ${{ matrix.arch }}/" nipovpn/DEBIAN/control
+          sed -i -E "s/^Version[[:space:]]*:.*/Version: ${PACKAGE_VERSION}/" package-root/DEBIAN/control
+          sed -i -E "s/^Architecture[[:space:]]*:.*/Architecture: ${{ matrix.package_arch }}/" package-root/DEBIAN/control
+
+          sed -i -e '$a\' package-root/DEBIAN/control
 
           echo "Final control file:"
-          cat nipovpn/DEBIAN/control
+          cat package-root/DEBIAN/control
 
-          grep "^Version: ${PACKAGE_VERSION}$" nipovpn/DEBIAN/control
-          grep "^Architecture: ${{ matrix.arch }}$" nipovpn/DEBIAN/control
+          grep "^Version: ${PACKAGE_VERSION}$" package-root/DEBIAN/control
+          grep "^Architecture: ${{ matrix.package_arch }}$" package-root/DEBIAN/control
 
           mkdir -p build
-          chmod 755 build
-
-          dpkg-deb --build nipovpn "build/${PACKAGE_FILE}"
+          dpkg-deb --build package-root "build/${PACKAGE_FILE}"
 
           ls -lah build/
 
-      - name: Show package information
+      - name: Show Debian package information
         run: |
           PACKAGE_FILE="nipovpn_${PACKAGE_VERSION}_${{ matrix.arch }}.deb"
           dpkg -I "build/${PACKAGE_FILE}"
           dpkg -c "build/${PACKAGE_FILE}"
 
-      - name: Upload Debian package as artifact
+      - name: Upload Debian package artifact
         uses: actions/upload-artifact@v4
         with:
           name: nipovpn-deb-${{ matrix.arch }}
           path: build/nipovpn_${{ env.PACKAGE_VERSION }}_${{ matrix.arch }}.deb
 
+  build-termux:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          path: nipovpn-src
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git \
+            wget \
+            unzip \
+            curl \
+            python3 \
+            python3-pip \
+            build-essential \
+            cmake \
+            ninja-build \
+            pkg-config \
+            autoconf \
+            automake \
+            libtool \
+            autopoint \
+            bison \
+            flex \
+            gettext \
+            gperf \
+            help2man \
+            lzip \
+            libarchive-tools \
+            rsync \
+            texinfo \
+            jq
+
+      - name: Install Android NDK r29
+        run: |
+          mkdir -p "$HOME/lib"
+          cd "$HOME/lib"
+
+          wget -q https://dl.google.com/android/repository/android-ndk-r29-linux.zip
+          unzip -q android-ndk-r29-linux.zip
+
+          EXTRACTED_DIR="$(find "$HOME/lib" -maxdepth 1 -type d -name 'android-ndk-r29*' | head -n 1)"
+
+          if [ -z "$EXTRACTED_DIR" ]; then
+            echo "Android NDK r29 directory not found"
+            ls -lah "$HOME/lib"
+            exit 1
+          fi
+
+          ln -sfn "$EXTRACTED_DIR" "$HOME/lib/android-ndk-r29"
+
+          echo "NDK=$HOME/lib/android-ndk-r29" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$HOME/lib/android-ndk-r29" >> "$GITHUB_ENV"
+
+          ls -ld "$HOME/lib/android-ndk-r29"
+
+      - name: Clone termux-packages
+        run: |
+          git clone --depth=1 https://github.com/termux/termux-packages.git
+
+      - name: Create Termux package recipe
+        run: |
+          mkdir -p termux-packages/packages/nipovpn
+
+          cat > termux-packages/packages/nipovpn/build.sh <<'EOF'
+          TERMUX_PKG_HOMEPAGE=https://github.com/MortezaBashsiz/nipovpn
+          TERMUX_PKG_DESCRIPTION="Powerful and secure HTTP/S proxy"
+          TERMUX_PKG_LICENSE="MIT"
+          TERMUX_PKG_MAINTAINER="Morteza Bashsiz"
+          TERMUX_PKG_VERSION=@PACKAGE_VERSION@
+          TERMUX_PKG_SRCURL=file://@GITHUB_WORKSPACE@/nipovpn-src
+          TERMUX_PKG_SHA256=SKIP_CHECKSUM
+          TERMUX_PKG_DEPENDS="openssl, boost, libyaml-cpp"
+          TERMUX_PKG_BUILD_IN_SRC=false
+
+          termux_step_configure() {
+              cmake -S "$TERMUX_PKG_SRCDIR" \
+                    -B "$TERMUX_PKG_BUILDDIR" \
+                    -DCMAKE_BUILD_TYPE=Release \
+                    -DCMAKE_INSTALL_PREFIX="$TERMUX_PREFIX"
+          }
+
+          termux_step_make() {
+              cmake --build "$TERMUX_PKG_BUILDDIR" -j "$(nproc)"
+          }
+
+          termux_step_make_install() {
+              install -Dm755 \
+                  "$TERMUX_PKG_BUILDDIR/core/nipovpn" \
+                  "$TERMUX_PREFIX/bin/nipovpn"
+
+              if [ -d "$TERMUX_PKG_SRCDIR/nipovpn/etc/nipovpn" ]; then
+                  mkdir -p "$TERMUX_PREFIX/etc/nipovpn"
+                  cp -a "$TERMUX_PKG_SRCDIR/nipovpn/etc/nipovpn/." \
+                      "$TERMUX_PREFIX/etc/nipovpn/"
+              fi
+          }
+          EOF
+
+          sed -i "s|@PACKAGE_VERSION@|${PACKAGE_VERSION}|g" termux-packages/packages/nipovpn/build.sh
+          sed -i "s|@GITHUB_WORKSPACE@|${GITHUB_WORKSPACE}|g" termux-packages/packages/nipovpn/build.sh
+
+          cat termux-packages/packages/nipovpn/build.sh
+
+      - name: Prepare Termux build data dir
+        run: |
+          sudo mkdir -p /data
+          sudo chown -R $USER:$USER /data
+
+      - name: Build Termux aarch64 package
+        working-directory: termux-packages
+        run: |
+          ./build-package.sh -I -a aarch64 nipovpn
+
+      - name: Collect Termux package
+        run: |
+          mkdir -p out
+
+          TERMUX_DEB="$(find termux-packages/output -type f -name '*.deb' | head -n 1)"
+
+          if [ -z "$TERMUX_DEB" ]; then
+            echo "No Termux .deb package found"
+            find termux-packages/output -type f || true
+            exit 1
+          fi
+
+          cp "$TERMUX_DEB" "out/nipovpn_${PACKAGE_VERSION}_termux_aarch64.deb"
+
+          ls -lah out/
+
+      - name: Upload Termux package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nipovpn-termux-aarch64
+          path: out/nipovpn_${{ env.PACKAGE_VERSION }}_termux_aarch64.deb
+
   release:
-    needs: build
+    needs:
+      - build
+      - build-termux
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download Debian package artifacts
+      - name: Download package artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: nipovpn-deb-*
+          pattern: nipovpn-*
           merge-multiple: true
           path: ./
 
-      - name: Create Main GitHub Release
+      - name: Show downloaded files
+        run: |
+          ls -lah
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.PACKAGE_VERSION }}
@@ -143,5 +294,6 @@ jobs:
           files: |
             nipovpn_${{ env.PACKAGE_VERSION }}_amd64.deb
             nipovpn_${{ env.PACKAGE_VERSION }}_arm64.deb
+            nipovpn_${{ env.PACKAGE_VERSION }}_termux_aarch64.deb
         env:
           GITHUB_TOKEN: ${{ github.token }}
