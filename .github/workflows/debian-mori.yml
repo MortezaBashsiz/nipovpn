@@ -29,6 +29,11 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Set up dependencies
         run: |
           sudo apt-get update
@@ -41,28 +46,37 @@ jobs:
             cmake \
             libssl-dev \
             libboost-all-dev \
-            libyaml-cpp-dev \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu
+            libyaml-cpp-dev
 
       - name: Build binary
         run: |
           rm -rf build
-          mkdir -p build
-          cd build
 
           if [ "${{ matrix.arch }}" = "arm64" ]; then
-            cmake -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_SYSTEM_NAME=Linux \
-              -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-              -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
-              -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
-              ..
-          else
-            cmake -DCMAKE_BUILD_TYPE=Release ..
-          fi
+            docker run --rm --platform linux/arm64 \
+              -v "$PWD:/src" \
+              -w /src \
+              ubuntu:24.04 \
+              bash -c '
+                apt-get update
+                apt-get install -y \
+                  build-essential \
+                  cmake \
+                  libssl-dev \
+                  libboost-all-dev \
+                  libyaml-cpp-dev
 
-          make -j$(nproc)
+                mkdir -p build
+                cd build
+                cmake -DCMAKE_BUILD_TYPE=Release ..
+                make -j$(nproc)
+              '
+          else
+            mkdir -p build
+            cd build
+            cmake -DCMAKE_BUILD_TYPE=Release ..
+            make -j$(nproc)
+          fi
 
       - name: Build Debian package
         run: |
