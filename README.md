@@ -36,6 +36,9 @@ To contribute take a look at [contribution page](https://github.com/MortezaBashs
 
 Build from source for [Linux](guides/BuildLinux.md)
 
+## Termux
+
+Build from source for [Linux](guides/InstallTermux.md)
 
 
 ## Run
