@@ -1,0 +1,108 @@
+name: Build Android Binary - MORI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mori
+    paths:
+      - 'core/src/**'
+      - 'core/**'
+      - 'CMakeLists.txt'
+      - 'core/CMakeLists.txt'
+      - '.github/workflows/android-dev.yml'
+
+permissions:
+  contents: write
+
+env:
+  PACKAGE_VERSION: 0.1.${{ github.run_number }}
+
+jobs:
+  build-android:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            git \
+            curl \
+            zip \
+            unzip \
+            tar \
+            pkg-config
+
+      - name: Setup Android NDK r27
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
+          add-to-path: true
+
+      - name: Show Android NDK information
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT"
+          ls -lah "$ANDROID_NDK_HOME"
+
+      - name: Setup vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$HOME/vcpkg"
+          "$HOME/vcpkg/bootstrap-vcpkg.sh"
+
+          echo "VCPKG_ROOT=$HOME/vcpkg" >> "$GITHUB_ENV"
+          echo "$HOME/vcpkg" >> "$GITHUB_PATH"
+
+      - name: Build Android dependencies
+        run: |
+          "$VCPKG_ROOT/vcpkg" install \
+            boost-regex:arm64-android \
+            openssl:arm64-android \
+            yaml-cpp:arm64-android
+
+      - name: Configure Android arm64-v8a build
+        run: |
+          rm -rf build-android-arm64
+
+          cmake -S . -B build-android-arm64 \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET=arm64-android \
+            -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-23 \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Android arm64-v8a binary
+        run: |
+          cmake --build build-android-arm64 -j$(nproc)
+
+      - name: Collect Android binary and libraries
+        run: |
+          mkdir -p out/android/arm64-v8a
+
+          if [ ! -f build-android-arm64/core/nipovpn ]; then
+            echo "Android binary not found:"
+            find build-android-arm64 -type f || true
+            exit 1
+          fi
+
+          cp build-android-arm64/core/nipovpn out/android/arm64-v8a/libnipovpn_exec.so
+          chmod 755 out/android/arm64-v8a/libnipovpn_exec.so
+
+          find "$VCPKG_ROOT/installed/arm64-android" -type f -name "*.so*" -exec cp -v {} out/android/arm64-v8a/ \; || true
+
+          ls -lah out/android/arm64-v8a/
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nipovpn-mori-android-arm64-v8a
+          path: out/android/arm64-v8a/
