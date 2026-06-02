@@ -63,7 +63,7 @@ jobs:
       - name: Build Android dependencies
         run: |
           "$VCPKG_ROOT/vcpkg" install \
-            boost-regex:arm64-android \
+            boost:arm64-android \
             openssl:arm64-android \
             yaml-cpp:arm64-android
 
