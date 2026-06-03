@@ -82,11 +82,13 @@ jobs:
             -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-23 \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXE_LINKER_FLAGS="-Wl,-z,max-page-size=16384" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-z,max-page-size=16384"
 
       - name: Build Android arm64-v8a binary
         run: |
-          cmake --build build-android-arm64 -j$(nproc)
+          cmake --build build-android-arm64 -j"$(nproc)"
 
       - name: Collect Android binary and libraries
         run: |
@@ -104,6 +106,22 @@ jobs:
           find "$VCPKG_ROOT/installed/arm64-android" -type f -name "*.so*" -exec cp -v {} out/android/arm64-v8a/ \; || true
 
           ls -lah out/android/arm64-v8a/
+
+      - name: Check 16 KB ELF alignment
+        run: |
+          READELF="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+
+          for file in out/android/arm64-v8a/*.so*; do
+            echo "Checking $file"
+            "$READELF" -l "$file" | grep -A3 LOAD || true
+
+            if "$READELF" -l "$file" | awk '/LOAD/ && $NF != "0x4000" { bad=1 } END { exit bad }'; then
+              echo "OK: $file is 16 KB aligned"
+            else
+              echo "ERROR: $file is not 16 KB aligned"
+              exit 1
+            fi
+          done
 
       - name: Upload Android artifact
         uses: actions/upload-artifact@v4
@@ -134,6 +152,6 @@ jobs:
           name: Mori Android Binary v${{ env.PACKAGE_VERSION }}
           prerelease: true
           files: |
-            android-artifact/libnipovpn_exec.so
+            android-artifact/*
         env:
           GITHUB_TOKEN: ${{ github.token }}
