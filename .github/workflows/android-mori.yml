@@ -1,22 +1,22 @@
-name: Build Android Binary - dev
+name: Build Android Binary - MORI
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - dev
+      - mori
     paths:
       - 'core/src/**'
       - 'core/**'
       - 'CMakeLists.txt'
       - 'core/CMakeLists.txt'
-      - '.github/workflows/android-dev.yml'
+      - '.github/workflows/android-mori.yml'
 
 permissions:
   contents: write
 
 env:
-  PACKAGE_VERSION: 0.2.${{ github.run_number }}
+  PACKAGE_VERSION: 0.1.${{ github.run_number }}
 
 jobs:
   build-android:
@@ -126,7 +126,7 @@ jobs:
       - name: Upload Android artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nipovpn-dev-android-arm64-v8a
+          name: nipovpn-mori-android-arm64-v8a
           path: out/android/arm64-v8a/
 
   release-android:
@@ -138,7 +138,7 @@ jobs:
       - name: Download Android artifact
         uses: actions/download-artifact@v4
         with:
-          name: nipovpn-dev-android-arm64-v8a
+          name: nipovpn-mori-android-arm64-v8a
           path: ./android-artifact
 
       - name: Show downloaded Android artifact
@@ -148,8 +148,8 @@ jobs:
       - name: Create Android GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: dev-android-v${{ env.PACKAGE_VERSION }}
-          name: dev Android Binary v${{ env.PACKAGE_VERSION }}
+          tag_name: mori-android-v${{ env.PACKAGE_VERSION }}
+          name: Mori Android Binary v${{ env.PACKAGE_VERSION }}
           prerelease: true
           files: |
             android-artifact/*
