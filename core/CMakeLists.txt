@@ -38,3 +38,7 @@ target_include_directories(${CORE_TARGET} PUBLIC  ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(${CORE_TARGET} ${Boost_LIBRARIES})
 target_link_libraries(${CORE_TARGET} ${YAML_CPP_LIBRARIES})
 target_link_libraries(${CORE_TARGET} ${OPENSSL_LIBRARIES})
+
+if(WIN32)
+    target_link_libraries(${CORE_TARGET} ws2_32 mswsock)
+endif()
