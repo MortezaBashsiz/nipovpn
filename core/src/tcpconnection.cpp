@@ -102,6 +102,7 @@ bool TCPConnection::doHandshakeServer() {
         cancelTimeout();
         log_->write("[" + to_string(uuid_) + "] [TCPConnection doHandshakeServer] " + error.what(),
                     Log::Level::ERROR);
+        socketShutdown();
         return false;
     }
 }
