@@ -7,6 +7,12 @@
 #include <thread>
 #include <vector>
 
+#if defined(__ANDROID__)
+using runnerThread = std::thread;
+#else
+using runnerThread = std::jthread;
+#endif
+
 #include "config.hpp"
 #include "log.hpp"
 #include "tcpserver.hpp"
@@ -34,7 +40,7 @@ private:
 
     std::atomic<bool> running_;
 
-    std::vector<std::jthread> threadPool_;
+    std::vector<runnerThread> threadPool_;
 
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 };
