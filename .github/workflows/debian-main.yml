@@ -8,7 +8,7 @@ on:
       - 'core/src/**'
       - 'core/**'
       - 'nipovpn/**'
-      - '.github/workflows/debian.yml'
+      - '.github/workflows/debian-main.yml'
 
 permissions:
   contents: write
