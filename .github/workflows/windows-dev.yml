@@ -1,0 +1,97 @@
+name: Build Windows Binary - dev
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'core/**'
+      - 'server/**'
+      - 'agent/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/windows-dev.yml'
+
+permissions:
+  contents: write
+
+env:
+  PACKAGE_VERSION: 0.2.${{ github.run_number }}
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-yaml-cpp
+            mingw-w64-x86_64-zip
+
+      - name: Build nipovpn.exe
+        run: |
+          rm -rf build dist
+          mkdir -p build dist
+
+          cmake -S . -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+
+          cmake --build build -j$(nproc)
+
+          cp build/core/nipovpn.exe dist/
+
+      - name: Copy required DLL files
+        run: |
+          cd dist
+
+          for dll in $(ldd nipovpn.exe | grep 'mingw64' | awk '{print $3}'); do
+            cp "$dll" .
+          done
+
+          ls -lah
+
+      - name: Add config files
+        run: |
+          mkdir -p dist/etc/nipovpn
+
+          if [ -d nipovpn/etc/nipovpn ]; then
+            cp -a nipovpn/etc/nipovpn/. dist/etc/nipovpn/
+          fi
+
+      - name: Create ZIP package
+        run: |
+          cd dist
+          zip -r ../nipovpn_dev_${PACKAGE_VERSION}_windows_x86_64.zip .
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nipovpn-dev-windows-x86_64
+          path: nipovpn_dev_${{ env.PACKAGE_VERSION }}_windows_x86_64.zip
+
+      - name: Create dev Windows Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-windows-v${{ env.PACKAGE_VERSION }}
+          name: dev Windows Binary v${{ env.PACKAGE_VERSION }}
+          prerelease: true
+          files: nipovpn_dev_${{ env.PACKAGE_VERSION }}_windows_x86_64.zip
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
