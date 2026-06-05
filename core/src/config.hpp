@@ -20,6 +20,7 @@ class Config : private Uncopyable {
 private:
     struct General {
         std::string token;
+        std::string protocol;
         std::vector<std::string> fakeUrls;
         std::vector<std::string> methods;
         std::vector<std::string> endPoints;
