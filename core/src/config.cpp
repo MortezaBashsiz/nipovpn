@@ -1,7 +1,7 @@
 #include "config.hpp"
 
 
-Config::Config(const RunMode &mode, const std::string &filePath)
+Config::Config(RunMode mode, const std::string &filePath)
     : runMode_(mode),
       filePath_(filePath),
       configYaml_(YAML::LoadFile(filePath)),
@@ -9,6 +9,7 @@ Config::Config(const RunMode &mode, const std::string &filePath)
       listenIp_("127.0.0.1"),
       listenPort_(0),
       general_({configYaml_["general"]["token"].as<std::string>(),
+                configYaml_["general"]["protocol"].as<std::string>(""),
                 configYaml_["general"]["fakeUrls"].as<std::vector<std::string>>(),
                 configYaml_["general"]["methods"].as<std::vector<std::string>>(),
                 configYaml_["general"]["endPoints"].as<std::vector<std::string>>(),
@@ -73,6 +74,7 @@ std::string Config::toString() const {
     ss << "\nConfig :\n"
        << " General :\n"
        << "   token: " << general_.token << "\n"
+       << "   protocol: " << general_.protocol << "\n"
        << "   fakeUrls: ";
 
     for (std::size_t i = 0; i < general_.fakeUrls.size(); ++i) {
@@ -157,7 +159,7 @@ const Config::Agent &Config::agent() const {
     return agent_;
 }
 
-const unsigned short &Config::threads() const {
+unsigned short Config::threads() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return threads_;
 }
@@ -177,7 +179,7 @@ void Config::listenIp(const std::string &ip) {
     listenIp_ = ip;
 }
 
-const unsigned short &Config::listenPort() const {
+unsigned short Config::listenPort() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return listenPort_;
 }
@@ -187,7 +189,7 @@ void Config::listenPort(unsigned short port) {
     listenPort_ = port;
 }
 
-const RunMode &Config::runMode() const {
+RunMode Config::runMode() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return runMode_;
 }

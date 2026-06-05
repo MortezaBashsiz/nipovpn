@@ -19,9 +19,12 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
+
+static constexpr std::size_t BufferSize = 8192;
 
 class Uncopyable {
 public:
@@ -86,7 +89,7 @@ inline std::string hexArrToStr(const unsigned char *data, std::size_t size) {
 }
 
 inline unsigned int hexToInt(const std::string &hexString) {
-    unsigned short result;
+    unsigned int result{};
     std::stringstream hexStr(hexString);
     hexStr >> std::hex >> result;
     return result;
@@ -195,39 +198,35 @@ inline BoolStr aes256Encrypt(const std::string &plaintext,
             plaintext.size() + EVP_CIPHER_block_size(EVP_aes_256_cbc());
     std::vector<unsigned char> ciphertext(ciphertext_len);
 
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    using EvpCipherCtxPtr = std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)>;
+    EvpCipherCtxPtr ctx(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
     if (!ctx) {
         result.message = "Context initialization failed";
         return result;
     }
 
-    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL,
+    if (EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_cbc(), NULL,
                            reinterpret_cast<const unsigned char *>(key.c_str()),
                            iv) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
         result.message = "Encryption initialization failed";
         return result;
     }
 
     int len;
     if (EVP_EncryptUpdate(
-                ctx, ciphertext.data(), &len,
+                ctx.get(), ciphertext.data(), &len,
                 reinterpret_cast<const unsigned char *>(plaintext.c_str()),
                 plaintext.size()) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
         result.message = "Encryption update failed";
         return result;
     }
     ciphertext_len = len;
 
-    if (EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
+    if (EVP_EncryptFinal_ex(ctx.get(), ciphertext.data() + len, &len) != 1) {
         result.message = "Encryption finalization failed";
         return result;
     }
     ciphertext_len += len;
-
-    EVP_CIPHER_CTX_free(ctx);
 
     std::string final_result(reinterpret_cast<char *>(iv), sizeof(iv));
     final_result.append(reinterpret_cast<char *>(ciphertext.data()),
@@ -252,39 +251,35 @@ inline BoolStr aes256Decrypt(const std::string &ciphertext_with_iv,
     int max_plaintext_len = ciphertext.size();
     std::vector<unsigned char> plaintext(max_plaintext_len);
 
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    using EvpCipherCtxPtr = std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)>;
+    EvpCipherCtxPtr ctx(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
     if (!ctx) {
         result.message = "Context initialization failed";
         return result;
     }
 
-    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL,
+    if (EVP_DecryptInit_ex(ctx.get(), EVP_aes_256_cbc(), NULL,
                            reinterpret_cast<const unsigned char *>(key.c_str()),
                            iv) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
         result.message = "Decryption initialization failed";
         return result;
     }
 
     int len;
     if (EVP_DecryptUpdate(
-                ctx, plaintext.data(), &len,
+                ctx.get(), plaintext.data(), &len,
                 reinterpret_cast<const unsigned char *>(ciphertext.c_str()),
                 ciphertext.size()) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
         result.message = "Decryption update failed";
         return result;
     }
     int plaintext_len = len;
 
-    if (EVP_DecryptFinal_ex(ctx, plaintext.data() + len, &len) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
+    if (EVP_DecryptFinal_ex(ctx.get(), plaintext.data() + len, &len) != 1) {
         result.message = "Decryption finalization failed";
         return result;
     }
     plaintext_len += len;
-
-    EVP_CIPHER_CTX_free(ctx);
 
     result.ok = true;
     result.message =
@@ -325,6 +320,7 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
 
     try {
         configYaml["general"]["token"].as<std::string>();
+        configYaml["general"]["protocol"].as<std::string>();
         configYaml["general"]["fakeUrls"].as<std::vector<std::string>>();
         configYaml["general"]["methods"].as<std::vector<std::string>>();
         configYaml["general"]["endPoints"].as<std::vector<std::string>>();
@@ -361,6 +357,11 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
         configYaml["agent"]["userAgent"].as<std::string>();
     } catch (const std::exception &e) {
         result.message = std::string("Error in 'agent' block: ") + e.what() + "\n";
+        return result;
+    }
+
+    if (configYaml["general"]["protocol"].as<std::string>() != "http" && configYaml["general"]["protocol"].as<std::string>() != "socks5") {
+        result.message = "First argument must be one of [http|socks5]\n";
         return result;
     }
 

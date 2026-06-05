@@ -36,13 +36,13 @@ jobs:
           update: true
           install: >-
             git
+            zip
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-boost
             mingw-w64-x86_64-openssl
             mingw-w64-x86_64-yaml-cpp
-            mingw-w64-x86_64-zip
 
       - name: Build nipovpn.exe
         run: |
@@ -51,7 +51,8 @@ jobs:
 
           cmake -S . -B build \
             -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS="-DNOMINMAX -DWIN32_LEAN_AND_MEAN -DNOGDI -DOUT=NIPO_OUT"
 
           cmake --build build -j$(nproc)
 

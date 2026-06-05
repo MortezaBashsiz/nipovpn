@@ -5,8 +5,6 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/bind/bind.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -20,9 +18,9 @@
 #include "general.hpp"
 #include "serverhandler.hpp"
 
-class TCPConnection : public boost::enable_shared_from_this<TCPConnection> {
+class TCPConnection : public std::enable_shared_from_this<TCPConnection> {
 public:
-    using pointer = boost::shared_ptr<TCPConnection>;
+    using pointer = std::shared_ptr<TCPConnection>;
     using ssl_stream = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
 
     static pointer create(boost::asio::io_context &io_context,
@@ -33,7 +31,7 @@ public:
     }
 
     boost::asio::ip::tcp::socket &socket();
-    inline TCPClient::pointer client() { return client_; }
+    inline TCPClient::pointer client() const { return client_; }
     ssl_stream &tlsSocket();
 
     bool initTlsServerContext();
@@ -44,8 +42,8 @@ public:
     }
 
     inline const boost::asio::streambuf &readBuffer() & { return readBuffer_; }
-    inline const boost::asio::streambuf &&readBuffer() && { return std::move(readBuffer_); }
-    inline boost::uuids::uuid uuid() { return uuid_; }
+
+    inline boost::uuids::uuid uuid() const { return uuid_; }
 
     void startAgent();
     void startServer();
@@ -71,7 +69,7 @@ public:
             std::function<void(const boost::system::error_code &)> done);
 
     inline void asyncReadFromAgentConnection(
-            std::array<char, 8192> &buffer,
+            std::array<char, BufferSize> &buffer,
             std::function<void(const boost::system::error_code &, std::size_t)> done);
 
     inline void asyncWriteToAgentServerConnection(
@@ -80,7 +78,7 @@ public:
             std::function<void(const boost::system::error_code &)> done);
 
     inline void asyncReadFromAgentServerConnection(
-            std::array<char, 8192> &buffer,
+            std::array<char, BufferSize> &buffer,
             std::function<void(const boost::system::error_code &, std::size_t)> done);
 
 private:
@@ -111,6 +109,9 @@ private:
                            const std::shared_ptr<Log> &log,
                            TCPClient::pointer client);
 
+    bool handleSocks5Handshake();
+    bool readExactFromClient(void *data, std::size_t size);
+
     void resetTimeout();
     void cancelTimeout();
     void onTimeout(const boost::system::error_code &error);
@@ -125,8 +126,8 @@ private:
     boost::asio::ssl::context sslContext_;
     std::unique_ptr<ssl_stream> tlsSocket_;
 
-    const std::shared_ptr<Config> &config_;
-    const std::shared_ptr<Log> &log_;
+    std::shared_ptr<Config> config_;
+    std::shared_ptr<Log> log_;
     boost::asio::io_context &io_context_;
     TCPClient::pointer client_;
 
@@ -147,6 +148,6 @@ private:
     bool pollInProgress_;
     std::atomic_bool closed_{false};
 
-    std::array<char, 8192> downstreamBuf_;
-    std::array<char, 8192> upstreamBuf_;
+    std::array<char, BufferSize> downstreamBuf_;
+    std::array<char, BufferSize> upstreamBuf_;
 };

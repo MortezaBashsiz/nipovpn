@@ -20,6 +20,7 @@ class Config : private Uncopyable {
 private:
     struct General {
         std::string token;
+        std::string protocol;
         std::vector<std::string> fakeUrls;
         std::vector<std::string> methods;
         std::vector<std::string> endPoints;
@@ -55,9 +56,9 @@ private:
         std::string userAgent;
     };
 
-    const RunMode &runMode_;
+    RunMode runMode_;
     std::string filePath_;
-    const YAML::Node configYaml_;
+    YAML::Node configYaml_;
 
     unsigned short threads_;
     std::string listenIp_;
@@ -65,12 +66,12 @@ private:
 
     mutable std::mutex configMutex_;
 
-    explicit Config(const RunMode &mode, const std::string &filePath);
+    explicit Config(RunMode mode, const std::string &filePath);
 
 public:
     using pointer = std::shared_ptr<Config>;
 
-    static pointer create(const RunMode &mode, const std::string &filePath) {
+    static pointer create(RunMode mode, const std::string &filePath) {
         return pointer(new Config(mode, filePath));
     }
 
@@ -88,7 +89,7 @@ public:
     const Server &server() const;
     const Agent &agent() const;
 
-    const unsigned short &threads() const;
+    unsigned short threads() const;
 
     void threads(unsigned short threads);
 
@@ -96,11 +97,11 @@ public:
 
     void listenIp(const std::string &ip);
 
-    const unsigned short &listenPort() const;
+    unsigned short listenPort() const;
 
     void listenPort(unsigned short port);
 
-    const RunMode &runMode() const;
+    RunMode runMode() const;
 
     const std::string &filePath() const;
 

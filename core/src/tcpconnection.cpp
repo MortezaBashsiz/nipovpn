@@ -5,7 +5,10 @@
 #include <algorithm>
 #include <cctype>
 #include <sstream>
+#include <utility>
 #include <vector>
+
+#include "http_utils.hpp"
 
 TCPConnection::TCPConnection(boost::asio::io_context &io_context,
                              const std::shared_ptr<Config> &config,
@@ -123,20 +126,30 @@ void TCPConnection::doReadAgent() {
     try {
         readBuffer_.consume(readBuffer_.size());
         writeBuffer_.consume(writeBuffer_.size());
+
         resetTimeout();
 
-        boost::asio::async_read(socket_,
-                                readBuffer_,
-                                boost::asio::transfer_at_least(1),
-                                boost::asio::bind_executor(
-                                        strand_,
-                                        boost::bind(&TCPConnection::handleReadAgent,
-                                                    shared_from_this(),
-                                                    boost::asio::placeholders::error,
-                                                    boost::asio::placeholders::bytes_transferred)));
+        socket_.async_read_some(
+                readBuffer_.prepare(8192),
+                boost::asio::bind_executor(
+                        strand_,
+                        [self = shared_from_this()](
+                                const boost::system::error_code &ec,
+                                std::size_t bytes) {
+                            if (!ec) {
+                                self->readBuffer_.commit(bytes);
+                            }
+
+                            self->handleReadAgent(ec, bytes);
+                        }));
+
     } catch (std::exception &error) {
-        log_->write("[" + to_string(uuid_) + "] [TCPConnection doReadAgent] [catch] " + error.what(),
-                    Log::Level::ERROR);
+        log_->write(
+                "[" + to_string(uuid_) +
+                        "] [TCPConnection doReadAgent] [catch] " +
+                        error.what(),
+                Log::Level::ERROR);
+
         socketShutdown();
     }
 }
@@ -177,7 +190,15 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
 
         boost::system::error_code errorIn;
 
+        if (config_->general().protocol == "socks5") {
+            if (!handleSocks5Handshake()) {
+                socketShutdown();
+                return;
+            }
+        }
+
         std::string current = streambufToString(readBuffer_);
+
         if (current.find("\r\n\r\n") == std::string::npos) {
             boost::asio::read_until(socket_, readBuffer_, "\r\n\r\n", errorIn);
         }
@@ -234,6 +255,18 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
         end_ = agentHandler_->end_;
         connect_ = agentHandler_->connect_;
 
+        if (config_->general().protocol == "socks5" && connect_) {
+            writeBuffer_.consume(writeBuffer_.size());
+
+            const unsigned char ok[10] = {
+                    0x05, 0x00, 0x00, 0x01,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00};
+
+            std::ostream os(&writeBuffer_);
+            os.write(reinterpret_cast<const char *>(ok), sizeof(ok));
+        }
+
         if (writeBuffer_.size() == 0) {
             socketShutdown();
             return;
@@ -265,12 +298,14 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
                                     if (!self->config_->general().connectionReuse) {
                                         self->client_->socketShutdown();
                                     }
+
                                     self->startTunnelReadFromClient();
                                     self->startTunnelPollServer();
                                 }
 
                                 return;
                             }
+
                             self->doReadAgent();
                         }));
     } catch (std::exception &error) {
@@ -486,6 +521,132 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
 
     return dec.message;
 }
+
+bool TCPConnection::readExactFromClient(void *data, std::size_t size) {
+    auto *out = static_cast<char *>(data);
+    std::size_t copied = 0;
+
+    while (copied < size && readBuffer_.size() > 0) {
+        std::size_t n = std::min(size - copied, readBuffer_.size());
+
+        auto buffers = readBuffer_.data();
+        std::size_t copiedNow = boost::asio::buffer_copy(
+                boost::asio::buffer(out + copied, n),
+                buffers);
+
+        readBuffer_.consume(copiedNow);
+        copied += copiedNow;
+    }
+
+    if (copied == size) {
+        return true;
+    }
+
+    boost::system::error_code ec;
+    boost::asio::read(
+            socket_,
+            boost::asio::buffer(out + copied, size - copied),
+            ec);
+
+    return !ec;
+}
+
+bool TCPConnection::handleSocks5Handshake() {
+
+    log_->write(
+            "[" + to_string(uuid_) + "] [TCPConnection handleSocks5Handshake] handshake start",
+            Log::Level::DEBUG);
+
+    unsigned char header[2];
+    if (!readExactFromClient(header, 2)) {
+        log_->write(
+                "[" + to_string(uuid_) + "] [TCPConnection handleSocks5Handshake] [SOCKS5] version=" +
+                        std::to_string(header[0]),
+                Log::Level::DEBUG);
+
+        return false;
+    }
+
+    if (header[0] != 0x05) {
+        log_->write("[" + to_string(uuid_) + "] [SOCKS5] invalid version", Log::Level::DEBUG);
+        return false;
+    }
+
+    std::vector<unsigned char> methods(header[1]);
+    if (!readExactFromClient(methods.data(), methods.size())) return false;
+
+    const unsigned char authReply[2] = {0x05, 0x00};
+    boost::asio::write(socket_, boost::asio::buffer(authReply, 2));
+    log_->write(
+            "[" + to_string(uuid_) + "] [TCPConnection handleSocks5Handshake] auth reply sent" +
+                    std::to_string(header[0]),
+            Log::Level::DEBUG);
+
+
+    unsigned char req[4];
+    if (!readExactFromClient(req, 4)) return false;
+
+    if (req[0] != 0x05 || req[1] != 0x01) {
+        const unsigned char fail[10] = {0x05, 0x07, 0x00, 0x01, 0, 0, 0, 0, 0, 0};
+        boost::asio::write(socket_, boost::asio::buffer(fail, 10));
+        return false;
+    }
+
+    std::string host;
+
+    if (req[3] == 0x01) {
+        unsigned char ip[4];
+        if (!readExactFromClient(ip, 4)) return false;
+
+        host =
+                std::to_string(ip[0]) + "." +
+                std::to_string(ip[1]) + "." +
+                std::to_string(ip[2]) + "." +
+                std::to_string(ip[3]);
+    } else if (req[3] == 0x03) {
+        unsigned char len;
+        if (!readExactFromClient(&len, 1)) return false;
+
+        std::vector<char> domain(len);
+        if (!readExactFromClient(domain.data(), domain.size())) return false;
+
+        host.assign(domain.begin(), domain.end());
+    } else if (req[3] == 0x04) {
+        unsigned char ip[16];
+        if (!readExactFromClient(ip, 16)) return false;
+
+        boost::asio::ip::address_v6::bytes_type bytes;
+        std::copy(ip, ip + 16, bytes.begin());
+        host = boost::asio::ip::address_v6(bytes).to_string();
+    } else {
+        return false;
+    }
+
+    unsigned char portBytes[2];
+    if (!readExactFromClient(portBytes, 2)) return false;
+
+    unsigned short port =
+            static_cast<unsigned short>((portBytes[0] << 8) | portBytes[1]);
+
+    std::string target = host + ":" + std::to_string(port);
+
+    std::string connectRequest =
+            "CONNECT " + target +
+            " HTTP/1.1\r\n"
+            "Host: " +
+            target +
+            "\r\n"
+            "\r\n";
+
+    copyStringToStreambuf(connectRequest, readBuffer_);
+
+    log_->write(
+            "[" + to_string(uuid_) + "] [SOCKS5] CONNECT " + target,
+            Log::Level::INFO);
+
+    return true;
+}
+
 
 void TCPConnection::startTunnelReadFromClient() {
     if (tunnelClosed_ || !socket_.is_open()) return;
@@ -867,63 +1028,23 @@ void TCPConnection::relayTargetToAgent() {
 }
 
 std::string TCPConnection::HttpUtils::toLowerCopy(std::string s) {
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
-        return static_cast<char>(std::tolower(c));
-    });
-    return s;
+    return http_utils::toLowerCopy(std::move(s));
 }
 
 std::string TCPConnection::HttpUtils::extractHeaders(const std::string &msg) {
-    auto pos = msg.find("\r\n\r\n");
-    if (pos == std::string::npos) return {};
-    return msg.substr(0, pos + 4);
+    return http_utils::extractHeaders(msg);
 }
 
 std::string TCPConnection::HttpUtils::extractBody(const std::string &msg) {
-    auto pos = msg.find("\r\n\r\n");
-    if (pos == std::string::npos) return {};
-    return msg.substr(pos + 4);
+    return http_utils::extractBody(msg);
 }
 
 bool TCPConnection::HttpUtils::parseContentLength(const std::string &headers, std::size_t &value) {
-    std::istringstream iss(headers);
-    std::string line;
-
-    while (std::getline(iss, line)) {
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-
-        auto lower = toLowerCopy(line);
-        if (lower.rfind("content-length:", 0) == 0) {
-            auto raw = line.substr(std::string("Content-Length:").size());
-            raw.erase(0, raw.find_first_not_of(" \t"));
-
-            try {
-                value = static_cast<std::size_t>(std::stoull(raw));
-                return true;
-            } catch (...) {
-                return false;
-            }
-        }
-    }
-
-    return false;
+    return http_utils::parseContentLength(headers, value);
 }
 
 bool TCPConnection::HttpUtils::isChunked(const std::string &headers) {
-    std::istringstream iss(headers);
-    std::string line;
-
-    while (std::getline(iss, line)) {
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-
-        auto lower = toLowerCopy(line);
-        if (lower.rfind("transfer-encoding:", 0) == 0 &&
-            lower.find("chunked") != std::string::npos) {
-            return true;
-        }
-    }
-
-    return false;
+    return http_utils::isChunked(headers);
 }
 
 bool TCPConnection::HttpUtils::readRemainingHttpBody(
