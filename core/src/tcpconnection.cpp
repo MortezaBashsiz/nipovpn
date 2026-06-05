@@ -5,7 +5,10 @@
 #include <algorithm>
 #include <cctype>
 #include <sstream>
+#include <utility>
 #include <vector>
+
+#include "http_utils.hpp"
 
 TCPConnection::TCPConnection(boost::asio::io_context &io_context,
                              const std::shared_ptr<Config> &config,
@@ -867,63 +870,23 @@ void TCPConnection::relayTargetToAgent() {
 }
 
 std::string TCPConnection::HttpUtils::toLowerCopy(std::string s) {
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
-        return static_cast<char>(std::tolower(c));
-    });
-    return s;
+    return http_utils::toLowerCopy(std::move(s));
 }
 
 std::string TCPConnection::HttpUtils::extractHeaders(const std::string &msg) {
-    auto pos = msg.find("\r\n\r\n");
-    if (pos == std::string::npos) return {};
-    return msg.substr(0, pos + 4);
+    return http_utils::extractHeaders(msg);
 }
 
 std::string TCPConnection::HttpUtils::extractBody(const std::string &msg) {
-    auto pos = msg.find("\r\n\r\n");
-    if (pos == std::string::npos) return {};
-    return msg.substr(pos + 4);
+    return http_utils::extractBody(msg);
 }
 
 bool TCPConnection::HttpUtils::parseContentLength(const std::string &headers, std::size_t &value) {
-    std::istringstream iss(headers);
-    std::string line;
-
-    while (std::getline(iss, line)) {
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-
-        auto lower = toLowerCopy(line);
-        if (lower.rfind("content-length:", 0) == 0) {
-            auto raw = line.substr(std::string("Content-Length:").size());
-            raw.erase(0, raw.find_first_not_of(" \t"));
-
-            try {
-                value = static_cast<std::size_t>(std::stoull(raw));
-                return true;
-            } catch (...) {
-                return false;
-            }
-        }
-    }
-
-    return false;
+    return http_utils::parseContentLength(headers, value);
 }
 
 bool TCPConnection::HttpUtils::isChunked(const std::string &headers) {
-    std::istringstream iss(headers);
-    std::string line;
-
-    while (std::getline(iss, line)) {
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-
-        auto lower = toLowerCopy(line);
-        if (lower.rfind("transfer-encoding:", 0) == 0 &&
-            lower.find("chunked") != std::string::npos) {
-            return true;
-        }
-    }
-
-    return false;
+    return http_utils::isChunked(headers);
 }
 
 bool TCPConnection::HttpUtils::readRemainingHttpBody(

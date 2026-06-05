@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 env:
-  PACKAGE_VERSION: 1.1.53
+  PACKAGE_VERSION: 1.1.54
 
 jobs:
   build-windows:
@@ -36,13 +36,13 @@ jobs:
           update: true
           install: >-
             git
+            zip
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-boost
             mingw-w64-x86_64-openssl
             mingw-w64-x86_64-yaml-cpp
-            mingw-w64-x86_64-zip
 
       - name: Build nipovpn.exe
         run: |
@@ -51,7 +51,8 @@ jobs:
 
           cmake -S . -B build \
             -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS="-DNOMINMAX -DWIN32_LEAN_AND_MEAN -DNOGDI -DOUT=NIPO_OUT"
 
           cmake --build build -j$(nproc)
 
@@ -86,7 +87,7 @@ jobs:
           name: nipovpn-windows-x86_64
           path: nipovpn_${{ env.PACKAGE_VERSION }}_windows_x86_64.zip
 
-      - name: Create main Windows Release
+      - name: Create Windows Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: windows-v${{ env.PACKAGE_VERSION }}

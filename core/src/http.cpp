@@ -155,7 +155,7 @@ bool HTTP::parseTls() {
         return false;
 }
 
-const std::string HTTP::genHttpPostReqString(const std::string &body) const {
+std::string HTTP::genHttpPostReqString(const std::string &body) const {
     auto fakeUrl = config_->randomFakeUrl();
     return std::string(config_->randomMethod() + " " +
                        fakeUrl + " HTTP/" +
@@ -167,7 +167,7 @@ const std::string HTTP::genHttpPostReqString(const std::string &body) const {
            "Content-Type: application/x-www-form-urlencoded\r\n" + "\r\n" + body + "COMP\r\n\r\n";
 }
 
-const std::string HTTP::genHttpRestPostReqString() const {
+std::string HTTP::genHttpRestPostReqString() const {
     auto fakeUrl = config_->randomFakeUrl();
     return std::string(config_->randomMethod() + " " +
                        fakeUrl + " HTTP/" +
@@ -178,7 +178,7 @@ const std::string HTTP::genHttpRestPostReqString() const {
            "Rest: yes\r\n" + "COMP\r\n\r\n";
 }
 
-const std::string HTTP::genHttpOkResString(const std::string &body) const {
+std::string HTTP::genHttpOkResString(const std::string &body) const {
     return std::string("HTTP/1.1 200 OK\r\n") +
            "Content-Type: application/x-www-form-urlencoded\r\n" +
            "Content-Length: " + std::to_string(body.length()) + "\r\n" +
@@ -196,14 +196,14 @@ void HTTP::setIPPort() {
             splitted = splitString(target, ":");
 
             if (!splitted.empty()) {
-                dstIP_ = splitted[0];
+                dstIp_ = splitted[0];
                 if (splitted.size() > 1 && !splitted[1].empty()) {
                     dstPort_ = std::stoi(splitted[1]);
                 } else {
                     dstPort_ = 443;
                 }
             } else {
-                dstIP_.clear();
+                dstIp_.clear();
                 dstPort_ = 443;
             }
             break;
@@ -234,7 +234,7 @@ void HTTP::setIPPort() {
                     log_->write("[" + to_string(uuid_) +
                                         "] [HTTP setIPPort] missing Host header",
                                 Log::Level::DEBUG);
-                    dstIP_.clear();
+                    dstIp_.clear();
                     dstPort_ = 80;
                     break;
                 }
@@ -242,7 +242,7 @@ void HTTP::setIPPort() {
 
             splitted = splitString(hostPort, ":");
             if (!splitted.empty()) {
-                dstIP_ = splitted[0];
+                dstIp_ = splitted[0];
                 if (splitted.size() > 1 && !splitted[1].empty()) {
                     dstPort_ = std::stoi(splitted[1]);
                 } else {
@@ -252,7 +252,7 @@ void HTTP::setIPPort() {
                 log_->write("[" + to_string(uuid_) +
                                     "] [HTTP setIPPort] wrong request",
                             Log::Level::DEBUG);
-                dstIP_.clear();
+                dstIp_.clear();
                 dstPort_ = 80;
             }
             break;
@@ -263,14 +263,14 @@ void HTTP::setIPPort() {
             splitted = splitString(target, ":");
 
             if (!splitted.empty()) {
-                dstIP_ = splitted[0];
+                dstIp_ = splitted[0];
                 if (splitted.size() > 1 && !splitted[1].empty()) {
                     dstPort_ = std::stoi(splitted[1]);
                 } else {
                     dstPort_ = 443;
                 }
             } else {
-                dstIP_.clear();
+                dstIp_.clear();
                 dstPort_ = 443;
             }
             break;
@@ -278,7 +278,7 @@ void HTTP::setIPPort() {
     }
 }
 
-const std::string HTTP::tlsTypeToString() const {
+std::string HTTP::tlsTypeToString() const {
     switch (parsedTlsRequest_.type) {
         case TlsTypes::TLSHandshake:
             return "TLSHandshake";
@@ -291,7 +291,7 @@ const std::string HTTP::tlsTypeToString() const {
     }
 }
 
-const std::string HTTP::toString() const {
+std::string HTTP::toString() const {
     switch (httpType()) {
         case HTTP::HttpType::https:
             return std::string("\n") + "TLS Type : " + tlsTypeToString() + "\n" +
@@ -327,7 +327,7 @@ const std::string HTTP::toString() const {
     }
 }
 
-const std::string HTTP::restoString() const {
+std::string HTTP::restoString() const {
     return std::string("\n") +
            boost::lexical_cast<std::string>(parsedHttpResponse_.base()) + "\n" +
            "Body Size : " +

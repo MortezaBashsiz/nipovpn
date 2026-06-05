@@ -10,7 +10,6 @@
 #include "config.hpp"
 #include "general.hpp"
 
-
 class Log : private Uncopyable {
 public:
     enum class Level {
@@ -28,10 +27,9 @@ public:
 
     explicit Log(const std::shared_ptr<Log> &log);
 
-
     ~Log();
 
-    const std::shared_ptr<Config> &config() const { return config_; }
+    std::shared_ptr<Config> config() const { return config_; }
 
     Level level() const { return level_; }
 
@@ -42,7 +40,7 @@ private:
 
     static std::string levelToString(Level level);
 
-    const std::shared_ptr<Config> &config_;
+    std::shared_ptr<Config> config_;
     Level level_;
     std::string mode_;
 

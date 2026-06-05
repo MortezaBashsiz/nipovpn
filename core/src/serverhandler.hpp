@@ -19,8 +19,8 @@ public:
                           boost::asio::streambuf &writeBuffer,
                           const std::shared_ptr<Config> &config,
                           const std::shared_ptr<Log> &log,
-                          const TCPClient::pointer &client,
-                          const std::string &clientConnStr,
+                          TCPClient::pointer client,
+                          std::string clientConnStr,
                           boost::uuids::uuid uuid) {
         return pointer(new ServerHandler(readBuffer, writeBuffer, config, log, client, clientConnStr, uuid));
     }
@@ -29,8 +29,7 @@ public:
 
     void handle();
 
-    inline const HTTP::pointer &request() & { return request_; }
-    inline const HTTP::pointer &&request() && { return std::move(request_); }
+    inline const HTTP::pointer &request() const { return request_; }
 
     bool end_;
     bool connect_;
@@ -47,8 +46,8 @@ private:
                            boost::asio::streambuf &writeBuffer,
                            const std::shared_ptr<Config> &config,
                            const std::shared_ptr<Log> &log,
-                           const TCPClient::pointer &client,
-                           const std::string &clientConnStr,
+                           TCPClient::pointer client,
+                           std::string clientConnStr,
                            boost::uuids::uuid uuid);
 
     void makeEncryptedHttpResponse(const std::string &plainBody,
@@ -62,13 +61,13 @@ private:
     static std::mutex sessionsMutex_;
     static std::unordered_map<std::string, TCPClient::pointer> sessions_;
 
-    const std::shared_ptr<Config> &config_;
-    const std::shared_ptr<Log> &log_;
-    const TCPClient::pointer &client_;
+    std::shared_ptr<Config> config_;
+    std::shared_ptr<Log> log_;
+    TCPClient::pointer client_;
     boost::asio::streambuf &readBuffer_;
     boost::asio::streambuf &writeBuffer_;
     HTTP::pointer request_;
-    const std::string &clientConnStr_;
+    std::string clientConnStr_;
     boost::uuids::uuid uuid_;
     std::mutex mutex_;
 };
