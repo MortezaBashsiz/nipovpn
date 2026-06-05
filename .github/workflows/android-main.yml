@@ -100,8 +100,8 @@ jobs:
             exit 1
           fi
 
-          cp build-android-arm64/core/nipovpn out/android/arm64-v8a/libnipovpn_exec.so
-          chmod 755 out/android/arm64-v8a/libnipovpn_exec.so
+          cp build-android-arm64/core/nipovpn out/android/arm64-v8a/libnipovpn_"${{ env.PACKAGE_VERSION }}".so
+          chmod 755 out/android/arm64-v8a/libnipovpn_"${{ env.PACKAGE_VERSION }}".so
 
           find "$VCPKG_ROOT/installed/arm64-android" -type f -name "*.so*" -exec cp -v {} out/android/arm64-v8a/ \; || true
 

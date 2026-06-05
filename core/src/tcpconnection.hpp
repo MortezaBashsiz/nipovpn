@@ -109,6 +109,9 @@ private:
                            const std::shared_ptr<Log> &log,
                            TCPClient::pointer client);
 
+    bool handleSocks5Handshake();
+    bool readExactFromClient(void *data, std::size_t size);
+
     void resetTimeout();
     void cancelTimeout();
     void onTimeout(const boost::system::error_code &error);

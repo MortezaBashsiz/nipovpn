@@ -3,6 +3,10 @@
 general:
   # token: 32 bytes of string. this will be used on agent and server side to encryption
   token: "af445adb-2434-4975-9445-2c1b2231"
+  # protocol:
+  # Defines the protocol between client and agent
+  #   Choose http or socks5
+  protocol: http
   # fakeUrls:
   # Defines the list of fake urls between agent and server
   fakeUrls:

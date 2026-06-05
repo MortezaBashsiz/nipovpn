@@ -9,6 +9,7 @@ Config::Config(RunMode mode, const std::string &filePath)
       listenIp_("127.0.0.1"),
       listenPort_(0),
       general_({configYaml_["general"]["token"].as<std::string>(),
+                configYaml_["general"]["protocol"].as<std::string>(""),
                 configYaml_["general"]["fakeUrls"].as<std::vector<std::string>>(),
                 configYaml_["general"]["methods"].as<std::vector<std::string>>(),
                 configYaml_["general"]["endPoints"].as<std::vector<std::string>>(),
@@ -73,6 +74,7 @@ std::string Config::toString() const {
     ss << "\nConfig :\n"
        << " General :\n"
        << "   token: " << general_.token << "\n"
+       << "   protocol: " << general_.protocol << "\n"
        << "   fakeUrls: ";
 
     for (std::size_t i = 0; i < general_.fakeUrls.size(); ++i) {

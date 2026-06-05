@@ -320,6 +320,7 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
 
     try {
         configYaml["general"]["token"].as<std::string>();
+        configYaml["general"]["protocol"].as<std::string>();
         configYaml["general"]["fakeUrls"].as<std::vector<std::string>>();
         configYaml["general"]["methods"].as<std::vector<std::string>>();
         configYaml["general"]["endPoints"].as<std::vector<std::string>>();
@@ -356,6 +357,11 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
         configYaml["agent"]["userAgent"].as<std::string>();
     } catch (const std::exception &e) {
         result.message = std::string("Error in 'agent' block: ") + e.what() + "\n";
+        return result;
+    }
+
+    if (configYaml["general"]["protocol"].as<std::string>() != "http" && configYaml["general"]["protocol"].as<std::string>() != "socks5") {
+        result.message = "First argument must be one of [http|socks5]\n";
         return result;
     }
 
