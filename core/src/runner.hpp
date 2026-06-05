@@ -31,8 +31,8 @@ private:
 
     void stop();
 
-    const std::shared_ptr<Config> &config_;
-    const std::shared_ptr<Log> &log_;
+    std::shared_ptr<Config> config_;
+    std::shared_ptr<Log> log_;
 
     boost::asio::io_context io_context_;
 

@@ -5,7 +5,10 @@
 #include <algorithm>
 #include <cctype>
 #include <sstream>
+#include <utility>
 #include <vector>
+
+#include "http_utils.hpp"
 
 TCPClient::TCPClient(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
@@ -90,7 +93,7 @@ bool TCPClient::enableTlsClient() {
     }
 }
 
-bool TCPClient::doConnect(const std::string &dstIP, const unsigned short &dstPort) {
+bool TCPClient::doConnect(const std::string &dstIp, unsigned short dstPort) {
 
     try {
         if (tlsEnabled_ && sslSocket_ && sslSocket_->lowest_layer().is_open()) {
@@ -101,14 +104,14 @@ bool TCPClient::doConnect(const std::string &dstIP, const unsigned short &dstPor
             return true;
         }
 
-        log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " + dstIP +
+        log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " + dstIp +
                             ":" + std::to_string(dstPort) + "]",
                     Log::Level::DEBUG);
 
         boost::system::error_code error_code;
 
         auto endpoint = resolver_.resolve(
-                dstIP.c_str(),
+                dstIp.c_str(),
                 std::to_string(dstPort).c_str(),
                 error_code);
 
@@ -507,66 +510,23 @@ void TCPClient::socketShutdown() {
 }
 
 std::string TCPClient::HttpUtils::toLowerCopy(std::string s) {
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c) {
-                       return static_cast<char>(std::tolower(c));
-                   });
-    return s;
+    return http_utils::toLowerCopy(std::move(s));
 }
 
 std::string TCPClient::HttpUtils::extractHeaders(const std::string &msg) {
-    auto pos = msg.find("\r\n\r\n");
-    if (pos == std::string::npos) return {};
-    return msg.substr(0, pos + 4);
+    return http_utils::extractHeaders(msg);
 }
 
 std::string TCPClient::HttpUtils::extractBody(const std::string &msg) {
-    auto pos = msg.find("\r\n\r\n");
-    if (pos == std::string::npos) return {};
-    return msg.substr(pos + 4);
+    return http_utils::extractBody(msg);
 }
 
 bool TCPClient::HttpUtils::parseContentLength(const std::string &headers, std::size_t &value) {
-    std::istringstream iss(headers);
-    std::string line;
-
-    while (std::getline(iss, line)) {
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-
-        auto lower = toLowerCopy(line);
-
-        if (lower.rfind("content-length:", 0) == 0) {
-            auto raw = line.substr(std::string("Content-Length:").size());
-            raw.erase(0, raw.find_first_not_of(" \t"));
-
-            try {
-                value = static_cast<std::size_t>(std::stoull(raw));
-                return true;
-            } catch (...) {
-                return false;
-            }
-        }
-    }
-
-    return false;
+    return http_utils::parseContentLength(headers, value);
 }
 
 bool TCPClient::HttpUtils::isChunked(const std::string &headers) {
-    std::istringstream iss(headers);
-    std::string line;
-
-    while (std::getline(iss, line)) {
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-
-        auto lower = toLowerCopy(line);
-
-        if (lower.rfind("transfer-encoding:", 0) == 0 &&
-            lower.find("chunked") != std::string::npos) {
-            return true;
-        }
-    }
-
-    return false;
+    return http_utils::isChunked(headers);
 }
 
 bool TCPClient::HttpUtils::readHttpMessage(

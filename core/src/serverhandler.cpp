@@ -1,83 +1,45 @@
 #include "serverhandler.hpp"
 
-#include <algorithm>
-#include <cctype>
 #include <sstream>
+#include <utility>
 #include <vector>
+
+#include "http_utils.hpp"
 
 std::mutex ServerHandler::sessionsMutex_;
 std::unordered_map<std::string, TCPClient::pointer> ServerHandler::sessions_;
 
 std::string ServerHandler::HttpUtils::lowerCopy(std::string s) {
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
-        return static_cast<char>(std::tolower(c));
-    });
-
-    return s;
+    return http_utils::toLowerCopy(std::move(s));
 }
 
 std::string ServerHandler::HttpUtils::trimCopy(std::string s) {
-    while (!s.empty() && (s.front() == ' ' || s.front() == '\t')) {
-        s.erase(s.begin());
-    }
-
-    while (!s.empty() &&
-           (s.back() == ' ' ||
-            s.back() == '\t' ||
-            s.back() == '\r' ||
-            s.back() == '\n')) {
-        s.pop_back();
-    }
-
-    return s;
+    return http_utils::trimCopy(std::move(s));
 }
 
 std::string ServerHandler::HttpUtils::getRawHeader(const std::string &headers,
                                                    const std::string &name) {
-    std::istringstream iss(headers);
-    std::string line;
-
-    const std::string prefix = lowerCopy(name) + ":";
-
-    while (std::getline(iss, line)) {
-        if (!line.empty() && line.back() == '\r') {
-            line.pop_back();
-        }
-
-        std::string lower = lowerCopy(line);
-
-        if (lower.rfind(prefix, 0) == 0) {
-            return trimCopy(line.substr(name.size() + 1));
-        }
-    }
-
-    return "";
+    return http_utils::getRawHeader(headers, name);
 }
 
 std::string ServerHandler::HttpUtils::extractHttpBody(const std::string &msg) {
-    const auto pos = msg.find("\r\n\r\n");
-
-    if (pos == std::string::npos) {
-        return "";
-    }
-
-    return msg.substr(pos + 4);
+    return http_utils::extractBody(msg);
 }
 
 ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
                              boost::asio::streambuf &writeBuffer,
                              const std::shared_ptr<Config> &config,
                              const std::shared_ptr<Log> &log,
-                             const TCPClient::pointer &client,
-                             const std::string &clientConnStr,
+                             TCPClient::pointer client,
+                             std::string clientConnStr,
                              boost::uuids::uuid uuid)
     : config_(config),
       log_(log),
-      client_(client),
+      client_(std::move(client)),
       readBuffer_(readBuffer),
       writeBuffer_(writeBuffer),
       request_(HTTP::create(config, log, readBuffer, uuid)),
-      clientConnStr_(clientConnStr),
+      clientConnStr_(std::move(clientConnStr)),
       uuid_(uuid) {
     end_ = false;
     connect_ = false;
@@ -301,12 +263,12 @@ void ServerHandler::handle() {
     switch (inner->httpType()) {
         case HTTP::HttpType::connect: {
             if (config_->general().tunnelEnable) {
-                if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
+                if (!client_->doConnect(inner->dstIp(), inner->dstPort())) {
                     log_->write(
                             "[" + to_string(uuid_) +
                                     "] [CONNECT] [ERROR] [Resolving Host] [SRC " +
                                     clientConnStr_ + "] [DST " +
-                                    inner->dstIP() + ":" + std::to_string(inner->dstPort()) + "]",
+                                    inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                             Log::Level::INFO);
 
                     makeEncryptedHttpResponse(
@@ -323,7 +285,7 @@ void ServerHandler::handle() {
                         "[" + to_string(uuid_) +
                                 "] [CONNECT] [TUNNEL] [SRC " +
                                 clientConnStr_ + "] [DST " +
-                                inner->dstIP() + ":" + std::to_string(inner->dstPort()) + "]",
+                                inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                         Log::Level::INFO);
 
                 makeEncryptedHttpResponse(
@@ -344,12 +306,12 @@ void ServerHandler::handle() {
 
             targetClient->uuid_ = uuid_;
 
-            if (!targetClient->doConnect(inner->dstIP(), inner->dstPort())) {
+            if (!targetClient->doConnect(inner->dstIp(), inner->dstPort())) {
                 log_->write(
                         "[" + to_string(uuid_) +
                                 "] [CONNECT] [ERROR] [Resolving Host] [SRC " +
                                 clientConnStr_ + "] [DST " +
-                                inner->dstIP() + ":" + std::to_string(inner->dstPort()) + "]",
+                                inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                         Log::Level::INFO);
 
                 makeEncryptedHttpResponse(
@@ -366,7 +328,7 @@ void ServerHandler::handle() {
                     "[" + to_string(uuid_) +
                             "] [CONNECT] [SRC " +
                             clientConnStr_ + "] [DST " +
-                            inner->dstIP() + ":" + std::to_string(inner->dstPort()) + "]",
+                            inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                     Log::Level::INFO);
 
             if (!pendingTunnelData.empty()) {
@@ -395,7 +357,7 @@ void ServerHandler::handle() {
             copyStringToStreambuf(innerRequest, readBuffer_);
 
             if (!client_->socket().is_open()) {
-                if (!client_->doConnect(inner->dstIP(), inner->dstPort())) {
+                if (!client_->doConnect(inner->dstIp(), inner->dstPort())) {
                     client_->socket().close();
                     makeEncryptedHttpResponse("", "502 Bad Gateway", "close");
                     return;

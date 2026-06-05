@@ -1,7 +1,7 @@
 #include "config.hpp"
 
 
-Config::Config(const RunMode &mode, const std::string &filePath)
+Config::Config(RunMode mode, const std::string &filePath)
     : runMode_(mode),
       filePath_(filePath),
       configYaml_(YAML::LoadFile(filePath)),
@@ -157,7 +157,7 @@ const Config::Agent &Config::agent() const {
     return agent_;
 }
 
-const unsigned short &Config::threads() const {
+unsigned short Config::threads() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return threads_;
 }
@@ -177,7 +177,7 @@ void Config::listenIp(const std::string &ip) {
     listenIp_ = ip;
 }
 
-const unsigned short &Config::listenPort() const {
+unsigned short Config::listenPort() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return listenPort_;
 }
@@ -187,7 +187,7 @@ void Config::listenPort(unsigned short port) {
     listenPort_ = port;
 }
 
-const RunMode &Config::runMode() const {
+RunMode Config::runMode() const {
     std::lock_guard<std::mutex> lock(configMutex_);
     return runMode_;
 }
