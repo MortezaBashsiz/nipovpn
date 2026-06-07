@@ -186,26 +186,83 @@ std::string HTTP::genHttpOkResString(const std::string &body) const {
            "Pragma: no-cache\r\n" + "\r\n" + body + "COMP\r\n\r\n";
 }
 
+
+bool HTTP::parseHostPort(const std::string &input,
+                         std::string &host,
+                         unsigned short &port,
+                         unsigned short defaultPort) {
+    host.clear();
+    port = defaultPort;
+
+    if (input.empty()) return false;
+
+    auto parsePort = [](const std::string &value,
+                        unsigned short &out) -> bool {
+        try {
+            int p = std::stoi(value);
+            if (p < 1 || p > 65535) return false;
+            out = static_cast<unsigned short>(p);
+            return true;
+        } catch (...) {
+            return false;
+        }
+    };
+
+    if (input.front() == '[') {
+        auto close = input.find(']');
+        if (close == std::string::npos) return false;
+
+        host = input.substr(1, close - 1);
+
+        if (close + 1 < input.size()) {
+            if (input[close + 1] != ':') return false;
+            if (!parsePort(input.substr(close + 2), port)) return false;
+        }
+
+        return !host.empty();
+    }
+
+    auto firstColon = input.find(':');
+    auto lastColon = input.rfind(':');
+
+    if (firstColon != std::string::npos && firstColon != lastColon) {
+        const std::string maybePort = input.substr(lastColon + 1);
+
+        unsigned short parsedPort = defaultPort;
+        if (parsePort(maybePort, parsedPort)) {
+            host = input.substr(0, lastColon);
+            port = parsedPort;
+            return !host.empty();
+        }
+
+        host = input;
+        port = defaultPort;
+        return true;
+    }
+
+    if (lastColon != std::string::npos) {
+        host = input.substr(0, lastColon);
+        if (!parsePort(input.substr(lastColon + 1), port)) return false;
+    } else {
+        host = input;
+        port = defaultPort;
+    }
+
+    return !host.empty();
+}
+
 void HTTP::setIPPort() {
     std::string target{};
-    std::vector<std::string> splitted;
 
     switch (httpType()) {
         case HTTP::HttpType::https: {
             target = parsedTlsRequest_.sni;
-            splitted = splitString(target, ":");
 
-            if (!splitted.empty()) {
-                dstIp_ = splitted[0];
-                if (splitted.size() > 1 && !splitted[1].empty()) {
-                    dstPort_ = std::stoi(splitted[1]);
-                } else {
-                    dstPort_ = 443;
-                }
-            } else {
+            if (!parseHostPort(target, dstIp_, dstPort_, 443)) {
                 dstIp_.clear();
                 dstPort_ = 443;
             }
+
             break;
         }
 
@@ -240,39 +297,25 @@ void HTTP::setIPPort() {
                 }
             }
 
-            splitted = splitString(hostPort, ":");
-            if (!splitted.empty()) {
-                dstIp_ = splitted[0];
-                if (splitted.size() > 1 && !splitted[1].empty()) {
-                    dstPort_ = std::stoi(splitted[1]);
-                } else {
-                    dstPort_ = 80;
-                }
-            } else {
+            if (!parseHostPort(hostPort, dstIp_, dstPort_, 80)) {
                 log_->write("[" + to_string(uuid_) +
                                     "] [HTTP setIPPort] wrong request",
                             Log::Level::DEBUG);
                 dstIp_.clear();
                 dstPort_ = 80;
             }
+
             break;
         }
 
         case HTTP::HttpType::connect: {
             target = boost::lexical_cast<std::string>(parsedHttpRequest_.target());
-            splitted = splitString(target, ":");
 
-            if (!splitted.empty()) {
-                dstIp_ = splitted[0];
-                if (splitted.size() > 1 && !splitted[1].empty()) {
-                    dstPort_ = std::stoi(splitted[1]);
-                } else {
-                    dstPort_ = 443;
-                }
-            } else {
+            if (!parseHostPort(target, dstIp_, dstPort_, 443)) {
                 dstIp_.clear();
                 dstPort_ = 443;
             }
+
             break;
         }
     }

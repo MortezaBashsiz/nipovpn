@@ -63,6 +63,8 @@ public:
     void relayAgentToTarget();
     void relayTargetToAgent();
 
+    std::mutex relayMutex_;
+
     inline void asyncWriteToAgentConnection(
             const char *data,
             std::size_t bytes,

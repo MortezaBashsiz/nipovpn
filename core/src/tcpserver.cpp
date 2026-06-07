@@ -1,5 +1,8 @@
 #include "tcpserver.hpp"
 
+#include <atomic>
+#include <chrono>
+
 TCPServer::TCPServer(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
                      const std::shared_ptr<Log> &log)
@@ -11,7 +14,6 @@ TCPServer::TCPServer(boost::asio::io_context &io_context,
                         boost::asio::ip::make_address(config->listenIp()),
                         config->listenPort())) {
     acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
-
     startAccept();
 }
 
@@ -26,47 +28,43 @@ void TCPServer::startAccept() {
             });
 }
 
-void TCPServer::handleAccept(TCPConnection::pointer connection,
-                             const boost::system::error_code &error) {
+void TCPServer::handleAccept(
+        TCPConnection::pointer connection,
+        const boost::system::error_code &error) {
+    startAccept();
+
     try {
-        if (!error) {
-            if (config_->runMode() == RunMode::server) {
-                if (config_->general().tlsEnable) {
-                    if (!connection->initTlsServerContext()) {
-                        log_->write("[TCPServer handleAccept] TLS server context init failed",
-                                    Log::Level::ERROR);
-                        connection->socketShutdown();
-                        startAccept();
-                        return;
-                    }
+        if (error) {
+            log_->write("[TCPServer handleAccept] Error: " + error.message(), Log::Level::ERROR);
+            return;
+        }
 
-                    connection->tlsSocket().lowest_layer() =
-                            std::move(connection->socket());
-
-                    if (!connection->doHandshakeServer()) {
-                        log_->write("[TCPServer handleAccept] TLS server handshake failed",
-                                    Log::Level::ERROR);
-                        connection->socketShutdown();
-                        startAccept();
-                        return;
-                    }
+        if (config_->runMode() == RunMode::server) {
+            if (config_->general().tlsEnable) {
+                if (!connection->initTlsServerContext()) {
+                    log_->write("[TCPServer handleAccept] TLS server context init failed", Log::Level::ERROR);
+                    connection->socketShutdown();
+                    return;
                 }
 
-                connection->startServer();
-            } else {
-                connection->startAgent();
+                connection->tlsSocket().lowest_layer() = std::move(connection->socket());
+
+                if (!connection->doHandshakeServer()) {
+                    log_->write("[TCPServer handleAccept] TLS server handshake failed", Log::Level::ERROR);
+                    connection->socketShutdown();
+                    return;
+                }
             }
+
+            connection->startServer();
         } else {
-            log_->write("[TCPServer handleAccept] Error: " + error.message(),
-                        Log::Level::ERROR);
+            connection->startAgent();
         }
     } catch (const std::exception &ex) {
-        log_->write("[TCPServer handleAccept] Exception: " + std::string(ex.what()),
-                    Log::Level::ERROR);
+        log_->write("[TCPServer handleAccept] Exception: " + std::string(ex.what()), Log::Level::ERROR);
+        connection->socketShutdown();
     } catch (...) {
-        log_->write("[TCPServer handleAccept] Unknown exception",
-                    Log::Level::ERROR);
+        log_->write("[TCPServer handleAccept] Unknown exception", Log::Level::ERROR);
+        connection->socketShutdown();
     }
-
-    startAccept();
 }

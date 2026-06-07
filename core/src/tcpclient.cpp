@@ -4,6 +4,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
+#include <memory>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -94,7 +96,6 @@ bool TCPClient::enableTlsClient() {
 }
 
 bool TCPClient::doConnect(const std::string &dstIp, unsigned short dstPort) {
-
     try {
         if (tlsEnabled_ && sslSocket_ && sslSocket_->lowest_layer().is_open()) {
             return true;
@@ -104,15 +105,16 @@ bool TCPClient::doConnect(const std::string &dstIp, unsigned short dstPort) {
             return true;
         }
 
-        log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " + dstIp +
-                            ":" + std::to_string(dstPort) + "]",
+        log_->write("[" + to_string(uuid_) +
+                            "] [TCPClient doConnect] [DST " + dstIp + ":" +
+                            std::to_string(dstPort) + "]",
                     Log::Level::DEBUG);
 
         boost::system::error_code error_code;
 
-        auto endpoint = resolver_.resolve(
-                dstIp.c_str(),
-                std::to_string(dstPort).c_str(),
+        auto endpoints = resolver_.resolve(
+                dstIp,
+                std::to_string(dstPort),
                 error_code);
 
         if (error_code) {
@@ -123,104 +125,155 @@ bool TCPClient::doConnect(const std::string &dstIp, unsigned short dstPort) {
             return false;
         }
 
+        resetTimeout();
+
         if (tlsEnabled_) {
-            if (!sslSocket_ || closed_ || !sslSocket_->lowest_layer().is_open()) {
-                sslSocket_ = std::make_unique<ssl_stream>(io_context_, sslContext_);
-                closed_ = false;
-            }
+            sslSocket_ = std::make_unique<ssl_stream>(io_context_, sslContext_);
+            closed_ = false;
 
-            boost::asio::connect(sslSocket_->lowest_layer(), endpoint, error_code);
+            boost::asio::connect(
+                    sslSocket_->lowest_layer(),
+                    endpoints,
+                    error_code);
         } else {
-            if (!socket_.is_open()) {
-                socket_ = tcp::socket(io_context_);
-                closed_ = false;
-            }
+            socket_ = tcp::socket(io_context_);
+            closed_ = false;
 
-            boost::asio::connect(socket_, endpoint, error_code);
+            boost::asio::connect(
+                    socket_,
+                    endpoints,
+                    error_code);
         }
+
+        cancelTimeout();
 
         if (error_code) {
             log_->write("[" + to_string(uuid_) +
                                 "] [TCPClient doConnect] connect error: " +
                                 error_code.message(),
                         Log::Level::ERROR);
+            socketShutdown();
             return false;
         }
 
+        log_->write("[" + to_string(uuid_) +
+                            "] [TCPClient doConnect] connected",
+                    Log::Level::DEBUG);
+
         return true;
 
-    } catch (std::exception &error) {
+    } catch (const std::exception &ex) {
+        cancelTimeout();
+
         log_->write("[" + to_string(uuid_) +
-                            "] [TCPClient doConnect] " +
-                            error.what(),
+                            "] [TCPClient doConnect] exception: " + ex.what(),
                     Log::Level::ERROR);
+
+        socketShutdown();
         return false;
     }
 }
 
 bool TCPClient::doHandshakeClient() {
-
     try {
-        if (!tlsEnabled_ || !sslSocket_) return true;
+        if (!tlsEnabled_ || !sslSocket_) {
+            return true;
+        }
+
+        if (!sslSocket_->lowest_layer().is_open()) {
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPClient doHandshakeClient] socket is not open",
+                        Log::Level::ERROR);
+            socketShutdown();
+            return false;
+        }
 
         std::string sniHost = config_->randomFakeUrl();
 
-        if (!sniHost.empty()) {
-            auto pos = sniHost.find("://");
-            if (pos != std::string::npos) sniHost = sniHost.substr(pos + 3);
-
-            pos = sniHost.find('/');
-            if (pos != std::string::npos) sniHost = sniHost.substr(0, pos);
-
-            pos = sniHost.find(':');
-            if (pos != std::string::npos) sniHost = sniHost.substr(0, pos);
-
-            if (!sniHost.empty()) {
-                if (!SSL_set_tlsext_host_name(sslSocket_->native_handle(), sniHost.c_str())) {
-                    log_->write("[" + to_string(uuid_) +
-                                        "] [TLS] Failed to set SNI: " + sniHost,
-                                Log::Level::ERROR);
-                    return false;
-                }
-
-                static const unsigned char alpn[] = {
-                        0x08, 'h', 't', 't', 'p', '/', '1', '.', '1'};
-
-                if (SSL_set_alpn_protos(sslSocket_->native_handle(),
-                                        alpn, sizeof(alpn)) != 0) {
-                    log_->write("[" + to_string(uuid_) +
-                                        "] [TLS] Failed to set ALPN http/1.1",
-                                Log::Level::ERROR);
-                    return false;
-                }
-
-                log_->write("[" + to_string(uuid_) +
-                                    "] [TLS] Using SNI/ALPN host: " + sniHost +
-                                    " [ALPN http/1.1]",
-                            Log::Level::DEBUG);
-            }
+        auto pos = sniHost.find("://");
+        if (pos != std::string::npos) {
+            sniHost = sniHost.substr(pos + 3);
         }
 
+        pos = sniHost.find('/');
+        if (pos != std::string::npos) {
+            sniHost = sniHost.substr(0, pos);
+        }
+
+        pos = sniHost.find(':');
+        if (pos != std::string::npos) {
+            sniHost = sniHost.substr(0, pos);
+        }
+
+        if (!sniHost.empty()) {
+            if (!SSL_set_tlsext_host_name(
+                        sslSocket_->native_handle(),
+                        sniHost.c_str())) {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [TLS] Failed to set SNI: " + sniHost,
+                            Log::Level::ERROR);
+                socketShutdown();
+                return false;
+            }
+
+            static const unsigned char alpn[] = {
+                    0x08, 'h', 't', 't', 'p', '/', '1', '.', '1'};
+
+            if (SSL_set_alpn_protos(
+                        sslSocket_->native_handle(),
+                        alpn,
+                        sizeof(alpn)) != 0) {
+                log_->write("[" + to_string(uuid_) +
+                                    "] [TLS] Failed to set ALPN http/1.1",
+                            Log::Level::ERROR);
+                socketShutdown();
+                return false;
+            }
+
+            log_->write("[" + to_string(uuid_) +
+                                "] [TLS] Starting client handshake with SNI: " +
+                                sniHost,
+                        Log::Level::DEBUG);
+        }
+
+        boost::system::error_code error;
         resetTimeout();
-        sslSocket_->handshake(boost::asio::ssl::stream_base::client);
+
+        sslSocket_->handshake(
+                boost::asio::ssl::stream_base::client,
+                error);
+
         cancelTimeout();
+
+        if (error) {
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPClient doHandshakeClient] handshake error: " +
+                                error.message(),
+                        Log::Level::ERROR);
+            socketShutdown();
+            return false;
+        }
+
+        log_->write("[" + to_string(uuid_) +
+                            "] [TLS] Client handshake completed",
+                    Log::Level::DEBUG);
 
         const unsigned char *selected = nullptr;
         unsigned int selectedLen = 0;
-        SSL_get0_alpn_selected(sslSocket_->native_handle(), &selected, &selectedLen);
+
+        SSL_get0_alpn_selected(
+                sslSocket_->native_handle(),
+                &selected,
+                &selectedLen);
 
         if (selected != nullptr && selectedLen > 0) {
-            std::string negotiated(reinterpret_cast<const char *>(selected), selectedLen);
+            std::string negotiated(
+                    reinterpret_cast<const char *>(selected),
+                    selectedLen);
+
             log_->write("[" + to_string(uuid_) +
                                 "] [TLS] Negotiated ALPN: " + negotiated,
                         Log::Level::DEBUG);
-
-            if (negotiated != "http/1.1") {
-                log_->write("[" + to_string(uuid_) +
-                                    "] [TLS] Unsupported negotiated ALPN: " + negotiated,
-                            Log::Level::ERROR);
-                return false;
-            }
         } else {
             log_->write("[" + to_string(uuid_) +
                                 "] [TLS] No ALPN negotiated",
@@ -229,11 +282,15 @@ bool TCPClient::doHandshakeClient() {
 
         return true;
 
-    } catch (std::exception &error) {
+    } catch (const std::exception &ex) {
         cancelTimeout();
+
         log_->write("[" + to_string(uuid_) +
-                            "] [TCPClient doHandshakeClient] " + error.what(),
+                            "] [TCPClient doHandshakeClient] exception: " +
+                            ex.what(),
                     Log::Level::ERROR);
+
+        socketShutdown();
         return false;
     }
 }
@@ -243,9 +300,9 @@ void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
 }
 
 
-void TCPClient::doWrite(boost::asio::streambuf &buffer) {
-
+bool TCPClient::doWrite(boost::asio::streambuf &buffer) {
     try {
+        writeBuffer_.consume(writeBuffer_.size());
         moveStreambuf(buffer, writeBuffer_);
 
         if (!isOpen()) {
@@ -253,31 +310,33 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
                                 "] [TCPClient doWrite] socket is not open",
                         Log::Level::DEBUG);
             socketShutdown();
-            return;
+            return false;
         }
 
         if (writeBuffer_.size() == 0) {
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPClient doWrite] empty write buffer",
+                        Log::Level::DEBUG);
             socketShutdown();
-            return;
+            return false;
         }
 
         boost::system::error_code error;
         resetTimeout();
 
         if (tlsEnabled_ && sslSocket_) {
-            log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [SSL] [DST " +
-                                sslSocket_->lowest_layer().remote_endpoint().address().to_string() +
-                                ":" +
-                                std::to_string(sslSocket_->lowest_layer().remote_endpoint().port()) +
-                                "] [Bytes " + std::to_string(writeBuffer_.size()) + "] ",
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPClient doWrite] [SSL] [Bytes " +
+                                std::to_string(writeBuffer_.size()) + "]",
                         Log::Level::DEBUG);
+
             boost::asio::write(*sslSocket_, writeBuffer_, error);
         } else {
-            log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [TCP] [DST " +
-                                socket_.remote_endpoint().address().to_string() + ":" +
-                                std::to_string(socket_.remote_endpoint().port()) +
-                                "] [Bytes " + std::to_string(writeBuffer_.size()) + "] ",
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPClient doWrite] [TCP] [Bytes " +
+                                std::to_string(writeBuffer_.size()) + "]",
                         Log::Level::DEBUG);
+
             boost::asio::write(socket_, writeBuffer_, error);
         }
 
@@ -288,18 +347,24 @@ void TCPClient::doWrite(boost::asio::streambuf &buffer) {
                                 "] [TCPClient doWrite] [error] " + error.message(),
                         Log::Level::DEBUG);
             socketShutdown();
-            return;
+            return false;
         }
 
-    } catch (std::exception &error) {
-        log_->write("[" + to_string(uuid_) + "] [TCPClient doWrite] [catch] " +
-                            error.what(),
+        return true;
+
+    } catch (const std::exception &ex) {
+        cancelTimeout();
+
+        log_->write("[" + to_string(uuid_) +
+                            "] [TCPClient doWrite] [catch] " + ex.what(),
                     Log::Level::DEBUG);
+
         socketShutdown();
+        return false;
     }
 }
 
-void TCPClient::doReadAgent() {
+bool TCPClient::doReadAgent() {
     boost::system::error_code error;
 
     try {
@@ -307,16 +372,18 @@ void TCPClient::doReadAgent() {
             std::lock_guard<std::mutex> lock(mutex_);
 
             readBuffer_.consume(readBuffer_.size());
+            buffer_.consume(buffer_.size());
 
             if (!isOpen()) {
                 log_->write("[" + to_string(uuid_) +
                                     "] [TCPClient doReadAgent] Socket is not OPEN",
                             Log::Level::DEBUG);
-                return;
+                return false;
             }
         }
 
         resetTimeout();
+
         bool ok = false;
         if (tlsEnabled_) {
             if (!sslSocket_) {
@@ -325,14 +392,16 @@ void TCPClient::doReadAgent() {
                                     "] [TCPClient doReadAgent] SSL socket is null",
                             Log::Level::DEBUG);
                 socketShutdown();
-                return;
+                return false;
             }
 
             ok = HttpUtils::readHttpMessage(*sslSocket_, readBuffer_, error);
         } else {
             ok = HttpUtils::readHttpMessage(socket_, readBuffer_, error);
         }
+
         cancelTimeout();
+
         if (!ok) {
             if (error == boost::asio::error::operation_aborted) {
                 log_->write("[" + to_string(uuid_) +
@@ -344,29 +413,34 @@ void TCPClient::doReadAgent() {
                             Log::Level::TRACE);
             } else {
                 log_->write("[" + to_string(uuid_) +
-                                    "] [TCPClient doReadAgent] [error] " +
-                                    error.message(),
+                                    "] [TCPClient doReadAgent] [error] " + error.message(),
                             Log::Level::ERROR);
             }
+
             socketShutdown();
-            return;
+            return false;
         }
-        if (readBuffer_.size() > 0) {
-            copyStreambuf(readBuffer_, buffer_);
-            return;
+
+        if (readBuffer_.size() == 0) {
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPClient doReadAgent] empty read buffer",
+                        Log::Level::DEBUG);
+            socketShutdown();
+            return false;
         }
-        log_->write("[" + to_string(uuid_) +
-                            "] [TCPClient doReadAgent] empty read buffer",
-                    Log::Level::DEBUG);
-        socketShutdown();
+
+        copyStreambuf(readBuffer_, buffer_);
+        return true;
+
     } catch (const std::exception &ex) {
         cancelTimeout();
 
         log_->write("[" + to_string(uuid_) +
-                            "] [TCPClient doReadAgent] [catch read] " +
-                            ex.what(),
+                            "] [TCPClient doReadAgent] [catch read] " + ex.what(),
                     Log::Level::DEBUG);
+
         socketShutdown();
+        return false;
     }
 }
 
@@ -456,13 +530,14 @@ void TCPClient::cancelTimeout() {
 }
 
 void TCPClient::onTimeout(const boost::system::error_code &error) {
-    if (error || error == boost::asio::error::operation_aborted) return;
+    if (error == boost::asio::error::operation_aborted) {
+        return;
+    }
 
     log_->write("[" + to_string(uuid_) +
-                        "] [TCPClient onTimeout] [expiration] " +
-                        std::to_string(+config_->general().timeout) +
-                        " seconds has passed, and the timeout has expired",
+                        "] [TCPClient onTimeout] timeout expired",
                 Log::Level::TRACE);
+
     socketShutdown();
 }
 
