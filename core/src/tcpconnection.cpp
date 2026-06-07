@@ -439,6 +439,8 @@ std::string TCPConnection::makeRelayHostHeader() const {
 
 std::string TCPConnection::postTunnelAction(const std::string &action,
                                             const std::string &rawBody) {
+    std::lock_guard<std::mutex> relayLock(relayMutex_);
+
     client_->uuid_ = uuid_;
 
     auto sendOnce = [&]() -> std::string {
@@ -489,10 +491,31 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
         boost::asio::streambuf out;
         copyStringToStreambuf(req.str(), out);
 
-        client_->doWrite(out);
-        client_->doReadAgent();
+        if (!client_->doWrite(out)) {
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPConnection postTunnelAction] doWrite failed",
+                        Log::Level::DEBUG);
+            client_->socketShutdown();
+            return "";
+        }
+
+        if (!client_->doReadAgent()) {
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPConnection postTunnelAction] doReadAgent failed",
+                        Log::Level::DEBUG);
+            client_->socketShutdown();
+            return "";
+        }
 
         const std::string response = streambufToString(client_->readBuffer());
+
+        if (response.empty()) {
+            log_->write("[" + to_string(uuid_) +
+                                "] [TCPConnection postTunnelAction] empty response",
+                        Log::Level::DEBUG);
+            client_->socketShutdown();
+            return "";
+        }
 
         if (!keepAlive) {
             client_->socketShutdown();

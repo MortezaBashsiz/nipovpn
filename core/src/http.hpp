@@ -47,6 +47,11 @@ public:
 
     inline void httpType(const HTTP::HttpType &httpType) { httpType_ = httpType; }
 
+    static bool parseHostPort(const std::string &input,
+                              std::string &host,
+                              unsigned short &port,
+                              unsigned short defaultPort);
+
     bool detectType();
 
     bool parseHttp();

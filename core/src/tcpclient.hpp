@@ -41,8 +41,8 @@ public:
 
     inline boost::asio::streambuf &readBuffer() & { return readBuffer_; }
 
-    void doWrite(boost::asio::streambuf &buffer);
-    void doReadAgent();
+    bool doReadAgent();
+    bool doWrite(boost::asio::streambuf &buffer);
     void doReadServer();
 
     void socketShutdown();
