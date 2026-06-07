@@ -38,7 +38,7 @@ void AgentHandler::handle() {
     if (request_->parsedHttpRequest().target().length() > 0) {
         log_->write("[" + to_string(uuid_) + "] [FORWARD] [SRC " + clientConnStr_ + "] [DST " +
                             std::string(request_->parsedHttpRequest().target()) + "]",
-                    Log::Level::INFO);
+                    Log::Level::TRACE);
     }
 
     if (config_->general().tlsEnable && !client_->tlsEnabled()) {

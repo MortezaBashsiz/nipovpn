@@ -7,6 +7,15 @@
 
 namespace http_utils {
 
+    inline std::string makeHostPort(const std::string &host, uint16_t port) {
+        if (host.find(':') != std::string::npos &&
+            !(host.size() >= 2 && host.front() == '[' && host.back() == ']')) {
+            return "[" + host + "]:" + std::to_string(port);
+        }
+
+        return host + ":" + std::to_string(port);
+    }
+
     inline std::string toLowerCopy(std::string value) {
         std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
             return static_cast<char>(std::tolower(c));
