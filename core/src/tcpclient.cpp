@@ -4,8 +4,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <chrono>
-#include <memory>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -95,16 +93,9 @@ bool TCPClient::enableTlsClient() {
     }
 }
 
-bool TCPClient::doConnect(const std::string &dstIP,
-                          unsigned short dstPort) {
-    try {
-        if (dstPort == 0) {
-            log_->write("[" + to_string(uuid_) +
-                                "] [TCPClient doConnect] invalid destination port 0",
-                        Log::Level::ERROR);
-            return false;
-        }
+bool TCPClient::doConnect(const std::string &dstIp, unsigned short dstPort) {
 
+    try {
         if (tlsEnabled_ && sslSocket_ && sslSocket_->lowest_layer().is_open()) {
             return true;
         }
@@ -113,15 +104,15 @@ bool TCPClient::doConnect(const std::string &dstIP,
             return true;
         }
 
-        log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " +
-                            dstIP + ":" + std::to_string(dstPort) + "]",
+        log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] [DST " + dstIp +
+                            ":" + std::to_string(dstPort) + "]",
                     Log::Level::DEBUG);
 
         boost::system::error_code error_code;
 
-        auto endpoints = resolver_.resolve(
-                dstIP,
-                std::to_string(dstPort),
+        auto endpoint = resolver_.resolve(
+                dstIp.c_str(),
+                std::to_string(dstPort).c_str(),
                 error_code);
 
         if (error_code) {
@@ -132,90 +123,35 @@ bool TCPClient::doConnect(const std::string &dstIP,
             return false;
         }
 
-        auto timer = std::make_shared<boost::asio::steady_timer>(io_context_);
-        auto finished = std::make_shared<bool>(false);
-        auto connectError = std::make_shared<boost::system::error_code>();
-
-        auto closeSocket = [this]() {
-            boost::system::error_code ignored;
-
-            if (tlsEnabled_ && sslSocket_) {
-                sslSocket_->lowest_layer().cancel(ignored);
-                sslSocket_->lowest_layer().close(ignored);
-            } else {
-                socket_.cancel(ignored);
-                socket_.close(ignored);
-            }
-        };
-
-        timer->expires_after(std::chrono::seconds(5));
-        timer->async_wait([this, finished, closeSocket](
-                                  const boost::system::error_code &ec) {
-            if (ec) {
-                return;
-            }
-
-            if (!*finished) {
-                log_->write("[" + to_string(uuid_) +
-                                    "] [TCPClient doConnect] connect timeout",
-                            Log::Level::ERROR);
-                closeSocket();
-            }
-        });
-
         if (tlsEnabled_) {
             if (!sslSocket_ || closed_ || !sslSocket_->lowest_layer().is_open()) {
                 sslSocket_ = std::make_unique<ssl_stream>(io_context_, sslContext_);
                 closed_ = false;
             }
 
-            boost::asio::async_connect(
-                    sslSocket_->lowest_layer(),
-                    endpoints,
-                    [finished, connectError, timer](
-                            const boost::system::error_code &ec,
-                            const boost::asio::ip::tcp::endpoint &) {
-                        *connectError = ec;
-                        *finished = true;
-
-                        timer->cancel();
-                    });
+            boost::asio::connect(sslSocket_->lowest_layer(), endpoint, error_code);
         } else {
             if (!socket_.is_open()) {
                 socket_ = tcp::socket(io_context_);
                 closed_ = false;
             }
 
-            boost::asio::async_connect(
-                    socket_,
-                    endpoints,
-                    [finished, connectError, timer](
-                            const boost::system::error_code &ec,
-                            const boost::asio::ip::tcp::endpoint &) {
-                        *connectError = ec;
-                        *finished = true;
-
-                        timer->cancel();
-                    });
+            boost::asio::connect(socket_, endpoint, error_code);
         }
 
-        while (!*finished) {
-            io_context_.run_one();
-        }
-
-        io_context_.restart();
-
-        if (*connectError) {
+        if (error_code) {
             log_->write("[" + to_string(uuid_) +
                                 "] [TCPClient doConnect] connect error: " +
-                                connectError->message(),
+                                error_code.message(),
                         Log::Level::ERROR);
             return false;
         }
 
         return true;
+
     } catch (std::exception &error) {
-        log_->write("[" + to_string(uuid_) + "] [TCPClient doConnect] " +
+        log_->write("[" + to_string(uuid_) +
+                            "] [TCPClient doConnect] " +
                             error.what(),
                     Log::Level::ERROR);
         return false;
