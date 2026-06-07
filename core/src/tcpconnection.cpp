@@ -651,7 +651,13 @@ bool TCPConnection::handleSocks5Handshake() {
     unsigned short port =
             static_cast<unsigned short>((portBytes[0] << 8) | portBytes[1]);
 
-    std::string target = host + ":" + std::to_string(port);
+    std::string target;
+
+    if (host.find(':') != std::string::npos) {
+        target = "[" + host + "]:" + std::to_string(port);
+    } else {
+        target = host + ":" + std::to_string(port);
+    }
 
     std::string connectRequest =
             "CONNECT " + target +

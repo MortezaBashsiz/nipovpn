@@ -226,6 +226,15 @@ bool HTTP::parseHostPort(const std::string &input,
     auto lastColon = input.rfind(':');
 
     if (firstColon != std::string::npos && firstColon != lastColon) {
+        const std::string maybePort = input.substr(lastColon + 1);
+
+        unsigned short parsedPort = defaultPort;
+        if (parsePort(maybePort, parsedPort)) {
+            host = input.substr(0, lastColon);
+            port = parsedPort;
+            return !host.empty();
+        }
+
         host = input;
         port = defaultPort;
         return true;
