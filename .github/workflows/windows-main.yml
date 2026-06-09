@@ -1,0 +1,211 @@
+name: Build Windows Installer - main
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'core/**'
+      - 'server/**'
+      - 'agent/**'
+      - 'CMakeLists.txt'
+      - 'ui/**'
+      - '.github/workflows/windows-main.yml'
+
+permissions:
+  contents: write
+
+env:
+  PACKAGE_VERSION: 1.1.57
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      # ────────────────────────────────────────
+      # 1. Checkout
+      # ────────────────────────────────────────
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # ────────────────────────────────────────
+      # 2. Setup MSYS2 + C++ deps
+      # ────────────────────────────────────────
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            zip
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-yaml-cpp
+
+      # ────────────────────────────────────────
+      # 3. Build nipovpn.exe
+      # ────────────────────────────────────────
+      - name: Build nipovpn.exe
+        run: |
+          rm -rf build nipovpn-core
+          mkdir -p build nipovpn-core
+
+          cmake -S . -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS="-DNOMINMAX -DWIN32_LEAN_AND_MEAN -DNOGDI -DOUT=NIPO_OUT"
+
+          cmake --build build -j$(nproc)
+
+          cp build/core/nipovpn.exe nipovpn-core/
+
+      # ────────────────────────────────────────
+      # 4. Collect required DLLs
+      # ────────────────────────────────────────
+      - name: Collect DLL dependencies
+        run: |
+          cd nipovpn-core
+
+          for dll in $(ldd nipovpn.exe | grep 'mingw64' | awk '{print $3}'); do
+            cp "$dll" .
+          done
+
+          echo "--- DLLs collected ---"
+          ls -lah *.dll
+
+      # ────────────────────────────────────────
+      # 5. Add default config
+      # ────────────────────────────────────────
+      - name: Add default config files
+        run: |
+          mkdir -p nipovpn-core/etc/nipovpn
+          if [ -d nipovpn/etc/nipovpn ]; then
+            cp -a nipovpn/etc/nipovpn/. nipovpn-core/etc/nipovpn/
+          fi
+          mkdir -p nipovpn-core/logs
+          touch nipovpn-core/logs/nipovpn.log
+
+      # ────────────────────────────────────────
+      # 6. Setup Node.js for Electron
+      # ────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+        # Run node steps in PowerShell
+        shell: pwsh
+
+      # ────────────────────────────────────────
+      # 7. Generate tray icon (if not committed)
+      # ────────────────────────────────────────
+      - name: Create tray icon placeholder
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "ui\assets" | Out-Null
+          # If no icon asset is committed, create a minimal placeholder .ico
+          if (-not (Test-Path "ui\assets\tray.ico")) {
+            # Download a simple shield icon (public domain)
+            try {
+              Invoke-WebRequest -Uri "https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Shield/SVG/ic_fluent_shield_24_filled.svg" -OutFile "ui\assets\tray.svg" -ErrorAction SilentlyContinue
+            } catch {}
+            # Fallback: create minimal valid ICO (1x1 transparent)
+            $ico = [byte[]](0,0,1,0,1,0,1,1,0,0,1,0,32,0,40,0,0,0,22,0,0,0,40,0,0,0,1,0,0,0,2,0,0,0,1,0,32,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,255,255,0,0,0)
+            [IO.File]::WriteAllBytes("$PWD\ui\assets\tray.ico", $ico)
+          }
+
+      # ────────────────────────────────────────
+      # 8. Install Electron deps & build installer
+      # ────────────────────────────────────────
+      - name: Install Electron dependencies
+        shell: pwsh
+        working-directory: ui
+        run: npm ci
+
+      - name: Build Electron installer (NSIS)
+        shell: pwsh
+        working-directory: ui
+        env:
+          BUILD_NIPOVPN_DIR: ${{ github.workspace }}\nipovpn-core
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Pass the nipovpn core dir to electron-builder via env
+          $env:BUILD_NIPOVPN_DIR = "${{ github.workspace }}\nipovpn-core"
+          npm run dist
+
+      # ────────────────────────────────────────
+      # 9. Rename & collect outputs
+      # ────────────────────────────────────────
+      - name: Collect installer outputs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "release-output"
+          
+          # NSIS installer
+          $installer = Get-ChildItem -Path "ui\dist-electron" -Filter "*.exe" -Recurse | Select-Object -First 1
+          if ($installer) {
+            Copy-Item $installer.FullName "release-output\NipoVPN-${{ env.PACKAGE_VERSION }}-Setup-x64.exe"
+          }
+          
+          # Also package nipovpn-core as standalone ZIP (for advanced users)
+          Compress-Archive -Path "nipovpn-core\*" -DestinationPath "release-output\nipovpn_${{ env.PACKAGE_VERSION }}_windows_x86_64.zip" -Force
+
+          Write-Host "--- Release output ---"
+          Get-ChildItem "release-output"
+
+      # ────────────────────────────────────────
+      # 10. Upload artifacts
+      # ────────────────────────────────────────
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nipovpn-windows-installer
+          path: release-output/NipoVPN-${{ env.PACKAGE_VERSION }}-Setup-x64.exe
+          if-no-files-found: warn
+
+      - name: Upload standalone ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nipovpn-windows-x86_64
+          path: release-output/nipovpn_${{ env.PACKAGE_VERSION }}_windows_x86_64.zip
+
+      # ────────────────────────────────────────
+      # 11. Create GitHub Release
+      # ────────────────────────────────────────
+      - name: Create Windows Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-v${{ env.PACKAGE_VERSION }}
+          name: "Windows v${{ env.PACKAGE_VERSION }}"
+          prerelease: true
+          body: |
+            ## NipoVPN Windows v${{ env.PACKAGE_VERSION }}
+
+            ### دانلود
+            | فایل | توضیح |
+            |------|-------|
+            | `NipoVPN-${{ env.PACKAGE_VERSION }}-Setup-x64.exe` | **نصب‌کننده کامل** — شامل UI، nipovpn.exe و تمام DLLها |
+            | `nipovpn_${{ env.PACKAGE_VERSION }}_windows_x86_64.zip` | فایل standalone بدون UI برای کاربران پیشرفته |
+
+            ### نصب
+            1. `NipoVPN-Setup-x64.exe` را اجرا کنید (نیاز به دسترسی Admin)
+            2. برنامه در system tray اجرا می‌شود
+            3. لینک `nipovpn://` را در تب Config paste کنید
+
+            ### نکات
+            - ویندوز ۱۰ / ۱۱ (x64)
+            - پروکسی سیستم به صورت خودکار تنظیم می‌شود
+            - پورت پیش‌فرض: `127.0.0.1:8080`
+          files: |
+            release-output/NipoVPN-${{ env.PACKAGE_VERSION }}-Setup-x64.exe
+            release-output/nipovpn_${{ env.PACKAGE_VERSION }}_windows_x86_64.zip
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
