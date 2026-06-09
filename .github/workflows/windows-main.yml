@@ -101,8 +101,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-        # Run node steps in PowerShell
-        shell: pwsh
 
       # ────────────────────────────────────────
       # 7. Generate tray icon (if not committed)
