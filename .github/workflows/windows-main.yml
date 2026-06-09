@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 env:
-  PACKAGE_VERSION: 1.1.56
+  PACKAGE_VERSION: 1.1.57
 
 jobs:
   build-windows:
