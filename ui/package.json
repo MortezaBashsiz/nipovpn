@@ -32,7 +32,15 @@
       "index.html",
       "assets/**"
     ],
-    "extraResources": [],
+    "extraResources": [
+      {
+        "from": "extra-res/nipovpn-core",
+        "to": ".",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "win": {
       "target": [
         {
