@@ -10,8 +10,6 @@
   ; ── Create empty log file if missing ──
   IfFileExists "$INSTDIR\logs\nipovpn.log" log_exists log_missing
   log_missing:
-    WriteUninstaller "$INSTDIR\logs\nipovpn.log"
-    Delete "$INSTDIR\logs\nipovpn.log"
     FileOpen $0 "$INSTDIR\logs\nipovpn.log" w
     FileClose $0
   log_exists:
