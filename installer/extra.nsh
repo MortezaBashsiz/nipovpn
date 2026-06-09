@@ -1,27 +1,20 @@
 ; extra.nsh — injected into the electron-builder NSIS installer
-; Runs after the Electron app files are copied
+; nipovpn.exe, DLLs, etc/ and logs/ arrive via extraResources (electron-builder
+; copies them into $INSTDIR before this macro runs).  No external path needed.
 
-; ── Copy nipovpn core binary and DLLs ──
 !macro customInstall
-  ; Source: the nipovpn_windows package extracted next to the installer
-  SetOutPath "$INSTDIR"
-  File /nonfatal "${BUILD_NIPOVPN_DIR}\nipovpn.exe"
-  File /nonfatal /r "${BUILD_NIPOVPN_DIR}\*.dll"
-
-  ; ── Create config dir and default config ──
+  ; ── Create required directories ──
   CreateDirectory "$INSTDIR\etc\nipovpn"
   CreateDirectory "$INSTDIR\logs"
 
-  ; Write default config.yaml only if not present (preserve user config)
-  IfFileExists "$INSTDIR\etc\nipovpn\config.yaml" config_exists config_missing
-  config_missing:
-    File /oname="$INSTDIR\etc\nipovpn\config.yaml" "${BUILD_NIPOVPN_DIR}\etc\nipovpn\config.yaml"
-  config_exists:
-
-  ; Create empty log file
-  IfFileExists "$INSTDIR\logs\nipovpn.log" +2
+  ; ── Create empty log file if missing ──
+  IfFileExists "$INSTDIR\logs\nipovpn.log" log_exists log_missing
+  log_missing:
+    WriteUninstaller "$INSTDIR\logs\nipovpn.log"
+    Delete "$INSTDIR\logs\nipovpn.log"
     FileOpen $0 "$INSTDIR\logs\nipovpn.log" w
     FileClose $0
+  log_exists:
 
   ; ── Register nipovpn:// URI scheme ──
   WriteRegStr HKCR "nipovpn" "" "URL:NipoVPN Protocol"
@@ -31,7 +24,7 @@
   ; ── Auto-start with Windows (system tray) ──
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "NipoVPN" '"$INSTDIR\NipoVPN.exe" "--minimized"'
 
-  ; ── Firewall rule ──
+  ; ── Firewall rules ──
   nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="NipoVPN"'
   nsExec::ExecToLog 'netsh advfirewall firewall add rule name="NipoVPN" dir=out action=allow program="$INSTDIR\nipovpn.exe" enable=yes'
   nsExec::ExecToLog 'netsh advfirewall firewall add rule name="NipoVPN Agent" dir=in action=allow program="$INSTDIR\nipovpn.exe" protocol=tcp localport=8080 enable=yes'
