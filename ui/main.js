@@ -4,6 +4,11 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
+// ── MUST be called before app ready — redirect cache out of Program Files ──
+app.setPath('userData',   path.join(app.getPath('appData'), 'NipoVPN'));
+app.setPath('cache',      path.join(app.getPath('appData'), 'NipoVPN', 'Cache'));
+app.setPath('crashDumps', path.join(app.getPath('appData'), 'NipoVPN', 'CrashDumps'));
+
 // ── Paths ──
 // Packaged layout:  $INSTDIR\resources\app\main.js
 // nipovpn.exe is at $INSTDIR\nipovpn.exe  (two levels up from __dirname)
@@ -36,14 +41,6 @@ let isRunning = false;
 let currentMode = 'agent';
 
 app.setAppUserModelId('ir.nipovpn.app');
-
-// ── Redirect Electron cache/userData to AppData (not Program Files) ──
-// Without this, Electron tries to write GPU/disk cache inside Program Files
-// which requires Admin and causes "Access is denied (0x5)" errors.
-const appData = app.getPath('appData');
-app.setPath('userData',  path.join(appData, 'NipoVPN'));
-app.setPath('cache',     path.join(appData, 'NipoVPN', 'Cache'));
-app.setPath('crashDumps',path.join(appData, 'NipoVPN', 'CrashDumps'));
 
 // ── Global error guard ──
 process.on('uncaughtException', function(err) {
