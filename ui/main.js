@@ -37,6 +37,14 @@ let currentMode = 'agent';
 
 app.setAppUserModelId('ir.nipovpn.app');
 
+// ── Redirect Electron cache/userData to AppData (not Program Files) ──
+// Without this, Electron tries to write GPU/disk cache inside Program Files
+// which requires Admin and causes "Access is denied (0x5)" errors.
+const appData = app.getPath('appData');
+app.setPath('userData',  path.join(appData, 'NipoVPN'));
+app.setPath('cache',     path.join(appData, 'NipoVPN', 'Cache'));
+app.setPath('crashDumps',path.join(appData, 'NipoVPN', 'CrashDumps'));
+
 // ── Global error guard ──
 process.on('uncaughtException', function(err) {
   dialog.showErrorBox('NipoVPN - خطای غیرمنتظره', err.message + '\n\n' + err.stack);
