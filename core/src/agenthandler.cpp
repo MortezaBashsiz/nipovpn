@@ -60,6 +60,11 @@ void AgentHandler::handle() {
                         Log::Level::INFO);
             client_->socketShutdown();
             return;
+        } else {
+            log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " +
+                                clientConnStr_ + "] [DST " + config_->agent().serverIp + ":" +
+                                std::to_string(config_->agent().serverPort) + "]",
+                        Log::Level::INFO);
         }
 
         if (client_->tlsEnabled() && !client_->doHandshakeClient()) {
