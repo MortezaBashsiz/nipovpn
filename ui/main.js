@@ -5,7 +5,26 @@ const fs = require('fs');
 const os = require('os');
 
 // ── Paths ──
-const INSTALL_DIR   = path.join(process.env.ProgramFiles || 'C:\\Program Files', 'NipoVPN');
+// electron.exe lives inside $INSTDIR\resources\app  (packaged)
+// or directly in the project dir (dev).  Walk up to find nipovpn.exe.
+function resolveInstallDir() {
+  // Packaged: __dirname = $INSTDIR\resources\app\
+  // nipovpn.exe is at $INSTDIR\nipovpn.exe  (two levels up)
+  const candidates = [
+    path.join(__dirname, '..', '..'),           // packaged
+    path.join(__dirname, '..'),                  // alt packaged layout
+    path.join(process.env.ProgramFiles || 'C:\\Program Files', 'NipoVPN'),
+    path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'NipoVPN'),
+    path.dirname(process.execPath),              // next to electron exe
+  ];
+  for (const dir of candidates) {
+    if (fs.existsSync(path.join(dir, 'nipovpn.exe'))) return dir;
+  }
+  // fallback — will show error dialog on startup
+  return candidates[0];
+}
+
+const INSTALL_DIR   = resolveInstallDir();
 const CONFIG_PATH   = path.join(INSTALL_DIR, 'etc', 'nipovpn', 'config.yaml');
 const EXE_PATH      = path.join(INSTALL_DIR, 'nipovpn.exe');
 const LOG_PATH      = path.join(INSTALL_DIR, 'logs', 'nipovpn.log');
@@ -29,11 +48,30 @@ else {
   });
 }
 
+// ── Global error guard ──
+process.on('uncaughtException', (err) => {
+  dialog.showErrorBox('NipoVPN — خطای غیرمنتظره', err.message + '\n\n' + err.stack);
+});
+
 // ── App ready ──
 app.whenReady().then(() => {
   ensureLogDir();
   createTray();
   createWindow();
+
+  // Show startup diagnostics if nipovpn.exe is missing
+  if (!fs.existsSync(EXE_PATH)) {
+    // Wait for window to fully load before sending error
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.send('error',
+        `nipovpn.exe پیدا نشد.\n\nمسیر جستجو شده:\n${EXE_PATH}\n\nلطفاً برنامه را دوباره نصب کنید.`
+      );
+    });
+    dialog.showErrorBox(
+      'NipoVPN — فایل اجرایی پیدا نشد',
+      \`nipovpn.exe در مسیر زیر پیدا نشد:\n\${EXE_PATH}\n\nبرنامه در حالت UI-only اجرا می‌شود.\nبرای رفع مشکل، برنامه را دوباره نصب کنید.\`
+    );
+  }
 });
 
 app.on('window-all-closed', (e) => e.preventDefault()); // keep running in tray
