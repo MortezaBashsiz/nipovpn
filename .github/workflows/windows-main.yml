@@ -126,7 +126,7 @@ jobs:
       - name: Install Electron dependencies
         shell: pwsh
         working-directory: ui
-        run: npm ci
+        run: npm install
 
       - name: Build Electron installer (NSIS)
         shell: pwsh
