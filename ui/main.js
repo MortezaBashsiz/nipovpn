@@ -5,22 +5,20 @@ const fs = require('fs');
 const os = require('os');
 
 // ── Paths ──
-// electron.exe lives inside $INSTDIR\resources\app  (packaged)
-// or directly in the project dir (dev).  Walk up to find nipovpn.exe.
+// Packaged layout:  $INSTDIR\resources\app\main.js
+// nipovpn.exe is at $INSTDIR\nipovpn.exe  (two levels up from __dirname)
 function resolveInstallDir() {
-  // Packaged: __dirname = $INSTDIR\resources\app\
-  // nipovpn.exe is at $INSTDIR\nipovpn.exe  (two levels up)
   const candidates = [
-    path.join(__dirname, '..', '..'),           // packaged
-    path.join(__dirname, '..'),                  // alt packaged layout
+    path.join(__dirname, '..', '..'),          // packaged: resources/app -> $INSTDIR
+    path.join(__dirname, '..'),                 // alt packaged layout
+    path.dirname(process.execPath),             // next to electron exe
     path.join(process.env.ProgramFiles || 'C:\\Program Files', 'NipoVPN'),
-    path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'NipoVPN'),
-    path.dirname(process.execPath),              // next to electron exe
   ];
   for (const dir of candidates) {
-    if (fs.existsSync(path.join(dir, 'nipovpn.exe'))) return dir;
+    try {
+      if (fs.existsSync(path.join(dir, 'nipovpn.exe'))) return dir;
+    } catch(e) {}
   }
-  // fallback — will show error dialog on startup
   return candidates[0];
 }
 
@@ -39,42 +37,43 @@ let currentMode = 'agent';
 
 app.setAppUserModelId('ir.nipovpn.app');
 
+// ── Global error guard ──
+process.on('uncaughtException', function(err) {
+  dialog.showErrorBox('NipoVPN - خطای غیرمنتظره', err.message + '\n\n' + err.stack);
+});
+
 // ── Single instance lock ──
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) { app.quit(); }
 else {
-  app.on('second-instance', () => {
+  app.on('second-instance', function() {
     if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
   });
 }
 
-// ── Global error guard ──
-process.on('uncaughtException', (err) => {
-  dialog.showErrorBox('NipoVPN — خطای غیرمنتظره', err.message + '\n\n' + err.stack);
-});
-
 // ── App ready ──
-app.whenReady().then(() => {
+app.whenReady().then(function() {
   ensureLogDir();
   createTray();
   createWindow();
 
-  // Show startup diagnostics if nipovpn.exe is missing
   if (!fs.existsSync(EXE_PATH)) {
-    // Wait for window to fully load before sending error
-    mainWindow.webContents.once('did-finish-load', () => {
+    mainWindow.webContents.once('did-finish-load', function() {
       mainWindow.webContents.send('error',
-        `nipovpn.exe پیدا نشد.\n\nمسیر جستجو شده:\n${EXE_PATH}\n\nلطفاً برنامه را دوباره نصب کنید.`
+        'nipovpn.exe پیدا نشد.\n\nمسیر جستجو شده:\n' + EXE_PATH + '\n\nلطفاً برنامه را دوباره نصب کنید.'
       );
     });
-    dialog.showErrorBox(
-      'NipoVPN - فایل اجرایی پیدا نشد',
-      'nipovpn.exe در مسیر زیر پیدا نشد:\n' + EXE_PATH + '\n\nبرنامه در حالت UI-only اجرا می\u200Cشود.\nبرای رفع مشکل، برنامه را دوباره نصب کنید.'
-    );
+    dialog.showMessageBoxSync({
+      type: 'error',
+      title: 'NipoVPN - فایل اجرایی پیدا نشد',
+      message: 'nipovpn.exe پیدا نشد',
+      detail: 'مسیر: ' + EXE_PATH + '\n\nبرنامه در حالت UI-only اجرا می‌شود.\nبرای رفع مشکل، برنامه را دوباره نصب کنید.',
+      buttons: ['باشه']
+    });
   }
 });
 
-app.on('window-all-closed', (e) => e.preventDefault()); // keep running in tray
+app.on('window-all-closed', function(e) { e.preventDefault(); }); // keep running in tray
 
 // ── Ensure log dir ──
 function ensureLogDir() {
@@ -105,12 +104,12 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
-  mainWindow.on('close', (e) => {
+  mainWindow.on('close', function(e) {
     e.preventDefault();
     mainWindow.hide();
   });
 
-  mainWindow.once('ready-to-show', () => {
+  mainWindow.once('ready-to-show', function() {
     mainWindow.show();
   });
 }
@@ -122,39 +121,39 @@ function createTray() {
     : nativeImage.createEmpty();
 
   tray = new Tray(img);
-  tray.setToolTip('NipoVPN — متوقف');
+  tray.setToolTip('NipoVPN - متوقف');
   updateTrayMenu();
 
-  tray.on('double-click', () => {
+  tray.on('double-click', function() {
     mainWindow ? mainWindow.show() : createWindow();
   });
 }
 
 function updateTrayMenu() {
-  const status = isRunning ? `✅ در حال اجرا (${currentMode})` : '⭕ متوقف';
+  const status = isRunning ? ('در حال اجرا (' + currentMode + ')') : 'متوقف';
   const menu = Menu.buildFromTemplate([
     { label: 'NipoVPN', enabled: false },
     { label: status, enabled: false },
     { type: 'separator' },
-    { label: '📊 باز کردن پنل', click: () => { mainWindow ? mainWindow.show() : createWindow(); } },
+    { label: 'باز کردن پنل', click: function() { mainWindow ? mainWindow.show() : createWindow(); } },
     { type: 'separator' },
-    { label: isRunning ? '⏹ توقف' : '▶ شروع (Agent)', click: () => isRunning ? stopNipoVPN() : startNipoVPN('agent') },
+    { label: isRunning ? 'توقف' : 'شروع (Agent)', click: function() { isRunning ? stopNipoVPN() : startNipoVPN('agent'); } },
     { type: 'separator' },
-    { label: '❌ خروج کامل', click: () => { stopNipoVPN(); app.exit(0); } },
+    { label: 'خروج کامل', click: function() { stopNipoVPN(); app.exit(0); } },
   ]);
   tray.setContextMenu(menu);
-  tray.setToolTip('NipoVPN — ' + (isRunning ? `اجرا (${currentMode})` : 'متوقف'));
+  tray.setToolTip('NipoVPN - ' + (isRunning ? ('اجرا (' + currentMode + ')') : 'متوقف'));
 }
 
 // ── Start/Stop nipovpn.exe ──
 function startNipoVPN(mode) {
   if (isRunning) return;
   if (!fs.existsSync(EXE_PATH)) {
-    mainWindow?.webContents.send('error', `nipovpn.exe پیدا نشد:\n${EXE_PATH}`);
+    mainWindow && mainWindow.webContents.send('error', 'nipovpn.exe پیدا نشد:\n' + EXE_PATH);
     return;
   }
   if (!fs.existsSync(CONFIG_PATH)) {
-    mainWindow?.webContents.send('error', `config.yaml پیدا نشد:\n${CONFIG_PATH}`);
+    mainWindow && mainWindow.webContents.send('error', 'config.yaml پیدا نشد:\n' + CONFIG_PATH);
     return;
   }
 
@@ -166,16 +165,20 @@ function startNipoVPN(mode) {
 
   isRunning = true;
   updateTrayMenu();
-  mainWindow?.webContents.send('status', { running: true, mode: currentMode, pid: nipovpnProcess.pid });
+  mainWindow && mainWindow.webContents.send('status', { running: true, mode: currentMode, pid: nipovpnProcess.pid });
 
-  nipovpnProcess.stdout?.on('data', d => mainWindow?.webContents.send('log', d.toString()));
-  nipovpnProcess.stderr?.on('data', d => mainWindow?.webContents.send('log', '[ERR] ' + d.toString()));
+  nipovpnProcess.stdout && nipovpnProcess.stdout.on('data', function(d) {
+    mainWindow && mainWindow.webContents.send('log', d.toString());
+  });
+  nipovpnProcess.stderr && nipovpnProcess.stderr.on('data', function(d) {
+    mainWindow && mainWindow.webContents.send('log', '[ERR] ' + d.toString());
+  });
 
-  nipovpnProcess.on('exit', (code) => {
+  nipovpnProcess.on('exit', function(code) {
     isRunning = false;
     nipovpnProcess = null;
     updateTrayMenu();
-    mainWindow?.webContents.send('status', { running: false, exitCode: code });
+    mainWindow && mainWindow.webContents.send('status', { running: false, exitCode: code });
   });
 }
 
@@ -185,46 +188,46 @@ function stopNipoVPN() {
   isRunning = false;
   nipovpnProcess = null;
   updateTrayMenu();
-  mainWindow?.webContents.send('status', { running: false });
+  mainWindow && mainWindow.webContents.send('status', { running: false });
 }
 
 // ── Configure Windows Proxy ──
 function setWindowsProxy(enable, port) {
   try {
     if (enable) {
-      execSync(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f`);
-      execSync(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /t REG_SZ /d "socks=127.0.0.1:${port}" /f`);
+      execSync('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f');
+      execSync('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /t REG_SZ /d "socks=127.0.0.1:' + port + '" /f');
     } else {
-      execSync(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f`);
+      execSync('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f');
     }
     return true;
   } catch(e) { return false; }
 }
 
 // ── IPC handlers ──
-ipcMain.handle('get-status',  () => ({ running: isRunning, mode: currentMode }));
-ipcMain.handle('get-config',  () => fs.existsSync(CONFIG_PATH) ? fs.readFileSync(CONFIG_PATH, 'utf8') : null);
-ipcMain.handle('save-config', (_, yaml) => {
+ipcMain.handle('get-status',  function() { return { running: isRunning, mode: currentMode }; });
+ipcMain.handle('get-config',  function() { return fs.existsSync(CONFIG_PATH) ? fs.readFileSync(CONFIG_PATH, 'utf8') : null; });
+ipcMain.handle('save-config', function(_, yaml) {
   try {
     fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
     fs.writeFileSync(CONFIG_PATH, yaml, 'utf8');
     return { ok: true };
   } catch(e) { return { ok: false, error: e.message }; }
 });
-ipcMain.handle('start',  (_, mode) => { startNipoVPN(mode); return true; });
-ipcMain.handle('stop',   ()        => { stopNipoVPN();       return true; });
-ipcMain.handle('read-log', () => {
+ipcMain.handle('start',  function(_, mode) { startNipoVPN(mode); return true; });
+ipcMain.handle('stop',   function()        { stopNipoVPN();       return true; });
+ipcMain.handle('read-log', function() {
   try { return fs.readFileSync(LOG_PATH, 'utf8').split('\n').slice(-200).join('\n'); }
   catch(e) { return ''; }
 });
-ipcMain.handle('set-proxy',  (_, { enable, port }) => setWindowsProxy(enable, port));
-ipcMain.handle('open-config-dir', () => shell.openPath(path.dirname(CONFIG_PATH)));
-ipcMain.handle('parse-link', (_, link) => {
+ipcMain.handle('set-proxy',  function(_, opts) { return setWindowsProxy(opts.enable, opts.port); });
+ipcMain.handle('open-config-dir', function() { return shell.openPath(path.dirname(CONFIG_PATH)); });
+ipcMain.handle('parse-link', function(_, link) {
   try {
     const b64 = link.startsWith('nipovpn://') ? link.slice(10) : link;
     return JSON.parse(Buffer.from(b64, 'base64').toString('utf8'));
   } catch(e) { return null; }
 });
-ipcMain.on('minimize', () => mainWindow?.minimize());
-ipcMain.on('hide',     () => mainWindow?.hide());
-ipcMain.on('quit',     () => { stopNipoVPN(); app.exit(0); });
+ipcMain.on('minimize', function() { mainWindow && mainWindow.minimize(); });
+ipcMain.on('hide',     function() { mainWindow && mainWindow.hide(); });
+ipcMain.on('quit',     function() { stopNipoVPN(); app.exit(0); });
