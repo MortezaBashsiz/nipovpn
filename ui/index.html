@@ -527,9 +527,10 @@ async function refreshLog() {
 
   if (!text || text.trim() === '') {
     // log file missing or empty — do NOT wipe what we have in UI
-    // just show a notice at bottom if we had content
-    if (logLines.length > 0) {
+    // show a one-time notice only (avoid spamming every 2s)
+    if (logLines.length > 0 && !box.querySelector('.log-empty-notice')) {
       const div = document.createElement('div');
+      div.className = 'log-empty-notice';
       div.style.color = 'var(--red)';
       div.style.fontStyle = 'italic';
       div.textContent = '--- فایل لاگ خالی یا حذف شده ---';
