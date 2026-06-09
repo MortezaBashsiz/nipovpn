@@ -128,15 +128,24 @@ jobs:
         working-directory: ui
         run: npm install
 
+      - name: Copy nipovpn-core into ui folder for NSIS
+        shell: pwsh
+        run: |
+          # electron-builder does NOT forward process env vars to makensis /D defines.
+          # Copying core to a known path inside ui lets extra.nsh find it reliably.
+          $src  = "${{ github.workspace }}\nipovpn-core"
+          $dest = "${{ github.workspace }}\ui\nipovpn-core"
+          Copy-Item -Path $src -Destination $dest -Recurse -Force
+          Write-Host "--- nipovpn-core contents ---"
+          Get-ChildItem $dest
+
       - name: Build Electron installer (NSIS)
         shell: pwsh
         working-directory: ui
         env:
-          BUILD_NIPOVPN_DIR: ${{ github.workspace }}\nipovpn-core
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Pass the nipovpn core dir to electron-builder via env
-          $env:BUILD_NIPOVPN_DIR = "${{ github.workspace }}\nipovpn-core"
+          $env:BUILD_NIPOVPN_DIR = "${{ github.workspace }}\ui\nipovpn-core"
           npm run dist
 
       # ────────────────────────────────────────
