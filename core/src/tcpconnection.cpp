@@ -669,10 +669,6 @@ bool TCPConnection::handleSocks5Handshake() {
 
     copyStringToStreambuf(connectRequest, readBuffer_);
 
-    log_->write(
-            "[" + to_string(uuid_) + "] [SOCKS5] CONNECT " + target,
-            Log::Level::INFO);
-
     return true;
 }
 
