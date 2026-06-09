@@ -154,34 +154,6 @@ jobs:
           Write-Host "--- updated extraResources ---"
           (Get-Content package.json -Raw | ConvertFrom-Json).build.extraResources | ConvertTo-Json
 
-      - name: Patch extra.nsh - remove BUILD_NIPOVPN_DIR dependency
-        shell: pwsh
-        run: |
-          # electron-builder + extraResources (to=".") copies nipovpn-core files
-          # directly into $INSTDIR. The File commands referencing BUILD_NIPOVPN_DIR
-          # are therefore redundant and broken. We rewrite customInstall in-place.
-          $src = Get-Content installer\extra.nsh -Raw
-
-          $newMacro = '!macro customInstall' + "`n"
-          $newMacro += '  ; nipovpn.exe + DLLs already in $INSTDIR via extraResources' + "`n"
-          $newMacro += '  CreateDirectory "$INSTDIR\etc\nipovpn"' + "`n"
-          $newMacro += '  CreateDirectory "$INSTDIR\logs"' + "`n"
-          $newMacro += '  IfFileExists "$INSTDIR\logs\nipovpn.log" +2' + "`n"
-          $newMacro += '    FileOpen $0 "$INSTDIR\logs\nipovpn.log" w' + "`n"
-          $newMacro += '    FileClose $0' + "`n"
-          $newMacro += '  WriteRegStr HKCR "nipovpn" "" "URL:NipoVPN Protocol"' + "`n"
-          $newMacro += '  WriteRegStr HKCR "nipovpn" "URL Protocol" ""' + "`n"
-          $newMacro += '  WriteRegStr HKCR "nipovpn\shell\open\command" "" ''"$INSTDIR\NipoVPN.exe" "--link=%1"''' + "`n"
-          $newMacro += '  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "NipoVPN" ''"$INSTDIR\NipoVPN.exe" "--minimized"''' + "`n"
-          $newMacro += '  nsExec::ExecToLog ''netsh advfirewall firewall delete rule name="NipoVPN"''' + "`n"
-          $newMacro += '  nsExec::ExecToLog ''netsh advfirewall firewall add rule name="NipoVPN" dir=out action=allow program="$INSTDIR\nipovpn.exe" enable=yes''' + "`n"
-          $newMacro += '  nsExec::ExecToLog ''netsh advfirewall firewall add rule name="NipoVPN Agent" dir=in action=allow program="$INSTDIR\nipovpn.exe" protocol=tcp localport=8080 enable=yes''' + "`n"
-          $newMacro += '!macroend'
-
-          $result = $src -replace '(?s)!macro customInstall.*?!macroend', $newMacro
-          Set-Content installer\extra.nsh -Value $result -Encoding UTF8
-          Write-Host "Patched extra.nsh successfully"
-
       - name: Build Electron installer (NSIS)
         shell: pwsh
         working-directory: ui
