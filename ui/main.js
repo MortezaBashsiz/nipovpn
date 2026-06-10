@@ -191,8 +191,40 @@ function startNipoVPN(mode) {
   ensureLogDir();
   currentMode = mode || 'agent';
 
+  // ── Pre-launch: fix Linux logFile + send diagnostics ──────────────────────
+  try {
+    var cfgRaw = fs.readFileSync(CONFIG_PATH, 'utf8');
+    var cfgLines = cfgRaw.split('\n');
+
+    var logFileLine  = cfgLines.find(function(l){ return l.indexOf('logFile')    !== -1; }) || '';
+    var portLine     = cfgLines.find(function(l){ return l.indexOf('listenPort') !== -1; }) || '';
+
+    mainWindow && mainWindow.webContents.send('log', '[DEBUG] EXE    : ' + EXE_PATH);
+    mainWindow && mainWindow.webContents.send('log', '[DEBUG] CONFIG : ' + CONFIG_PATH);
+    mainWindow && mainWindow.webContents.send('log', '[DEBUG] ' + logFileLine.trim());
+    mainWindow && mainWindow.webContents.send('log', '[DEBUG] ' + portLine.trim());
+
+    // Fix Linux logFile path (starts with /) before launch
+    var hasLinuxPath = logFileLine.indexOf(':/') === -1 &&
+                       logFileLine.indexOf('C:') === -1 &&
+                       logFileLine.indexOf('D:') === -1 &&
+                       logFileLine.indexOf('/') !== -1;
+    if (hasLinuxPath) {
+      var winLog = LOG_PATH.split('\\').join('/');
+      cfgRaw = cfgLines.map(function(l){
+        return l.indexOf('logFile') !== -1 ? '  logFile: "' + winLog + '"' : l;
+      }).join('\n');
+      fs.writeFileSync(CONFIG_PATH, cfgRaw, 'utf8');
+      mainWindow && mainWindow.webContents.send('log', '[DEBUG] logFile fixed => ' + winLog);
+    }
+  } catch(diagErr) {
+    mainWindow && mainWindow.webContents.send('log', '[DEBUG] pre-launch err: ' + diagErr.message);
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   // stdio: 'pipe' is REQUIRED to capture stdout/stderr
   nipovpnProcess = spawn(EXE_PATH, [currentMode, CONFIG_PATH], {
+
     cwd: INSTALL_DIR,
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
