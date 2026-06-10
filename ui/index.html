@@ -380,28 +380,39 @@ function markDirty() { configDirty = true; }
 async function loadConfig() {
   const yaml = await window.nipo.getConfig();
   if (!yaml) return;
-  // parse fields from yaml text
-  const get = (key) => { const m = yaml.match(new RegExp(`^\\s*${key}:\\s*(.+)$`, 'm')); return m ? m[1].replace(/['"]/g,'').trim() : ''; };
-  const getBool = (key) => get(key) === 'true';
+  
+  // جدا کردن بخش agent برای جلوگیری از تداخل با تنظیمات server
+  const agentBlock = yaml.includes('agent:') ? yaml.split('agent:')[1] : yaml;
+
+  // تابع خواندن مقادیر (با قابلیت انتخاب متن هدف)
+  const get = (key, text = yaml) => { const m = text.match(new RegExp(`^\\s*${key}:\\s*(.+)$`, 'm')); return m ? m[1].replace(/['"]/g,'').trim() : ''; };
+  const getBool = (key, text = yaml) => get(key, text) === 'true';
+
   document.getElementById('c_token').value      = get('token');
   document.getElementById('c_protocol').value   = get('protocol') || 'http';
   document.getElementById('c_timeout').value    = get('timeout') || '10';
   document.getElementById('c_pullTimeout').value= get('pullTimeout') || '50';
   document.getElementById('c_serverIp').value   = get('serverIp');
   document.getElementById('c_serverPort').value = get('serverPort');
-  document.getElementById('c_listenIp').value   = get('listenIp');
-  document.getElementById('c_listenPort').value = get('listenPort');
-  document.getElementById('c_threads').value    = get('threads') || '8';
+  
+  // این ۳ فیلد حتماً باید از داخل بلوک Agent خوانده شوند تا با Server قاطی نشوند
+  document.getElementById('c_listenIp').value   = get('listenIp', agentBlock);
+  document.getElementById('c_listenPort').value = get('listenPort', agentBlock);
+  document.getElementById('c_threads').value    = get('threads', agentBlock);
+  
   document.getElementById('c_logLevel').value   = get('logLevel') || 'INFO';
   document.getElementById('c_tunnel').checked   = getBool('tunnelEnable');
   document.getElementById('c_reuse').checked    = getBool('connectionReuse');
   document.getElementById('c_tls').checked      = getBool('tlsEnable');
   document.getElementById('c_tlsVerify').checked= getBool('tlsVerifyPeer');
-  // fakeUrls list
+
+  // لیست Fake URLs
   const m = yaml.match(/fakeUrls:([\s\S]*?)(?=\n\s{2}[a-z])/);
   if (m) { const urls = m[1].match(/- (.+)/g)?.map(s=>s.slice(2).trim()).join('\n') || ''; document.getElementById('c_fakeUrls').value = urls; }
-  document.getElementById('statPort').textContent = get('listenPort') || '8080';
-  document.getElementById('proxyPortLabel').textContent = get('listenPort') || '8080';
+  
+  // آپدیت کردن صفحه اصلی با پورت صحیحِ Agent
+  document.getElementById('statPort').textContent = get('listenPort', agentBlock) || '8080';
+  document.getElementById('proxyPortLabel').textContent = get('listenPort', agentBlock) || '8080';
   configDirty = false;
 }
 
@@ -476,8 +487,13 @@ function buildYaml() {
 async function saveConfig() {
   const yaml = buildYaml();
   const r = await window.nipo.saveConfig(yaml);
-  if (r.ok) { toast('✅ config.yaml ذخیره شد'); showConfigAlert('✓ ذخیره شد', 'ok'); configDirty = false; }
-  else        showConfigAlert('❌ خطا: ' + r.error, 'err');
+  if (r.ok) { 
+    toast('✅ config.yaml ذخیره شد'); 
+    showConfigAlert('✓ ذخیره شد', 'ok'); 
+    configDirty = false; 
+    loadConfig(); // بروزرسانی آنیِ پورت‌ها در صفحه اصلی بعد از هر بار ذخیره
+  }
+  else showConfigAlert('❌ خطا: ' + r.error, 'err');
 }
 
 function showConfigAlert(msg, type) {
