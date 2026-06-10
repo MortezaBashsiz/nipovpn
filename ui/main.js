@@ -5,17 +5,11 @@ const fs = require('fs');
 const os = require('os');
 
 // ── Paths ──
-// پیدا کردن مسیر ریشه اجرایی برنامه
-const APP_DIR = path.dirname(app.getPath('exe'));
-
-// بررسی اینکه آیا برنامه در حالت پکیج‌شده (نصب‌شده) است یا حالت توسعه (npm start)
 const IS_PACKAGED = app.isPackaged;
 
-// اصلاح مسیر پوشه منابع (extraResources بعد از نصب در پوشه resources قرار می‌گیرد)
-const RESOURCE_DIR = IS_PACKAGED ? path.join(APP_DIR, 'resources') : __dirname;
+// این دستور همیشه و در هر سیستمی پوشه resources را درست پیدا می‌کند
+const RESOURCE_DIR = IS_PACKAGED ? process.resourcesPath : __dirname;
 
-// تنظیم دقیق مسیرها
-const INSTALL_DIR   = APP_DIR; 
 const CONFIG_PATH   = path.join(RESOURCE_DIR, 'etc', 'nipovpn', 'config.yaml');
 const EXE_PATH      = path.join(RESOURCE_DIR, 'nipovpn-core.exe');
 const LOG_PATH      = path.join(RESOURCE_DIR, 'logs', 'nipovpn.log');
