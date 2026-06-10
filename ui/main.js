@@ -50,10 +50,9 @@ app.on('window-all-closed', (e) => e.preventDefault()); // keep running in tray
 
 // ── Ensure log dir ──
 function ensureLogDir() {
-  try {
-    if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
-    if (!fs.existsSync(LOG_PATH)) fs.writeFileSync(LOG_PATH, '');
-  } catch(e) {}
+  if (!fs.existsSync(LOG_DIR)) {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+  }
 }
 
 // ── Create main window ──
