@@ -5,7 +5,8 @@ const fs = require('fs');
 const os = require('os');
 
 // ── Paths ──
-const INSTALL_DIR   = path.join(process.env.ProgramFiles || 'C:\\Program Files', 'NipoVPN');
+// پیدا کردن مسیر نصب به صورت پویا بر اساس محل اجرای فایل NipoVPN.exe
+const INSTALL_DIR   = path.dirname(app.getPath('exe'));
 const CONFIG_PATH   = path.join(INSTALL_DIR, 'etc', 'nipovpn', 'config.yaml');
 const EXE_PATH      = path.join(INSTALL_DIR, 'nipovpn-core.exe');
 const LOG_PATH      = path.join(INSTALL_DIR, 'logs', 'nipovpn.log');
