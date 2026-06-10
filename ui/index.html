@@ -449,13 +449,13 @@ function buildYaml() {
     `  connectionReuse: ${b('c_reuse')}`,
     `  tlsEnable: ${b('c_tls')}`,
     `  tlsVerifyPeer: ${b('c_tlsVerify')}`,
-    `  tlsCertFile: "etc/nipovpn/server.crt"`,
-    `  tlsKeyFile: "etc/nipovpn/server.key"`,
+    `  tlsCertFile: "etc/nipovpn/server.crt"`, // اصلاح شد (بدون اسلش اول)
+    `  tlsKeyFile: "etc/nipovpn/server.key"`,  // اصلاح شد (بدون اسلش اول)
     `  tlsCaFile: ""`,
     '',
     'log:',
     `  logLevel: "${g('c_logLevel')}"`,
-    `  logFile: "logs/nipovpn.log"`,
+    `  logFile: "logs/nipovpn.log"`, // مسیر کاملاً نسبی شد
     '',
     'server:',
     `  threads: ${g('c_threads')||8}`,
