@@ -40,6 +40,9 @@ Build from source for [Linux](guides/BuildLinux.md)
 
 Build from source for [Linux](guides/InstallTermux.md)
 
+## Nix
+
+For development, building, installation, and NixOS integration, see the [Nix Guide](guides/Nix.md).
 
 ## Run
 
