@@ -82,6 +82,7 @@ if (!gotLock) {
 // ── App ready ──────────────────────────────────────────────────────────────────
 app.whenReady().then(function() {
   ensureLogDir();
+  fixLinuxLogPathIfNeeded();  // one-time fix: Linux logFile path → Windows
   createTray();
   createWindow();
 
@@ -157,6 +158,25 @@ function updateTrayMenu() {
 }
 
 // ── Start nipovpn.exe ──────────────────────────────────────────────────────────
+// Fix logFile only if it is a Linux path
+function fixLinuxLogPathIfNeeded() {
+  try {
+    if (!fs.existsSync(CONFIG_PATH)) return;
+    var yaml = fs.readFileSync(CONFIG_PATH, 'utf8');
+    var lines = yaml.split('\n');
+    var logLine = lines.find(function(l) { return l.indexOf('logFile') !== -1; });
+    if (!logLine) return;
+    var colon = logLine.indexOf(':');
+    if (colon === -1) return;
+    var val = logLine.slice(colon + 1).replace(/[\"'\r]/g, '').trim();
+    if (val.charAt(0) !== '/') return;  // not a Linux path, nothing to fix
+    var winLog = LOG_PATH.split('\\').join('/');
+    var fixed = lines.map(function(l) {
+      return l.indexOf('logFile') !== -1 ? '  logFile: "' + winLog + '"' : l;
+    }).join('\n');
+    fs.writeFileSync(CONFIG_PATH, fixed, 'utf8');
+  } catch(e) {}
+}
 function startNipoVPN(mode) {
   if (isRunning) return;
   if (!fs.existsSync(EXE_PATH)) {
@@ -168,6 +188,7 @@ function startNipoVPN(mode) {
     return;
   }
 
+  ensureLogDir();
   currentMode = mode || 'agent';
 
   // stdio: 'pipe' is REQUIRED to capture stdout/stderr
