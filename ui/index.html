@@ -145,7 +145,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); heig
 </head>
 <body>
 
-<!-- Titlebar -->
 <div class="titlebar">
   <div class="titlebar-logo">🛡</div>
   <span class="titlebar-title">NipoVPN</span>
@@ -158,20 +157,16 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); heig
 </div>
 
 <div class="layout">
-  <!-- Sidebar -->
   <nav class="sidebar">
     <button class="nav-btn active" data-page="home"   onclick="nav(this,'home')"   title="خانه">🏠</button>
     <button class="nav-btn"        data-page="config" onclick="nav(this,'config')" title="تنظیمات">⚙️</button>
     <button class="nav-btn"        data-page="log"    onclick="nav(this,'log')"    title="لاگ">📋</button>
   </nav>
 
-  <!-- Content -->
   <main class="content">
 
-    <!-- ── HOME ── -->
     <div class="page active" id="page-home">
 
-      <!-- Status Card -->
       <div class="status-card">
         <div class="status-orb" id="statusOrb">⭕</div>
         <div class="status-info">
@@ -184,7 +179,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); heig
         </div>
       </div>
 
-      <!-- Proxy Toggle -->
       <div class="proxy-row">
         <div>
           <p>پروکسی سیستم ویندوز</p>
@@ -199,7 +193,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); heig
         </div>
       </div>
 
-      <!-- Stats -->
       <div class="stats-grid">
         <div class="stat-card">
           <div class="label">وضعیت</div>
@@ -216,7 +209,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); heig
         </div>
       </div>
 
-      <!-- Quick server launch -->
       <div class="sec-title">اجرای سریع</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-ghost" onclick="doStart('agent')">🖥 شروع Agent</button>
@@ -226,7 +218,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); heig
 
     </div>
 
-    <!-- ── CONFIG ── -->
     <div class="page" id="page-config">
 
       <div class="import-box">
@@ -286,7 +277,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); heig
 
     </div>
 
-    <!-- ── LOG ── -->
     <div class="page" id="page-log">
       <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
         <div class="sec-title" style="margin:0">لاگ realtime</div>
@@ -412,12 +402,6 @@ async function loadConfig() {
   if (m) { const urls = m[1].match(/- (.+)/g)?.map(s=>s.slice(2).trim()).join('\n') || ''; document.getElementById('c_fakeUrls').value = urls; }
   document.getElementById('statPort').textContent = get('listenPort') || '8080';
   document.getElementById('proxyPortLabel').textContent = get('listenPort') || '8080';
-
-  // Preserve values that buildYaml must NOT overwrite
-  window._currentLogFile  = get('logFile')  || 'C:/Program Files/NipoVPN/logs/nipovpn.log';
-  window._currentCertFile = get('tlsCertFile') || '';
-  window._currentKeyFile  = get('tlsKeyFile')  || '';
-  window._currentCaFile   = get('tlsCaFile')   || '';
   configDirty = false;
 }
 
@@ -448,53 +432,44 @@ function buildYaml() {
   const g = id => document.getElementById(id)?.value?.trim() || '';
   const b = id => document.getElementById(id)?.checked || false;
   const fakeUrls = g('c_fakeUrls').split('\n').filter(Boolean);
-
-  // logFile: keep existing value from loaded config, or use the Windows default
-  // NEVER hardcode — user may have a custom path
-  const existingLogFile = window._currentLogFile || 'C:/Program Files/NipoVPN/logs/nipovpn.log';
-  // tlsCert paths: keep existing or empty (not Linux /etc paths)
-  const certFile = window._currentCertFile || '';
-  const keyFile  = window._currentKeyFile  || '';
-  const caFile   = window._currentCaFile   || '';
-
   return [
     '---',
     'general:',
-    '  token: "' + g('c_token') + '"',
-    '  protocol: ' + g('c_protocol'),
+    `  token: "${g('c_token')}"`,
+    `  protocol: ${g('c_protocol')}`,
     '  fakeUrls:',
-    ...fakeUrls.map(u => '    - ' + u),
+    ...fakeUrls.map(u=>`    - ${u}`),
     '  methods:',
     '    - GET','    - POST','    - PUT','    - DELETE',
     '  endPoints:',
     '    - api','    - login','    - user','    - update',
-    '  timeout: ' + (g('c_timeout') || 10),
-    '  pullTimeout: ' + (g('c_pullTimeout') || 50),
-    '  tunnelEnable: ' + b('c_tunnel'),
-    '  connectionReuse: ' + b('c_reuse'),
-    '  tlsEnable: ' + b('c_tls'),
-    '  tlsVerifyPeer: ' + b('c_tlsVerify'),
-    '  tlsCertFile: "' + certFile + '"',
-    '  tlsKeyFile: "' + keyFile + '"',
-    '  tlsCaFile: "' + caFile + '"',
+    `  timeout: ${g('c_timeout')||10}`,
+    `  pullTimeout: ${g('c_pullTimeout')||50}`,
+    `  tunnelEnable: ${b('c_tunnel')}`,
+    `  connectionReuse: ${b('c_reuse')}`,
+    `  tlsEnable: ${b('c_tls')}`,
+    `  tlsVerifyPeer: ${b('c_tlsVerify')}`,
+    `  tlsCertFile: "etc/nipovpn/server.crt"`,
+    `  tlsKeyFile: "etc/nipovpn/server.key"`,
+    `  tlsCaFile: ""`,
     '',
     'log:',
-    '  logLevel: "' + g('c_logLevel') + '"',
-    '  logFile: "' + existingLogFile + '"',
+    `  logLevel: "${g('c_logLevel')}"`,
+    `  logFile: "logs/nipovpn.log"`,
     '',
     'server:',
-    '  threads: ' + (g('c_threads') || 4),
-    '  listenIp: "0.0.0.0"',
-    '  listenPort: ' + (g('c_serverListenPort') || 80),
+    `  threads: ${g('c_threads')||8}`,
+    `  listenIp: "0.0.0.0"`,
+    `  listenPort: 80`,
     '',
     'agent:',
-    '  threads: ' + (g('c_threads') || 4),
-    '  listenIp: "' + (g('c_listenIp') || '127.0.0.1') + '"',
-    '  listenPort: ' + (g('c_listenPort') || 8080),
-    '  serverIp: "' + g('c_serverIp') + '"',
-    '  serverPort: ' + (g('c_serverPort') || 443),
-    '  httpVersion: "1.1"',
-    '  userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0"',
+    `  threads: ${g('c_threads')||8}`,
+    `  listenIp: "${g('c_listenIp')||'0.0.0.0'}"`,
+    `  listenPort: ${g('c_listenPort')||8080}`,
+    `  serverIp: "${g('c_serverIp')}"`,
+    `  serverPort: ${g('c_serverPort')||443}`,
+    `  httpVersion: "1.1"`,
+    `  userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0"`,
   ].join('\n');
 }
 
@@ -515,8 +490,6 @@ function showConfigAlert(msg, type) {
 
 // ── Log ──
 let logLines = [];
-let lastLogText = '';  // keep last known log so it survives a crash/clear
-
 function appendLog(text) {
   const box = document.getElementById('logBox');
   const lines = text.split('\n').filter(Boolean);
@@ -524,8 +497,8 @@ function appendLog(text) {
     logLines.push(line);
     const div = document.createElement('div');
     div.textContent = line;
-    if (line.includes('[ERROR]') || line.includes('[ERR]') || line.includes('error')) div.className = 'log-line-err';
-    else if (line.includes('[INFO]') || line.includes('info')) div.className = 'log-line-info';
+    if (line.includes('[ERROR]') || line.includes('[ERR]')) div.className = 'log-line-err';
+    else if (line.includes('[INFO]')) div.className = 'log-line-info';
     box.appendChild(div);
   });
   if (logLines.length > 500) {
@@ -535,39 +508,16 @@ function appendLog(text) {
   document.getElementById('logLineCount').textContent = logLines.length + ' خط';
   if (document.getElementById('autoScroll').checked) box.scrollTop = box.scrollHeight;
 }
-
 async function refreshLog() {
   const text = await window.nipo.readLog();
   const box = document.getElementById('logBox');
-
-  if (!text || text.trim() === '') {
-    // log file missing or empty — do NOT wipe what we have in UI
-    // show a one-time notice only (avoid spamming every 2s)
-    if (logLines.length > 0 && !box.querySelector('.log-empty-notice')) {
-      const div = document.createElement('div');
-      div.className = 'log-empty-notice';
-      div.style.color = 'var(--red)';
-      div.style.fontStyle = 'italic';
-      div.textContent = '--- فایل لاگ خالی یا حذف شده ---';
-      box.appendChild(div);
-      if (document.getElementById('autoScroll').checked) box.scrollTop = box.scrollHeight;
-    }
-    return;
-  }
-
-  // Only redraw if content changed (avoids scroll jump on auto-refresh)
-  if (text === lastLogText) return;
-  lastLogText = text;
-
   box.innerHTML = '';
   logLines = [];
-  appendLog(text);
+  if (text) appendLog(text);
 }
-
 function clearLogView() {
   document.getElementById('logBox').innerHTML = '';
   logLines = [];
-  lastLogText = '';
   document.getElementById('logLineCount').textContent = '0 خط';
 }
 
@@ -575,13 +525,6 @@ function clearLogView() {
 refreshStatus();
 loadConfig();
 setInterval(refreshStatus, 3000);
-setInterval(function() {
-  // Auto-refresh log every 2s when log tab is visible
-  if (document.getElementById('page-log') &&
-      document.getElementById('page-log').style.display !== 'none') {
-    refreshLog();
-  }
-}, 2000);
 </script>
 </body>
 </html>
