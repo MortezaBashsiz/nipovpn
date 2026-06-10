@@ -40,9 +40,23 @@ function resolveInstallDir() {
 const INSTALL_DIR  = resolveInstallDir();
 const CONFIG_PATH  = path.join(INSTALL_DIR, 'etc', 'nipovpn', 'config.yaml');
 const EXE_PATH     = path.join(INSTALL_DIR, 'nipovpn.exe');
-const LOG_PATH     = path.join(INSTALL_DIR, 'logs', 'nipovpn.log');
-const LOG_DIR      = path.join(INSTALL_DIR, 'logs');
 const ICON_PATH    = path.join(__dirname, 'assets', 'tray.ico');
+
+// Read logFile path from config.yaml (nipovpn.exe writes there, not to a hardcoded path)
+// Falls back to INSTALL_DIR\logs\nipovpn.log if config missing or not yet created
+function resolveLogPath() {
+  try {
+    if (fs.existsSync(CONFIG_PATH)) {
+      const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
+      const m = raw.match(/logFile\s*:\s*["']?([^"'\r\n]+)["']?/);
+      if (m) return m[1].trim().replace(/\\/g, '\\');
+    }
+  } catch(e) {}
+  return path.join(INSTALL_DIR, 'logs', 'nipovpn.log');
+}
+
+const LOG_PATH     = resolveLogPath();
+const LOG_DIR      = path.dirname(LOG_PATH);
 
 let tray = null;
 let mainWindow = null;
