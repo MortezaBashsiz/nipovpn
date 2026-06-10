@@ -412,6 +412,12 @@ async function loadConfig() {
   if (m) { const urls = m[1].match(/- (.+)/g)?.map(s=>s.slice(2).trim()).join('\n') || ''; document.getElementById('c_fakeUrls').value = urls; }
   document.getElementById('statPort').textContent = get('listenPort') || '8080';
   document.getElementById('proxyPortLabel').textContent = get('listenPort') || '8080';
+
+  // Preserve values that buildYaml must NOT overwrite
+  window._currentLogFile  = get('logFile')  || 'C:/Program Files/NipoVPN/logs/nipovpn.log';
+  window._currentCertFile = get('tlsCertFile') || '';
+  window._currentKeyFile  = get('tlsKeyFile')  || '';
+  window._currentCaFile   = get('tlsCaFile')   || '';
   configDirty = false;
 }
 
@@ -442,44 +448,53 @@ function buildYaml() {
   const g = id => document.getElementById(id)?.value?.trim() || '';
   const b = id => document.getElementById(id)?.checked || false;
   const fakeUrls = g('c_fakeUrls').split('\n').filter(Boolean);
+
+  // logFile: keep existing value from loaded config, or use the Windows default
+  // NEVER hardcode — user may have a custom path
+  const existingLogFile = window._currentLogFile || 'C:/Program Files/NipoVPN/logs/nipovpn.log';
+  // tlsCert paths: keep existing or empty (not Linux /etc paths)
+  const certFile = window._currentCertFile || '';
+  const keyFile  = window._currentKeyFile  || '';
+  const caFile   = window._currentCaFile   || '';
+
   return [
     '---',
     'general:',
-    `  token: "${g('c_token')}"`,
-    `  protocol: ${g('c_protocol')}`,
+    '  token: "' + g('c_token') + '"',
+    '  protocol: ' + g('c_protocol'),
     '  fakeUrls:',
-    ...fakeUrls.map(u=>`    - ${u}`),
+    ...fakeUrls.map(u => '    - ' + u),
     '  methods:',
     '    - GET','    - POST','    - PUT','    - DELETE',
     '  endPoints:',
     '    - api','    - login','    - user','    - update',
-    `  timeout: ${g('c_timeout')||10}`,
-    `  pullTimeout: ${g('c_pullTimeout')||50}`,
-    `  tunnelEnable: ${b('c_tunnel')}`,
-    `  connectionReuse: ${b('c_reuse')}`,
-    `  tlsEnable: ${b('c_tls')}`,
-    `  tlsVerifyPeer: ${b('c_tlsVerify')}`,
-    `  tlsCertFile: "/etc/nipovpn/server.crt"`,
-    `  tlsKeyFile: "/etc/nipovpn/server.key"`,
-    `  tlsCaFile: ""`,
+    '  timeout: ' + (g('c_timeout') || 10),
+    '  pullTimeout: ' + (g('c_pullTimeout') || 50),
+    '  tunnelEnable: ' + b('c_tunnel'),
+    '  connectionReuse: ' + b('c_reuse'),
+    '  tlsEnable: ' + b('c_tls'),
+    '  tlsVerifyPeer: ' + b('c_tlsVerify'),
+    '  tlsCertFile: "' + certFile + '"',
+    '  tlsKeyFile: "' + keyFile + '"',
+    '  tlsCaFile: "' + caFile + '"',
     '',
     'log:',
-    `  logLevel: "${g('c_logLevel')}"`,
-    `  logFile: "C:/nipovpn/logs/nipovpn.log"`,
+    '  logLevel: "' + g('c_logLevel') + '"',
+    '  logFile: "' + existingLogFile + '"',
     '',
     'server:',
-    `  threads: ${g('c_threads')||8}`,
-    `  listenIp: "0.0.0.0"`,
-    `  listenPort: 80`,
+    '  threads: ' + (g('c_threads') || 4),
+    '  listenIp: "0.0.0.0"',
+    '  listenPort: ' + (g('c_serverListenPort') || 80),
     '',
     'agent:',
-    `  threads: ${g('c_threads')||8}`,
-    `  listenIp: "${g('c_listenIp')||'0.0.0.0'}"`,
-    `  listenPort: ${g('c_listenPort')||8080}`,
-    `  serverIp: "${g('c_serverIp')}"`,
-    `  serverPort: ${g('c_serverPort')||443}`,
-    `  httpVersion: "1.1"`,
-    `  userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0"`,
+    '  threads: ' + (g('c_threads') || 4),
+    '  listenIp: "' + (g('c_listenIp') || '127.0.0.1') + '"',
+    '  listenPort: ' + (g('c_listenPort') || 8080),
+    '  serverIp: "' + g('c_serverIp') + '"',
+    '  serverPort: ' + (g('c_serverPort') || 443),
+    '  httpVersion: "1.1"',
+    '  userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0"',
   ].join('\n');
 }
 
