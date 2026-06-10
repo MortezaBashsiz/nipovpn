@@ -4,26 +4,10 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-// ── Cache fix (must be before app.whenReady) ──
-app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
-app.commandLine.appendSwitch('disable-gpu');
-
 // ── Paths ──
-function findInstallDir() {
-  const candidates = [
-    path.resolve(__dirname, '..', '..'),
-    path.dirname(app.getPath('exe')),
-    path.join(process.env.ProgramFiles || 'C:\\Program Files', 'NipoVPN'),
-    'C:\\NipoVPN',
-  ];
-  for (const dir of candidates) {
-    try { if (fs.existsSync(path.join(dir, 'nipovpn.exe'))) return dir; } catch(_) {}
-  }
-  return path.dirname(app.getPath('exe'));
-}
-const INSTALL_DIR = findInstallDir();
+const INSTALL_DIR   = path.join(process.env.ProgramFiles || 'C:\\Program Files', 'NipoVPN');
 const CONFIG_PATH   = path.join(INSTALL_DIR, 'etc', 'nipovpn', 'config.yaml');
-const EXE_PATH      = path.join(INSTALL_DIR, 'nipovpn.exe');
+const EXE_PATH      = path.join(INSTALL_DIR, 'nipovpn-core.exe');
 const LOG_PATH      = path.join(INSTALL_DIR, 'logs', 'nipovpn.log');
 const LOG_DIR       = path.join(INSTALL_DIR, 'logs');
 const ICON_PATH     = path.join(__dirname, 'assets', 'tray.ico');
@@ -128,7 +112,7 @@ function updateTrayMenu() {
 function startNipoVPN(mode) {
   if (isRunning) return;
   if (!fs.existsSync(EXE_PATH)) {
-    mainWindow?.webContents.send('error', `nipovpn.exe پیدا نشد:\n${EXE_PATH}`);
+    mainWindow?.webContents.send('error', `nipovpn-core.exe پیدا نشد:\n${EXE_PATH}`);
     return;
   }
   if (!fs.existsSync(CONFIG_PATH)) {
