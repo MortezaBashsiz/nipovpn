@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v4
 
       # ────────────────────────────────────────
-      # 2. Setup MSYS2 + C++ deps
+      # 2. Setup MSYS2 + C++ deps+
       # ────────────────────────────────────────
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
@@ -78,6 +78,9 @@ jobs:
           for dll in $(ldd nipovpn.exe | grep 'mingw64' | awk '{print $3}'); do
             cp "$dll" .
           done
+          
+          # تغییر نام فایل برای جلوگیری از تداخل با ویندوز UI
+          mv nipovpn.exe nipovpn-core.exe
 
           echo "--- DLLs collected ---"
           ls -lah *.dll
@@ -212,7 +215,7 @@ jobs:
             ### دانلود
             | فایل | توضیح |
             |------|-------|
-            | `NipoVPN-${{ env.PACKAGE_VERSION }}-Setup-x64.exe` | **نصب‌کننده کامل** — شامل UI، nipovpn.exe و تمام DLLها |
+            | `NipoVPN-${{ env.PACKAGE_VERSION }}-Setup-x64.exe` | **نصب‌کننده کامل** — شامل UI، nipovpn-core.exe و تمام DLLها |
             | `nipovpn_${{ env.PACKAGE_VERSION }}_windows_x86_64.zip` | فایل standalone بدون UI برای کاربران پیشرفته |
 
             ### نصب
