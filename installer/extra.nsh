@@ -1,7 +1,6 @@
 ; extra.nsh — injected into the electron-builder NSIS installer
 ; nipovpn-core.exe, DLLs, etc/ and logs/ arrive via extraResources (electron-builder
-; copies them into $INSTDIR before this macro runs).
-No external path needed.
+; copies them into $INSTDIR before this macro runs). No external path needed.
 
 !macro customInstall
   ; ── Create required directories ──
