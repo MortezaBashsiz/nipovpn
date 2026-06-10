@@ -15,7 +15,7 @@
       pkgs = nixpkgs.legacyPackages.${system};
       nipovpn = pkgs.stdenv.mkDerivation {
         pname = "nipovpn";
-        version = "1.1.56";
+        version = "1.1.57";
         src = self;
 
         nativeBuildInputs = with pkgs; [cmake];
