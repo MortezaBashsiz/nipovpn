@@ -4,42 +4,29 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-// ── Fix cache/GPU errors on Windows (must be before app.whenReady) ──
-app.setPath('userData', path.join(app.getPath('appData'), 'NipoVPN'));
+// ── Cache fix (must be before app.whenReady) ──
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
-app.commandLine.appendSwitch('disk-cache-dir',
-  path.join(app.getPath('appData'), 'NipoVPN', 'Cache'));
-app.commandLine.appendSwitch('no-sandbox');
-app.commandLine.appendSwitch('disable-dev-shm-usage');
 app.commandLine.appendSwitch('disable-gpu');
-app.commandLine.appendSwitch('disable-software-rasterizer');
 
-// ── Auto-detect install dir ──
-// Searches known candidates until nipovpn.exe is found.
+// ── Paths ──
 function findInstallDir() {
   const candidates = [
     path.resolve(__dirname, '..', '..'),
-    path.resolve(__dirname, '..', '..', '..'),
     path.dirname(app.getPath('exe')),
-    path.join(process.env.ProgramFiles  || 'C:\\Program Files',  'NipoVPN'),
-    path.join(process.env.ProgramW6432  || 'C:\\Program Files',  'NipoVPN'),
+    path.join(process.env.ProgramFiles || 'C:\\Program Files', 'NipoVPN'),
     'C:\\NipoVPN',
   ];
   for (const dir of candidates) {
-    try {
-      if (fs.existsSync(path.join(dir, 'nipovpn.exe'))) return dir;
-    } catch (_) {}
+    try { if (fs.existsSync(path.join(dir, 'nipovpn.exe'))) return dir; } catch(_) {}
   }
   return path.dirname(app.getPath('exe'));
 }
-
-// ── Paths ──
 const INSTALL_DIR = findInstallDir();
-const CONFIG_PATH = path.join(INSTALL_DIR, 'etc', 'nipovpn', 'config.yaml');
-const EXE_PATH    = path.join(INSTALL_DIR, 'nipovpn.exe');
-const LOG_PATH    = path.join(INSTALL_DIR, 'logs', 'nipovpn.log');
-const LOG_DIR     = path.join(INSTALL_DIR, 'logs');
-const ICON_PATH   = path.join(__dirname, 'assets', 'tray.ico');
+const CONFIG_PATH   = path.join(INSTALL_DIR, 'etc', 'nipovpn', 'config.yaml');
+const EXE_PATH      = path.join(INSTALL_DIR, 'nipovpn.exe');
+const LOG_PATH      = path.join(INSTALL_DIR, 'logs', 'nipovpn.log');
+const LOG_DIR       = path.join(INSTALL_DIR, 'logs');
+const ICON_PATH     = path.join(__dirname, 'assets', 'tray.ico');
 
 let tray = null;
 let mainWindow = null;
@@ -65,7 +52,7 @@ app.whenReady().then(() => {
   createWindow();
 });
 
-app.on('window-all-closed', (e) => e.preventDefault());
+app.on('window-all-closed', (e) => e.preventDefault()); // keep running in tray
 
 // ── Ensure log dir ──
 function ensureLogDir() {
