@@ -125,7 +125,7 @@ function startNipoVPN(mode) {
 
   currentMode = mode || 'agent';
   nipovpnProcess = spawn(EXE_PATH, [currentMode, CONFIG_PATH], {
-    cwd: INSTALL_DIR,
+    cwd: RESOURCE_DIR, // <--- این خط بسیار مهم است. قبلاً INSTALL_DIR بود
     windowsHide: true,
   });
 
