@@ -5,12 +5,21 @@ const fs = require('fs');
 const os = require('os');
 
 // ── Paths ──
-// پیدا کردن مسیر نصب به صورت پویا بر اساس محل اجرای فایل NipoVPN.exe
-const INSTALL_DIR   = path.dirname(app.getPath('exe'));
-const CONFIG_PATH   = path.join(INSTALL_DIR, 'etc', 'nipovpn', 'config.yaml');
-const EXE_PATH      = path.join(INSTALL_DIR, 'nipovpn-core.exe');
-const LOG_PATH      = path.join(INSTALL_DIR, 'logs', 'nipovpn.log');
-const LOG_DIR       = path.join(INSTALL_DIR, 'logs');
+// پیدا کردن مسیر ریشه اجرایی برنامه
+const APP_DIR = path.dirname(app.getPath('exe'));
+
+// بررسی اینکه آیا برنامه در حالت پکیج‌شده (نصب‌شده) است یا حالت توسعه (npm start)
+const IS_PACKAGED = app.isPackaged;
+
+// اصلاح مسیر پوشه منابع (extraResources بعد از نصب در پوشه resources قرار می‌گیرد)
+const RESOURCE_DIR = IS_PACKAGED ? path.join(APP_DIR, 'resources') : __dirname;
+
+// تنظیم دقیق مسیرها
+const INSTALL_DIR   = APP_DIR; 
+const CONFIG_PATH   = path.join(RESOURCE_DIR, 'etc', 'nipovpn', 'config.yaml');
+const EXE_PATH      = path.join(RESOURCE_DIR, 'nipovpn-core.exe');
+const LOG_PATH      = path.join(RESOURCE_DIR, 'logs', 'nipovpn.log');
+const LOG_DIR       = path.join(RESOURCE_DIR, 'logs');
 const ICON_PATH     = path.join(__dirname, 'assets', 'tray.ico');
 
 let tray = null;
