@@ -21,6 +21,7 @@ private:
     struct General {
         std::string token;
         std::string protocol;
+        unsigned int bufferSize;
         std::vector<std::string> fakeUrls;
         std::vector<std::string> methods;
         std::vector<std::string> endPoints;

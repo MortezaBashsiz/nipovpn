@@ -12,15 +12,15 @@ int main(int argc, char const *argv[]) {
         return 1;
     }
 
+    std::string mode(argv[1]);
+    RunMode runMode_ = (mode == "agent") ? RunMode::agent : RunMode::server;
+
     BoolStr configValidation = validateConfig(argc, argv);
     if (!configValidation.ok) {
         std::cerr << "Configuration validation failed: " << configValidation.message
                   << "\n";
         return 1;
     }
-
-    std::string mode(argv[1]);
-    RunMode runMode_ = (mode == "agent") ? RunMode::agent : RunMode::server;
 
     Config::pointer config_ = Config::create(runMode_, std::string(argv[2]));
 

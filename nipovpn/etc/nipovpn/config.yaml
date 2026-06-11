@@ -6,7 +6,11 @@ general:
   # protocol:
   # Defines the protocol between client and agent
   #   Choose http or socks5
-  protocol: http
+  protocol: socks5
+  # bufferSize: unsigned short
+  # Defines the maximum buffer size for each request in Bytes. Default is 65536
+  #   Do not use less than 1 and more than 65536
+  bufferSize: 65536
   # fakeUrls:
   # Defines the list of fake urls between agent and server
   fakeUrls:
@@ -40,18 +44,18 @@ general:
   # pullTimeout: unsigned short
   # Defines the timeout for I/O Operation in milliseconds.
   #   Useful to expire serverside read timer.
-  pullTimeout: 50
+  pullTimeout: 1
   # tunnelEnable: bool
   # Defines the connection mode between agent and server. If enabled then the traffic
   #   will be TCP/TLS tunnel like.
   tunnelEnable: false
   # connectionReuse: bool
-  # If false then it will use same connection between agent and server to handle client request
-  #   If true then it will create new connection for each request between agent and server
+  # If true then it will use same connection between agent and server to handle client request
+  #   If false then it will create new connection for each request between agent and server
   connectionReuse: true
   # tlsEnable: bool
   # It enables or disables tls between agent and server
-  tlsEnable: false
+  tlsEnable: true
   # tlsVerifyPeer: bool
   # Use it to controll if the certificate should be validated or not
   tlsVerifyPeer: false
@@ -64,7 +68,7 @@ general:
 # This block is to define log directives
 log:
   # logLevel: "INFO|TRACE|DEBUG"
-  logLevel: "DEBUG"
+  logLevel: "INFO"
   # logFile: "/var/log/nipo/nipo.log"
   #   Path of log file
   logFile: "/var/log/nipovpn/nipovpn.log"

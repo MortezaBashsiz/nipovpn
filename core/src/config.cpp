@@ -10,11 +10,12 @@ Config::Config(RunMode mode, const std::string &filePath)
       listenPort_(0),
       general_({configYaml_["general"]["token"].as<std::string>(),
                 configYaml_["general"]["protocol"].as<std::string>(""),
+                configYaml_["general"]["bufferSize"].as<unsigned int>(65536),
                 configYaml_["general"]["fakeUrls"].as<std::vector<std::string>>(),
                 configYaml_["general"]["methods"].as<std::vector<std::string>>(),
                 configYaml_["general"]["endPoints"].as<std::vector<std::string>>(),
-                configYaml_["general"]["timeout"].as<unsigned short>(),
-                configYaml_["general"]["pullTimeout"].as<unsigned short>(),
+                configYaml_["general"]["timeout"].as<unsigned short>(10),
+                configYaml_["general"]["pullTimeout"].as<unsigned short>(1),
                 configYaml_["general"]["tunnelEnable"].as<bool>(false),
                 configYaml_["general"]["connectionReuse"].as<bool>(false),
                 configYaml_["general"]["tlsEnable"].as<bool>(false),
@@ -22,18 +23,18 @@ Config::Config(RunMode mode, const std::string &filePath)
                 configYaml_["general"]["tlsCertFile"].as<std::string>(""),
                 configYaml_["general"]["tlsKeyFile"].as<std::string>(""),
                 configYaml_["general"]["tlsCaFile"].as<std::string>("")}),
-      log_({configYaml_["log"]["logLevel"].as<std::string>(),
+      log_({configYaml_["log"]["logLevel"].as<std::string>("INFO"),
             configYaml_["log"]["logFile"].as<std::string>()}),
-      server_({configYaml_["server"]["threads"].as<unsigned short>(),
-               configYaml_["server"]["listenIp"].as<std::string>(),
-               configYaml_["server"]["listenPort"].as<unsigned short>()}),
-      agent_({configYaml_["agent"]["threads"].as<unsigned short>(),
-              configYaml_["agent"]["listenIp"].as<std::string>(),
-              configYaml_["agent"]["listenPort"].as<unsigned short>(),
-              configYaml_["agent"]["serverIp"].as<std::string>(),
-              configYaml_["agent"]["serverPort"].as<unsigned short>(),
-              configYaml_["agent"]["httpVersion"].as<std::string>(),
-              configYaml_["agent"]["userAgent"].as<std::string>()}) {
+      server_({configYaml_["server"]["threads"].as<unsigned short>(2),
+               configYaml_["server"]["listenIp"].as<std::string>("127.0.0.1"),
+               configYaml_["server"]["listenPort"].as<unsigned short>(8080)}),
+      agent_({configYaml_["agent"]["threads"].as<unsigned short>(2),
+              configYaml_["agent"]["listenIp"].as<std::string>("127.0.0.1"),
+              configYaml_["agent"]["listenPort"].as<unsigned short>(8080),
+              configYaml_["agent"]["serverIp"].as<std::string>("127.0.0.1"),
+              configYaml_["agent"]["serverPort"].as<unsigned short>(8080),
+              configYaml_["agent"]["httpVersion"].as<std::string>("1.1"),
+              configYaml_["agent"]["userAgent"].as<std::string>("NipoAgent")}) {
 
     std::lock_guard<std::mutex> lock(configMutex_);
 
@@ -75,6 +76,7 @@ std::string Config::toString() const {
        << " General :\n"
        << "   token: " << general_.token << "\n"
        << "   protocol: " << general_.protocol << "\n"
+       << "   bufferSize: " << general_.bufferSize << "\n"
        << "   fakeUrls: ";
 
     for (std::size_t i = 0; i < general_.fakeUrls.size(); ++i) {

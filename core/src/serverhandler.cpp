@@ -197,7 +197,7 @@ void ServerHandler::handle() {
             return;
         }
 
-        std::vector<char> data(std::min<std::size_t>(available, 65536));
+        std::vector<char> data(std::min<std::size_t>(available, config_->general().bufferSize));
         std::size_t n = targetClient->socket().read_some(
                 boost::asio::buffer(data),
                 ec);
