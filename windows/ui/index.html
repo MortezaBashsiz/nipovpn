@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'">
+<title>NipoVPN</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Vazirmatn:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg:      #0d0f14;
+  --s1:      #141720;
+  --s2:      #1a1f2e;
+  --border:  #1e2330;
+  --accent:  #00c896;
+  --blue:    #0084ff;
+  --red:     #ff4f4f;
+  --warn:    #ffb830;
+  --text:    #e2e8f0;
+  --muted:   #64748b;
+  --mono:    'IBM Plex Mono', monospace;
+  --sans:    'Vazirmatn', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
+
+/* ── Titlebar ── */
+.titlebar {
+  height: 40px; background: var(--s1); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 16px; gap: 10px;
+  -webkit-app-region: drag; flex-shrink: 0;
+}
+.titlebar-logo { width: 22px; height: 22px; background: linear-gradient(135deg,var(--accent),var(--blue)); border-radius: 6px; display:flex; align-items:center; justify-content:center; font-size:12px; }
+.titlebar-title { font-size: 13px; font-weight: 700; }
+.titlebar-ver { font-size: 10px; color: var(--muted); font-family: var(--mono); }
+.titlebar-btns { margin-right: auto; display: flex; gap: 4px; -webkit-app-region: no-drag; }
+.tbar-btn { width: 28px; height: 22px; border-radius: 5px; border: none; background: var(--s2); color: var(--muted); cursor: pointer; font-size: 12px; display:flex; align-items:center; justify-content:center; transition: background .15s, color .15s; }
+.tbar-btn:hover { background: var(--border); color: var(--text); }
+.tbar-btn.close:hover { background: var(--red); color: #fff; }
+
+/* ── Layout ── */
+.layout { display: flex; flex: 1; overflow: hidden; }
+.sidebar { width: 52px; background: var(--s1); border-left: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 10px 0; gap: 4px; flex-shrink: 0; }
+.nav-btn { width: 38px; height: 38px; border-radius: 10px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 18px; display:flex; align-items:center; justify-content:center; transition: background .15s, color .15s; position: relative; }
+.nav-btn:hover, .nav-btn.active { background: var(--s2); color: var(--text); }
+.nav-btn.active::before { content:''; position:absolute; right:0; top:50%; transform:translateY(-50%); width:3px; height:20px; background:var(--accent); border-radius:2px 0 0 2px; }
+.content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+/* ── Status Card ── */
+.status-card {
+  background: var(--s1); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px 22px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px;
+}
+.status-orb {
+  width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+  display:flex; align-items:center; justify-content:center; font-size: 20px;
+  background: color-mix(in srgb, var(--red) 15%, transparent);
+  border: 2px solid color-mix(in srgb, var(--red) 40%, transparent);
+  transition: background .3s, border-color .3s;
+}
+.status-orb.on { background: color-mix(in srgb, var(--accent) 15%, transparent); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.status-info h2 { font-size: 16px; font-weight: 700; }
+.status-info p  { font-size: 12px; color: var(--muted); margin-top: 2px; font-family: var(--mono); }
+.status-actions { margin-right: auto; display: flex; gap: 8px; }
+
+/* ── Buttons ── */
+.btn { padding: 9px 18px; border-radius: 8px; border: none; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .15s, transform .1s; display:flex; align-items:center; gap:6px; }
+.btn:active { transform: scale(.97); }
+.btn-green  { background: var(--accent); color: #000; }
+.btn-red    { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); border: 1px solid color-mix(in srgb, var(--red) 35%, transparent); }
+.btn-ghost  { background: var(--s2); color: var(--text); border: 1px solid var(--border); }
+.btn-blue   { background: var(--blue); color: #fff; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ── Proxy toggle ── */
+.proxy-row { display: flex; align-items: center; gap: 12px; background: var(--s2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; }
+.proxy-row p { font-size: 13px; }
+.proxy-row span { font-size: 11px; color: var(--muted); }
+.proxy-row .ml { margin-right: auto; display: flex; align-items: center; gap: 10px; }
+.switch { position:relative; width:44px; height:24px; display:inline-block; }
+.switch input { opacity:0; width:0; height:0; }
+.switch-slider { position:absolute; inset:0; background:var(--border); border-radius:24px; cursor:pointer; transition:background .2s; }
+.switch-slider::before { content:''; position:absolute; width:16px; height:16px; left:4px; top:4px; background:#fff; border-radius:50%; transition:transform .2s; }
+.switch input:checked + .switch-slider { background: var(--accent); }
+.switch input:checked + .switch-slider::before { transform: translateX(20px); }
+
+/* ── Stats ── */
+.stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+.stat-card { background: var(--s1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.stat-card .label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+.stat-card .val   { font-size: 22px; font-weight: 700; margin-top: 4px; font-family: var(--mono); }
+.stat-card .unit  { font-size: 11px; color: var(--muted); }
+
+/* ── Section ── */
+.sec-title { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display:flex; align-items:center; gap:6px; }
+.sec-title::before { content:''; width:3px; height:12px; background: var(--accent); border-radius:2px; display:inline-block; }
+
+/* ── Form ── */
+.field { margin-bottom: 12px; }
+.field label { display:block; font-size:11px; color:var(--muted); margin-bottom:5px; font-weight:500; }
+.field input, .field select, .field textarea {
+  width:100%; background:var(--s1); border:1px solid var(--border); border-radius:7px;
+  padding:9px 12px; color:var(--text); font-family:var(--mono); font-size:12px;
+  outline:none; transition:border-color .15s; direction:ltr; text-align:left;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue); }
+.field textarea { resize:vertical; min-height:80px; }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.toggle-row { display:flex; align-items:center; justify-content:space-between; background:var(--s1); border:1px solid var(--border); border-radius:7px; padding:10px 14px; margin-bottom:8px; }
+.toggle-row span { font-size:12px; font-family:var(--mono); }
+
+/* ── Import box ── */
+.import-box { border:1.5px dashed var(--border); border-radius:10px; padding:14px; margin-bottom:16px; }
+.import-box:focus-within { border-color: var(--blue); }
+.import-box label { font-size:11px; color:var(--muted); display:block; margin-bottom:6px; }
+.import-box textarea { width:100%; background:transparent; border:none; outline:none; color:var(--text); font-family:var(--mono); font-size:11px; resize:none; height:60px; direction:ltr; }
+.import-box textarea::placeholder { color:var(--muted); opacity:.5; }
+
+/* ── Log ── */
+.log-wrap { background:var(--s1); border:1px solid var(--border); border-radius:10px; overflow:hidden; height:320px; display:flex; flex-direction:column; }
+.log-header { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-bottom:1px solid var(--border); background:var(--s2); }
+.log-header span { font-size:11px; font-family:var(--mono); color:var(--muted); }
+#logBox { flex:1; padding:12px 14px; font-family:var(--mono); font-size:11px; line-height:1.7; overflow-y:auto; white-space:pre-wrap; word-break:break-all; color:#94a3b8; }
+.log-line-err { color: var(--red); }
+.log-line-info { color: var(--accent); }
+
+/* ── Alert ── */
+.alert { border-radius:8px; padding:10px 14px; font-size:12px; margin-bottom:14px; }
+.alert-err { background:color-mix(in srgb,var(--red) 12%,transparent); color:var(--red); border:1px solid color-mix(in srgb,var(--red) 30%,transparent); }
+.alert-ok  { background:color-mix(in srgb,var(--accent) 10%,transparent); color:var(--accent); border:1px solid color-mix(in srgb,var(--accent) 25%,transparent); }
+
+/* ── Toast ── */
+.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(60px); background:var(--accent); color:#000; font-size:13px; font-weight:700; padding:10px 22px; border-radius:30px; transition:transform .3s cubic-bezier(.34,1.56,.64,1); z-index:999; pointer-events:none; }
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+/* ── Page hide ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <div class="titlebar-logo">🛡</div>
+  <span class="titlebar-title">NipoVPN</span>
+  <span class="titlebar-ver">v1.1.57</span>
+  <div class="titlebar-btns">
+    <button class="tbar-btn" onclick="window.nipo.minimize()">─</button>
+    <button class="tbar-btn" onclick="window.nipo.hide()">⬜</button>
+    <button class="tbar-btn close" onclick="window.nipo.hide()">✕</button>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="sidebar">
+    <button class="nav-btn active" data-page="home"   onclick="nav(this,'home')"   title="خانه">🏠</button>
+    <button class="nav-btn"        data-page="config" onclick="nav(this,'config')" title="تنظیمات">⚙️</button>
+    <button class="nav-btn"        data-page="log"    onclick="nav(this,'log')"    title="لاگ">📋</button>
+  </nav>
+
+  <main class="content">
+
+    <div class="page active" id="page-home">
+
+      <div class="status-card">
+        <div class="status-orb" id="statusOrb">⭕</div>
+        <div class="status-info">
+          <h2 id="statusTitle">متوقف</h2>
+          <p id="statusSub">nipovpn آماده اجرا است</p>
+        </div>
+        <div class="status-actions">
+          <button class="btn btn-green" id="btnStart" onclick="doStart()">▶ شروع Agent</button>
+          <button class="btn btn-red"   id="btnStop"  onclick="doStop()" disabled>⏹ توقف</button>
+        </div>
+      </div>
+
+      <div class="proxy-row">
+        <div>
+          <p>پروکسی سیستم ویندوز</p>
+          <span>SOCKS5 → 127.0.0.1:<span id="proxyPortLabel">8080</span></span>
+        </div>
+        <div class="ml">
+          <span id="proxyStatus" style="font-size:11px;color:var(--muted)">غیرفعال</span>
+          <label class="switch">
+            <input type="checkbox" id="proxyToggle" onchange="toggleProxy(this.checked)">
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">وضعیت</div>
+          <div class="val" id="statStatus" style="color:var(--red);font-size:16px">متوقف</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">حالت</div>
+          <div class="val" id="statMode" style="font-size:16px">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">پورت</div>
+          <div class="val" id="statPort">8080</div>
+          <div class="unit">localhost</div>
+        </div>
+      </div>
+
+      <div class="sec-title">اجرای سریع</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" onclick="doStart('agent')">🖥 شروع Agent</button>
+        <button class="btn btn-ghost" onclick="doStart('server')">🌐 شروع Server</button>
+        <button class="btn btn-ghost" onclick="window.nipo.openConfigDir()">📁 باز کردن پوشه</button>
+      </div>
+
+    </div>
+
+    <div class="page" id="page-config">
+
+      <div class="import-box">
+        <label>لینک nipovpn:// را paste کنید و بارگذاری کنید</label>
+        <textarea id="linkInput" placeholder="nipovpn://eyJ..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="btn btn-blue" onclick="parseLink()">⚡ بارگذاری لینک</button>
+        <button class="btn btn-green" onclick="saveConfig()">💾 ذخیره Config</button>
+        <button class="btn btn-ghost" onclick="window.nipo.openConfigDir()">📁 پوشه</button>
+      </div>
+      <div id="configAlert" style="display:none" class="alert"></div>
+
+      <div class="sec-title">تنظیمات عمومی</div>
+      <div class="field"><label>Token</label><input id="c_token" type="text" oninput="markDirty()"></div>
+      <div class="field-row">
+        <div class="field"><label>Protocol</label>
+          <select id="c_protocol" onchange="markDirty()">
+            <option value="http">http</option>
+            <option value="socks5">socks5</option>
+          </select>
+        </div>
+        <div class="field-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="field"><label>Timeout</label><input id="c_timeout" type="number" oninput="markDirty()"></div>
+          <div class="field"><label>Pull Timeout</label><input id="c_pullTimeout" type="number" oninput="markDirty()"></div>
+        </div>
+      </div>
+      <div class="field"><label>Fake URLs (هر URL یک خط)</label><textarea id="c_fakeUrls" oninput="markDirty()"></textarea></div>
+
+      <div class="sec-title">اتصال</div>
+      <div class="toggle-row"><span>tunnelEnable</span><label class="switch"><input type="checkbox" id="c_tunnel" onchange="markDirty()"><span class="switch-slider"></span></label></div>
+      <div class="toggle-row"><span>connectionReuse</span><label class="switch"><input type="checkbox" id="c_reuse" onchange="markDirty()"><span class="switch-slider"></span></label></div>
+      <div class="toggle-row"><span>tlsEnable</span><label class="switch"><input type="checkbox" id="c_tls" onchange="markDirty()"><span class="switch-slider"></span></label></div>
+      <div class="toggle-row"><span>tlsVerifyPeer</span><label class="switch"><input type="checkbox" id="c_tlsVerify" onchange="markDirty()"><span class="switch-slider"></span></label></div>
+
+      <div class="sec-title">سرور</div>
+      <div class="field-row">
+        <div class="field"><label>Server IP</label><input id="c_serverIp" type="text" oninput="markDirty()"></div>
+        <div class="field"><label>Server Port</label><input id="c_serverPort" type="number" oninput="markDirty()"></div>
+      </div>
+
+      <div class="sec-title">Agent (کلاینت)</div>
+      <div class="field-row">
+        <div class="field"><label>Listen IP</label><input id="c_listenIp" type="text" oninput="markDirty()"></div>
+        <div class="field"><label>Listen Port</label><input id="c_listenPort" type="number" oninput="markDirty()"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Threads</label><input id="c_threads" type="number" oninput="markDirty()"></div>
+        <div class="field"><label>Log Level</label>
+          <select id="c_logLevel" onchange="markDirty()">
+            <option value="INFO">INFO</option>
+            <option value="DEBUG">DEBUG</option>
+            <option value="TRACE">TRACE</option>
+          </select>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="page" id="page-log">
+      <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
+        <div class="sec-title" style="margin:0">لاگ realtime</div>
+        <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="refreshLog()">🔄 بروزرسانی</button>
+        <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="clearLogView()">🗑 پاک کردن نمایش</button>
+        <label class="switch" style="margin-right:auto" title="اسکرول خودکار">
+          <input type="checkbox" id="autoScroll" checked>
+          <span class="switch-slider"></span>
+        </label>
+        <span style="font-size:11px;color:var(--muted)">اسکرول خودکار</span>
+      </div>
+      <div class="log-wrap">
+        <div class="log-header">
+          <span id="logPath">nipovpn.log</span>
+          <span id="logLineCount" style="font-family:var(--mono);font-size:10px;color:var(--muted)">0 خط</span>
+        </div>
+        <div id="logBox"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Nav ──
+function nav(btn, page) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('page-' + page).classList.add('active');
+  if (page === 'log') refreshLog();
+  if (page === 'config') loadConfig();
+}
+
+// ── Toast ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Status ──
+let isRunning = false;
+async function refreshStatus() {
+  const s = await window.nipo.getStatus();
+  setStatus(s);
+}
+function setStatus(s) {
+  isRunning = s.running;
+  const orb   = document.getElementById('statusOrb');
+  const title = document.getElementById('statusTitle');
+  const sub   = document.getElementById('statusSub');
+  const stat  = document.getElementById('statStatus');
+  const mode  = document.getElementById('statMode');
+
+  if (s.running) {
+    orb.textContent = '✅'; orb.classList.add('on');
+    title.textContent = 'در حال اجرا';
+    sub.textContent   = `حالت: ${s.mode} — PID: ${s.pid || '—'}`;
+    stat.textContent  = 'اجرا'; stat.style.color = 'var(--accent)';
+    mode.textContent  = s.mode || '—';
+  } else {
+    orb.textContent = '⭕'; orb.classList.remove('on');
+    title.textContent = 'متوقف';
+    sub.textContent   = 'nipovpn آماده اجرا است';
+    stat.textContent  = 'متوقف'; stat.style.color = 'var(--red)';
+    mode.textContent  = '—';
+  }
+  document.getElementById('btnStart').disabled = s.running;
+  document.getElementById('btnStop').disabled  = !s.running;
+}
+
+window.nipo.onStatus(s => setStatus(s));
+window.nipo.onError(msg => toast('❌ ' + msg));
+window.nipo.onLog(line => appendLog(line));
+
+async function doStart(mode) {
+  await window.nipo.start(mode || 'agent');
+}
+async function doStop() {
+  await window.nipo.stop();
+}
+
+// ── Proxy ──
+async function toggleProxy(on) {
+  const port = parseInt(document.getElementById('c_listenPort')?.value || '8080');
+  const ok = await window.nipo.setProxy({ enable: on, port });
+  const el = document.getElementById('proxyStatus');
+  el.textContent = on ? 'فعال' : 'غیرفعال';
+  el.style.color = on ? 'var(--accent)' : 'var(--muted)';
+  toast(on ? '✅ پروکسی فعال شد' : '⭕ پروکسی غیرفعال شد');
+}
+
+// ── Config ──
+let configDirty = false;
+function markDirty() { configDirty = true; }
+
+async function loadConfig() {
+  const yaml = await window.nipo.getConfig();
+  if (!yaml) return;
+  
+  // جدا کردن بخش agent برای جلوگیری از تداخل با تنظیمات server
+  const agentBlock = yaml.includes('agent:') ? yaml.split('agent:')[1] : yaml;
+
+  // تابع خواندن مقادیر (با قابلیت انتخاب متن هدف)
+  const get = (key, text = yaml) => { const m = text.match(new RegExp(`^\\s*${key}:\\s*(.+)$`, 'm')); return m ? m[1].replace(/['"]/g,'').trim() : ''; };
+  const getBool = (key, text = yaml) => get(key, text) === 'true';
+
+  document.getElementById('c_token').value      = get('token');
+  document.getElementById('c_protocol').value   = get('protocol') || 'http';
+  document.getElementById('c_timeout').value    = get('timeout') || '10';
+  document.getElementById('c_pullTimeout').value= get('pullTimeout') || '50';
+  document.getElementById('c_serverIp').value   = get('serverIp');
+  document.getElementById('c_serverPort').value = get('serverPort');
+  
+  // این ۳ فیلد حتماً باید از داخل بلوک Agent خوانده شوند تا با Server قاطی نشوند
+  document.getElementById('c_listenIp').value   = get('listenIp', agentBlock);
+  document.getElementById('c_listenPort').value = get('listenPort', agentBlock);
+  document.getElementById('c_threads').value    = get('threads', agentBlock);
+  
+  document.getElementById('c_logLevel').value   = get('logLevel') || 'INFO';
+  document.getElementById('c_tunnel').checked   = getBool('tunnelEnable');
+  document.getElementById('c_reuse').checked    = getBool('connectionReuse');
+  document.getElementById('c_tls').checked      = getBool('tlsEnable');
+  document.getElementById('c_tlsVerify').checked= getBool('tlsVerifyPeer');
+
+  // لیست Fake URLs
+  const m = yaml.match(/fakeUrls:([\s\S]*?)(?=\n\s{2}[a-z])/);
+  if (m) { const urls = m[1].match(/- (.+)/g)?.map(s=>s.slice(2).trim()).join('\n') || ''; document.getElementById('c_fakeUrls').value = urls; }
+  
+  // آپدیت کردن صفحه اصلی با پورت صحیحِ Agent
+  document.getElementById('statPort').textContent = get('listenPort', agentBlock) || '8080';
+  document.getElementById('proxyPortLabel').textContent = get('listenPort', agentBlock) || '8080';
+  configDirty = false;
+}
+
+async function parseLink() {
+  const raw = document.getElementById('linkInput').value.trim();
+  if (!raw) return showConfigAlert('لینک را وارد کنید', 'err');
+  const data = await window.nipo.parseLink(raw);
+  if (!data) return showConfigAlert('لینک معتبر نیست', 'err');
+  const c = data.config || data;
+  if (c.token)       document.getElementById('c_token').value       = c.token;
+  if (c.protocol)    document.getElementById('c_protocol').value    = c.protocol;
+  if (c.serverIp)    document.getElementById('c_serverIp').value    = c.serverIp;
+  if (c.serverPort)  document.getElementById('c_serverPort').value  = c.serverPort;
+  if (c.listenPort)  document.getElementById('c_listenPort').value  = c.listenPort;
+  if (c.timeout)     document.getElementById('c_timeout').value     = c.timeout;
+  if (c.pullTimeout) document.getElementById('c_pullTimeout').value = c.pullTimeout;
+  if (c.logLevel)    document.getElementById('c_logLevel').value    = c.logLevel;
+  if (c.fakeUrls)    document.getElementById('c_fakeUrls').value    = (typeof c.fakeUrls === 'string' ? c.fakeUrls : c.fakeUrls.join('\n'));
+  document.getElementById('c_tunnel').checked   = c.tunnelEnable   === true || c.tunnelEnable   === 'true';
+  document.getElementById('c_reuse').checked    = c.connectionReuse=== true || c.connectionReuse=== 'true';
+  document.getElementById('c_tls').checked      = c.tlsEnable      === true || c.tlsEnable      === 'true';
+  document.getElementById('c_tlsVerify').checked= c.tlsVerifyPeer  === true || c.tlsVerifyPeer  === 'true';
+  showConfigAlert('✓ بارگذاری شد — ' + (data.name || c.serverIp), 'ok');
+  markDirty();
+}
+
+function buildYaml() {
+  const g = id => document.getElementById(id)?.value?.trim() || '';
+  const b = id => document.getElementById(id)?.checked || false;
+  const fakeUrls = g('c_fakeUrls').split('\n').filter(Boolean);
+  return [
+    '---',
+    'general:',
+    `  token: "${g('c_token')}"`,
+    `  protocol: ${g('c_protocol')}`,
+    '  fakeUrls:',
+    ...fakeUrls.map(u=>`    - ${u}`),
+    '  methods:',
+    '    - GET','    - POST','    - PUT','    - DELETE',
+    '  endPoints:',
+    '    - api','    - login','    - user','    - update',
+    `  timeout: ${g('c_timeout')||10}`,
+    `  pullTimeout: ${g('c_pullTimeout')||50}`,
+    `  tunnelEnable: ${b('c_tunnel')}`,
+    `  connectionReuse: ${b('c_reuse')}`,
+    `  tlsEnable: ${b('c_tls')}`,
+    `  tlsVerifyPeer: ${b('c_tlsVerify')}`,
+    `  tlsCertFile: "etc/nipovpn/server.crt"`, // اصلاح شد (بدون اسلش اول)
+    `  tlsKeyFile: "etc/nipovpn/server.key"`,  // اصلاح شد (بدون اسلش اول)
+    `  tlsCaFile: ""`,
+    '',
+    'log:',
+    `  logLevel: "${g('c_logLevel')}"`,
+    `  logFile: "logs/nipovpn.log"`, // مسیر کاملاً نسبی شد
+    '',
+    'server:',
+    `  threads: ${g('c_threads')||8}`,
+    `  listenIp: "0.0.0.0"`,
+    `  listenPort: 80`,
+    '',
+    'agent:',
+    `  threads: ${g('c_threads')||8}`,
+    `  listenIp: "${g('c_listenIp')||'0.0.0.0'}"`,
+    `  listenPort: ${g('c_listenPort')||8080}`,
+    `  serverIp: "${g('c_serverIp')}"`,
+    `  serverPort: ${g('c_serverPort')||443}`,
+    `  httpVersion: "1.1"`,
+    `  userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0"`,
+  ].join('\n');
+}
+
+async function saveConfig() {
+  const yaml = buildYaml();
+  const r = await window.nipo.saveConfig(yaml);
+  if (r.ok) { 
+    toast('✅ config.yaml ذخیره شد'); 
+    showConfigAlert('✓ ذخیره شد', 'ok'); 
+    configDirty = false; 
+    loadConfig(); // بروزرسانی آنیِ پورت‌ها در صفحه اصلی بعد از هر بار ذخیره
+  }
+  else showConfigAlert('❌ خطا: ' + r.error, 'err');
+}
+
+function showConfigAlert(msg, type) {
+  const el = document.getElementById('configAlert');
+  el.textContent = msg;
+  el.className = 'alert alert-' + type;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+// ── Log ──
+let logLines = [];
+function appendLog(text) {
+  const box = document.getElementById('logBox');
+  const lines = text.split('\n').filter(Boolean);
+  lines.forEach(line => {
+    logLines.push(line);
+    const div = document.createElement('div');
+    div.textContent = line;
+    if (line.includes('[ERROR]') || line.includes('[ERR]')) div.className = 'log-line-err';
+    else if (line.includes('[INFO]')) div.className = 'log-line-info';
+    box.appendChild(div);
+  });
+  if (logLines.length > 500) {
+    logLines = logLines.slice(-400);
+    while (box.children.length > 400) box.removeChild(box.firstChild);
+  }
+  document.getElementById('logLineCount').textContent = logLines.length + ' خط';
+  if (document.getElementById('autoScroll').checked) box.scrollTop = box.scrollHeight;
+}
+async function refreshLog() {
+  const text = await window.nipo.readLog();
+  const box = document.getElementById('logBox');
+  box.innerHTML = '';
+  logLines = [];
+  if (text) appendLog(text);
+}
+function clearLogView() {
+  document.getElementById('logBox').innerHTML = '';
+  logLines = [];
+  document.getElementById('logLineCount').textContent = '0 خط';
+}
+
+// ── Init ──
+refreshStatus();
+loadConfig();
+setInterval(refreshStatus, 3000);
+</script>
+</body>
+</html>

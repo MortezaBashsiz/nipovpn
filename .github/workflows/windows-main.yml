@@ -96,4 +96,3 @@ jobs:
           files: nipovpn_${{ env.PACKAGE_VERSION }}_windows_x86_64.zip
         env:
           GITHUB_TOKEN: ${{ github.token }}
-

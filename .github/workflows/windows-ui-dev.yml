@@ -1,0 +1,165 @@
+name: Build Windows Installer - Dev
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+env:
+  PACKAGE_VERSION: 1.1.57
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      # ────────────────────────────────────────
+      # 1. Checkout
+      # ────────────────────────────────────────
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # ────────────────────────────────────────
+      # 2. Setup MSYS2 + C++ deps 
+      # ────────────────────────────────────────
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            zip
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-yaml-cpp
+
+      # ────────────────────────────────────────
+      # 3. Build nipovpn.exe
+      # ────────────────────────────────────────
+      - name: Build nipovpn.exe
+        run: |
+          rm -rf build nipovpn-core
+          mkdir -p build nipovpn-core
+
+          cmake -S . -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS="-DNOMINMAX -DWIN32_LEAN_AND_MEAN -DNOGDI -DOUT=NIPO_OUT"
+
+          cmake --build build -j$(nproc)
+
+          cp build/core/nipovpn.exe nipovpn-core/
+
+      # ────────────────────────────────────────
+      # 4. Collect required DLLs & Rename to core
+      # ────────────────────────────────────────
+      - name: Collect DLL dependencies
+        run: |
+          cd nipovpn-core
+
+          for dll in $(ldd nipovpn.exe | grep 'mingw64' | awk '{print $3}'); do
+            cp "$dll" .
+          done
+          
+          # تغییر نام فایل جهت عدم تداخل با UI اصلی در ویندوز
+          mv nipovpn.exe nipovpn-core.exe
+
+          echo "--- DLLs collected ---"
+          ls -lah *.dll
+
+      # ────────────────────────────────────────
+      # 5. Add default config
+      # ────────────────────────────────────────
+      - name: Add default config files
+        run: |
+          mkdir -p nipovpn-core/etc/nipovpn
+          if [ -d nipovpn/etc/nipovpn ]; then
+            cp -a nipovpn/etc/nipovpn/. nipovpn-core/etc/nipovpn/
+          fi
+          mkdir -p nipovpn-core/logs
+          touch nipovpn-core/logs/nipovpn.log
+
+      # ────────────────────────────────────────
+      # 6. Setup Node.js for Electron
+      # ────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ────────────────────────────────────────
+      # 7. Install Electron deps & build installer
+      # ────────────────────────────────────────
+      - name: Install Electron dependencies
+        shell: pwsh
+        working-directory: windows/ui
+        run: npm install
+
+      - name: Stage nipovpn-core as extraResources for electron-builder
+        shell: pwsh
+        run: |
+          $dest = "${{ github.workspace }}\windows\ui\extra-res\nipovpn-core"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Copy-Item -Path "${{ github.workspace }}\nipovpn-core\*" -Destination $dest -Recurse -Force
+          Write-Host "--- staged files ---"
+          Get-ChildItem $dest
+
+      - name: Patch package.json — inject extraResources
+        shell: pwsh
+        working-directory: windows/ui
+        run: |
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          $pkg.build.extraResources = @(
+            @{ from = "extra-res/nipovpn-core"; to = "." ; filter = @("**/*") }
+          )
+          $pkg | ConvertTo-Json -Depth 10 | Set-Content package.json -Encoding UTF8
+          Write-Host "--- updated extraResources ---"
+          (Get-Content package.json -Raw | ConvertFrom-Json).build.extraResources | ConvertTo-Json
+
+      - name: Build Electron installer (NSIS)
+        shell: pwsh
+        working-directory: windows/ui
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm run dist
+
+      # ────────────────────────────────────────
+      # 8. Collect outputs
+      # ────────────────────────────────────────
+      - name: Collect installer outputs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "release-output"
+          
+          # پیدا کردن نصب‌کننده در پوشه جدید
+          $installer = Get-ChildItem -Path "windows\ui\dist-electron" -Filter "*.exe" -Recurse | Select-Object -First 1
+          if ($installer) {
+            Copy-Item $installer.FullName "release-output\NipoVPN-Setup-x64.exe"
+          }
+          
+          Write-Host "--- Release output ---"
+          Get-ChildItem "release-output"
+
+      # ────────────────────────────────────────
+      # 9. Upload artifacts
+      # ────────────────────────────────────────
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nipovpn-windows-installer
+          path: release-output/NipoVPN-Setup-x64.exe
+          if-no-files-found: warn
