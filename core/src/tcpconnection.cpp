@@ -130,7 +130,7 @@ void TCPConnection::doReadAgent() {
         resetTimeout();
 
         socket_.async_read_some(
-                readBuffer_.prepare(8192),
+                readBuffer_.prepare(BufferSize),
                 boost::asio::bind_executor(
                         strand_,
                         [self = shared_from_this()](
@@ -869,7 +869,7 @@ void TCPConnection::asyncWriteToAgentConnection(
 }
 
 void TCPConnection::asyncReadFromAgentConnection(
-        std::array<char, 8192> &buffer,
+        std::array<char, BufferSize> &buffer,
         std::function<void(const boost::system::error_code &, std::size_t)> done) {
     if (config_->general().tlsEnable && tlsSocket_) {
         tlsSocket_->async_read_some(
@@ -910,7 +910,7 @@ void TCPConnection::asyncWriteToAgentServerConnection(
 }
 
 void TCPConnection::asyncReadFromAgentServerConnection(
-        std::array<char, 8192> &buffer,
+        std::array<char, BufferSize> &buffer,
         std::function<void(const boost::system::error_code &, std::size_t)> done) {
     if (client_->tlsEnabled()) {
         client_->sslSocket().async_read_some(
