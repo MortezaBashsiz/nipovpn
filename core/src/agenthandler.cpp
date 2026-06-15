@@ -62,8 +62,7 @@ void AgentHandler::handle() {
             return;
         } else {
             log_->write("[" + to_string(uuid_) + "] [CONNECT] [SRC " +
-                                clientConnStr_ + "] [DST " + config_->agent().serverIp + ":" +
-                                std::to_string(config_->agent().serverPort) + "]",
+                                clientConnStr_ + "] [ORIGIN " + std::string(request_->parsedHttpRequest().target()) + "]",
                         Log::Level::INFO);
         }
 

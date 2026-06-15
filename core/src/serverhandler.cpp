@@ -283,7 +283,7 @@ void ServerHandler::handle() {
 
                 log_->write(
                         "[" + to_string(uuid_) +
-                                "] [CONNECT] [TUNNEL] [SRC " +
+                                "] [CONNECT] [SRC " +
                                 clientConnStr_ + "] [DST " +
                                 inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                         Log::Level::INFO);
@@ -327,7 +327,7 @@ void ServerHandler::handle() {
             log_->write(
                     "[" + to_string(uuid_) +
                             "] [CONNECT] [SRC " +
-                            clientConnStr_ + "] [DST " +
+                            clientConnStr_ + "] [ORIGIN " +
                             inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                     Log::Level::INFO);
 
