@@ -1,4 +1,4 @@
-name: Build and Release Package - Main
+name: Build and Release Package - main
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 env:
-  PACKAGE_VERSION: 1.1.58
+  PACKAGE_VERSION: 1.1.59
 
 jobs:
   build:
@@ -100,8 +100,31 @@ jobs:
 
           sed -i -E "s/^Version[[:space:]]*:.*/Version: ${PACKAGE_VERSION}/" package-root/DEBIAN/control
           sed -i -E "s/^Architecture[[:space:]]*:.*/Architecture: ${{ matrix.package_arch }}/" package-root/DEBIAN/control
-
           sed -i -e '$a\' package-root/DEBIAN/control
+
+          mkdir -p package-root/DEBIAN
+          cat > package-root/DEBIAN/conffiles <<'EOF'
+          /etc/nipovpn/config.yaml
+          EOF
+
+          rm -f package-root/var/log/nipovpn/nipovpn.log
+          mkdir -p package-root/var/log/nipovpn
+
+          cat > package-root/DEBIAN/postinst <<'EOF'
+          #!/bin/sh
+          set -e
+
+          mkdir -p /var/log/nipovpn
+
+          if [ ! -f /var/log/nipovpn/nipovpn.log ]; then
+            touch /var/log/nipovpn/nipovpn.log
+            chmod 0644 /var/log/nipovpn/nipovpn.log
+          fi
+
+          exit 0
+          EOF
+
+          chmod 755 package-root/DEBIAN/postinst
 
           echo "Final control file:"
           cat package-root/DEBIAN/control
@@ -285,7 +308,7 @@ jobs:
         run: |
           ls -lah
 
-      - name: Create GitHub Release
+      - name: Create main GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.PACKAGE_VERSION }}

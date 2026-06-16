@@ -38,7 +38,7 @@ Build from source for [Linux](guides/BuildLinux.md)
 
 ## Termux
 
-Build from source for [Linux](guides/InstallTermux.md)
+Build from source for [Termux](guides/InstallTermux.md)
 
 
 ## Run
