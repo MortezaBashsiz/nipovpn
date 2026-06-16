@@ -2,7 +2,7 @@
 
 ### Requirements
 
-    libyaml-cpp >= 0.7
+    libyaml-cpp >= 0.8
     boost >= 1.88.0
 
 ### Dependencies
