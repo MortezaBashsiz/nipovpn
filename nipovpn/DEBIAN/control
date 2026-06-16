@@ -2,6 +2,6 @@ Package: nipovpn
 Version: 0.0.0
 Maintainer: Morteza Bashsiz
 Architecture: amd64
-Depends: libyaml-cpp0.7
+Depends: libyaml-cpp0.7 | libyaml-cpp0.8
 Homepage: https://github.com/MortezaBashsiz/nipovpn
 Description: Powerful and secure proxy
