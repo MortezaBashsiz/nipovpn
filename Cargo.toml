@@ -1,0 +1,36 @@
+[package]
+name = "nipovpn"
+version = "1.1.58"
+edition = "2021"
+description = "HTTP-obfuscation proxy (Rust port of nipovpn)"
+license = "Apache-2.0"
+
+[[bin]]
+name = "nipovpn"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "time", "macros", "sync"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-pemfile = "2"
+aes = "0.8"
+cbc = { version = "0.1", features = ["block-padding", "alloc"] }
+rand = "0.8"
+base64 = "0.22"
+hex = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+httparse = "1"
+uuid = { version = "1", features = ["v4"] }
+dashmap = "6"
+chrono = "0.4"
+anyhow = "1"
+thiserror = "1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros", "test-util"] }
+
+[profile.release]
+opt-level = 3
+lto = true
