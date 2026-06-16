@@ -1,7 +1,7 @@
 Package: nipovpn
-Version: ${PACKAGE_VERSION}
+Version: 0.0.0
 Maintainer: Morteza Bashsiz
-Architecture: ${{ matrix.arch }}
-Description: Powerfull and Secure http/s Proxy
-Depends: libyaml-cpp0.8
+Architecture: amd64
+Depends: libyaml-cpp0.7
 Homepage: https://github.com/MortezaBashsiz/nipovpn
+Description: Powerful and secure proxy

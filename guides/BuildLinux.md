@@ -3,7 +3,7 @@
 ### Requirements
 
     C++20 or higher
-    libyaml-cpp >= 0.8
+    libyaml-cpp >= 0.7
     boost-libs >= 1.88.0
     OpenSSL
 
