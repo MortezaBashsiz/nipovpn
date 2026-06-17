@@ -45,6 +45,10 @@ Build from source for [Termux](guides/InstallTermux.md)
 
 Official Android application [Android](https://github.com/MortezaBashsiz/nipovpn-android)
 
+## Nix
+
+For development, building, installation, and NixOS integration, see the [Nix Guide](guides/Nix.md).
+
 ## Run
 
 #### Create directories
