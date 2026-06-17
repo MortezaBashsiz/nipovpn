@@ -10,21 +10,26 @@ NipoVPN is a powerful proxy tool designed to conceal your HTTP requests within f
   - HTTP Request Obfuscation: Hide your legitimate HTTP requests inside decoy requests to avoid detection.
   - Boost Library Integration: Utilizes Boost for robust and reliable networking operations.
   - High Performance: Optimized for speed and efficiency, ensuring minimal impact on request latency.
+  - Support HTTP and SOCKS5 on agent side
+  - Ability to use multiple Agents for one Server
 
 
 ## Usecases
 
 ### Bypass filtering
+
 This could help you to bypass the filtering in your country.
 
 ![Filtering](https://github.com/MortezaBashsiz/nipovpn/blob/main/files/pic/archFilternet.png)
 
 ### Hide your requests in the Internet
+
 If you want to hide your HTTP requests in the Internet, this proxy could help you.
 
 ![Internet](https://github.com/MortezaBashsiz/nipovpn/blob/main/files/pic/archInternet.png)
 
 ## Flow
+
 Here you can see the logical flow of a single request from first step to get the response
 ![Flow](https://github.com/MortezaBashsiz/nipovpn/blob/main/files/pic/flow.png)
 
@@ -52,13 +57,16 @@ For development, building, installation, and NixOS integration, see the [Nix Gui
 ## Run
 
 #### Create directories
+
 Create the log directory and log file
+
 ```bash
 [~/nipovpn]>$ sudo mkdir /var/log/nipovpn/
 [~/nipovpn]>$ sudo touch /var/log/nipovpn/nipovpn.log 
 ```
 
 Run it
+
 ```bash
 sudo build/core/nipovpn server nipovpn/etc/nipovpn/config.yaml
 ```
@@ -66,16 +74,20 @@ sudo build/core/nipovpn server nipovpn/etc/nipovpn/config.yaml
 ### Package
 
 #### Install
+
 Currently it is only available for debian-based Linuxes and fully tested on ubuntu 24.04
 You can simply download and install the package. To download it please visit the [releases page](https://github.com/MortezaBashsiz/nipovpn/tags) and get the latest release.
+
 ```bash
 [~]>$ sudo apt install ./nipovpn.deb
 ```
 
 #### Run
+
 There are systemd services to manage the nipovpn process.
 `nipovpn-server.service` to manage as server.
 `nipovpn-agent.service` to manage as agent.
+
 ```bash
 [~]>$ sudo systemctl start nipovpn-server.service
 [~]>$ cat /var/log/nipovpn/nipovpn.log
