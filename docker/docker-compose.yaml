@@ -1,0 +1,26 @@
+services:
+  nipovpn:
+    container_name: nipovpn
+
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+
+    image: nipovpn:latest
+
+    restart: unless-stopped
+
+    ports:
+      - "443:443"
+      - "8080:8080"
+
+    volumes:
+      - ../nipovpn/etc/nipovpn/config.yaml:/etc/nipovpn/config.yaml:ro
+      - nipovpn_logs:/var/log/nipovpn
+
+    command:
+      - ${NIPOVPN_MODE:-server}
+      - /etc/nipovpn/config.yaml
+
+volumes:
+  nipovpn_logs:
