@@ -37,3 +37,10 @@ build
 .idea
 /cmake-build-debug/
 test
+
+
+.git
+.github
+*.deb
+*.tar.gz
+*.log
