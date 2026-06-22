@@ -42,6 +42,10 @@ To contribute take a look at [contribution page](https://github.com/MortezaBashs
 
 Build from source for [Linux](guides/BuildLinux.md)
 
+## Docker
+
+For running it with docker [Docker Guide](guides/Docker.md).
+
 ## Termux
 
 Build from source for [Termux](guides/InstallTermux.md)
