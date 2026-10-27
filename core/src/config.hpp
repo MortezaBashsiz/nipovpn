@@ -29,6 +29,7 @@ private:
         unsigned short pullTimeout;
         bool tunnelEnable;
         bool connectionReuse;
+        bool aesEnable;
         bool tlsEnable;
         bool tlsVerifyPeer;
         std::string tlsCertFile;

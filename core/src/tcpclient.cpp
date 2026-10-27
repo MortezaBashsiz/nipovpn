@@ -12,6 +12,90 @@
 
 #include "http_utils.hpp"
 
+#ifndef _WIN32
+#include <poll.h>
+#endif
+
+namespace {
+
+    // Connects with a deadline enforced by poll() on the socket itself. The asio
+    // timer in resetTimeout() cannot do this: it needs a free io_context thread to
+    // fire, and blocking connects to unreachable hosts can occupy all of them.
+    template<typename Socket>
+    void connectWithTimeout(Socket &socket,
+                            const boost::asio::ip::tcp::resolver::results_type &endpoints,
+                            unsigned short timeoutSeconds,
+                            boost::system::error_code &ec) {
+        ec = boost::asio::error::host_not_found;
+
+        for (const auto &entry: endpoints) {
+            boost::system::error_code ignored;
+            socket.close(ignored);
+
+            socket.open(entry.endpoint().protocol(), ec);
+            if (ec) continue;
+
+            if (timeoutSeconds == 0) {
+                socket.connect(entry.endpoint(), ec);
+                if (!ec) return;
+                continue;
+            }
+
+            socket.native_non_blocking(true, ec);
+            if (ec) continue;
+
+            // asio's synchronous connect() waits without a limit on EINPROGRESS,
+            // so the non-blocking connect is issued on the native handle directly.
+            const auto endpoint = entry.endpoint();
+            const bool started =
+                    ::connect(socket.native_handle(), endpoint.data(),
+                              static_cast<int>(endpoint.size())) == 0;
+#ifdef _WIN32
+            const int connectErr = started ? 0 : WSAGetLastError();
+            const bool pending = connectErr == WSAEWOULDBLOCK;
+#else
+            const int connectErr = started ? 0 : errno;
+            const bool pending = connectErr == EINPROGRESS;
+#endif
+            ec = boost::system::error_code(connectErr, boost::system::system_category());
+
+            if (pending) {
+#ifdef _WIN32
+                WSAPOLLFD pfd{socket.native_handle(), POLLWRNORM, 0};
+                const int ready = WSAPoll(&pfd, 1, timeoutSeconds * 1000);
+#else
+                pollfd pfd{socket.native_handle(), POLLOUT, 0};
+                const int ready = ::poll(&pfd, 1, timeoutSeconds * 1000);
+#endif
+                if (ready == 0) {
+                    ec = boost::asio::error::timed_out;
+                } else if (ready < 0) {
+#ifdef _WIN32
+                    ec = boost::system::error_code(WSAGetLastError(), boost::system::system_category());
+#else
+                    ec = boost::system::error_code(errno, boost::system::system_category());
+#endif
+                } else {
+                    boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_ERROR> soError;
+                    socket.get_option(soError, ec);
+                    if (!ec && soError.value() != 0) {
+                        ec = boost::system::error_code(soError.value(), boost::system::system_category());
+                    }
+                }
+            }
+
+            if (!ec) {
+                socket.native_non_blocking(false, ec);
+                if (!ec) return;
+            }
+        }
+
+        boost::system::error_code ignored;
+        socket.close(ignored);
+    }
+
+}// namespace
+
 TCPClient::TCPClient(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
                      const std::shared_ptr<Log> &log)
@@ -131,18 +215,14 @@ bool TCPClient::doConnect(const std::string &dstIp, unsigned short dstPort) {
             sslSocket_ = std::make_unique<ssl_stream>(io_context_, sslContext_);
             closed_ = false;
 
-            boost::asio::connect(
-                    sslSocket_->lowest_layer(),
-                    endpoints,
-                    error_code);
+            connectWithTimeout(sslSocket_->lowest_layer(), endpoints,
+                               config_->general().timeout, error_code);
         } else {
             socket_ = tcp::socket(io_context_);
             closed_ = false;
 
-            boost::asio::connect(
-                    socket_,
-                    endpoints,
-                    error_code);
+            connectWithTimeout(socket_, endpoints,
+                               config_->general().timeout, error_code);
         }
 
         cancelTimeout();

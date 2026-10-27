@@ -461,11 +461,13 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
             }
         }
 
-        BoolStr enc = aes256Encrypt(
-                hexArrToStr(
-                        reinterpret_cast<const unsigned char *>(rawBody.data()),
-                        rawBody.size()),
-                config_->general().token);
+        const std::string payload = makeEnvelope(
+                action, to_string(uuid_),
+                hexArrToStr(reinterpret_cast<const unsigned char *>(rawBody.data()),
+                            rawBody.size()));
+        BoolStr enc = config_->general().aesEnable
+                              ? aes256Encrypt(payload, config_->general().token)
+                              : BoolStr{true, payload};
 
         if (!enc.ok) return "";
 
@@ -480,9 +482,7 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
             << "Host: " << makeRelayHostHeader() << "\r\n"
             << "User-Agent: " << config_->agent().userAgent << "\r\n"
             << "Accept: */*\r\n"
-            << "Content-Type: application/text\r\n"
-            << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
-            << "X-Nipo-Action: " << action << "\r\n"
+            << "Content-Type: text/plain; charset=utf-8\r\n"
             << "Content-Length: " << encodedBody.size() << "\r\n"
             << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
             << "\r\n"
@@ -536,10 +536,12 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
     const auto pos = response.find("\r\n\r\n");
     if (pos == std::string::npos) return "";
 
-    const std::string encryptedBody = response.substr(pos + 4);
-    if (encryptedBody.empty()) return "";
+    const std::string responseBody = response.substr(pos + 4);
+    if (responseBody.empty()) return "";
 
-    BoolStr dec = aes256Decrypt(encryptedBody, config_->general().token);
+    BoolStr dec = config_->general().aesEnable
+                          ? aes256Decrypt(responseBody, config_->general().token)
+                          : BoolStr{true, responseBody};
     if (!dec.ok) return "";
 
     return dec.message;

@@ -63,6 +63,18 @@ Run it
 sudo build/core/nipovpn server nipovpn/etc/nipovpn/config.yaml
 ```
 
+AES-256-GCM payload encryption is enabled by default. The key is derived from
+`general.token`, which must be at least 32 bytes and identical on the agent and
+server. Replace the sample token, e.g. with the output of `openssl rand -hex 16`.
+To disable payload encryption, set `general.aesEnable: false` in both the agent
+and server configuration. This setting is independent of `general.tlsEnable`;
+without either, traffic is not encrypted.
+
+> **Protocol change:** this version uses AES-256-GCM and carries the session and
+> action inside the encrypted body instead of `X-Nipo-*` headers. It is not
+> compatible with older agents, servers or the Android app; upgrade all of them
+> together.
+
 ### Package
 
 #### Install

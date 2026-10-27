@@ -53,7 +53,7 @@ void ServerHandler::makePlainHttpResponse(const std::string &body,
     std::ostringstream outer;
 
     outer << "HTTP/1.1 " << status << "\r\n"
-          << "Content-Type: application/text\r\n"
+          << "Content-Type: application/octet-stream\r\n"
           << "Content-Length: " << body.size() << "\r\n"
           << "Connection: " << connection << "\r\n"
           << "\r\n"
@@ -65,10 +65,12 @@ void ServerHandler::makePlainHttpResponse(const std::string &body,
     connect_ = false;
 }
 
-void ServerHandler::makeEncryptedHttpResponse(const std::string &plainBody,
-                                              const std::string &status,
-                                              const std::string &connection) {
-    BoolStr encryption = aes256Encrypt(plainBody, config_->general().token);
+void ServerHandler::makePayloadHttpResponse(const std::string &plainBody,
+                                            const std::string &status,
+                                            const std::string &connection) {
+    BoolStr encryption = config_->general().aesEnable
+                                 ? aes256Encrypt(plainBody, config_->general().token)
+                                 : BoolStr{true, plainBody};
 
     if (!encryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [ServerHandler] [Encryption Failed] " + encryption.message,
@@ -98,17 +100,6 @@ void ServerHandler::handle() {
     const auto &outerReq = request_->parsedHttpRequest();
 
     const std::string outerRaw = streambufToString(readBuffer_);
-    const auto outerHeaderEnd = outerRaw.find("\r\n\r\n");
-    const std::string outerHeaders =
-            outerHeaderEnd == std::string::npos
-                    ? ""
-                    : outerRaw.substr(0, outerHeaderEnd + 2);
-
-    const std::string session =
-            HttpUtils::getRawHeader(outerHeaders, "X-Nipo-Session");
-
-    const std::string action =
-            HttpUtils::getRawHeader(outerHeaders, "X-Nipo-Action");
 
     std::string requestBody = std::string(outerReq.body());
 
@@ -119,9 +110,10 @@ void ServerHandler::handle() {
     BoolStr decryption{false, std::string("FAILED")};
 
     try {
-        decryption = aes256Decrypt(
-                decode64(requestBody),
-                config_->general().token);
+        const std::string payload = decode64(requestBody);
+        decryption = config_->general().aesEnable
+                             ? aes256Decrypt(payload, config_->general().token)
+                             : BoolStr{true, payload};
     } catch (const std::exception &e) {
         log_->write(
                 "[" + to_string(uuid_) +
@@ -143,8 +135,23 @@ void ServerHandler::handle() {
         return;
     }
 
+    Envelope envelope;
+    if (!parseEnvelope(decryption.message, envelope)) {
+        log_->write(
+                "[" + to_string(uuid_) +
+                        "] [ServerHandler handle] [Invalid Envelope] (agent and server versions or aesEnable may differ)",
+                Log::Level::DEBUG);
+
+        makePlainHttpResponse("", "400 Bad Request", "close");
+        return;
+    }
+
+    const std::string &action = envelope.action;
+    const std::string &session = envelope.session;
+    decryption.message = std::move(envelope.data);
+
     log_->write(
-            "[" + to_string(uuid_) + "] [ServerHandler handle] [Decryption Done]",
+            "[" + to_string(uuid_) + "] [ServerHandler handle] [Payload Decoded]",
             Log::Level::DEBUG);
 
     if (action == "send") {
@@ -160,7 +167,7 @@ void ServerHandler::handle() {
         }
 
         if (!targetClient || !targetClient->isOpen()) {
-            makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+            makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
             return;
         }
 
@@ -168,7 +175,7 @@ void ServerHandler::handle() {
         copyStringToStreambuf(hexToASCII(decryption.message), tunnelBuf);
         targetClient->doWrite(tunnelBuf);
 
-        makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+        makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
         return;
     }
 
@@ -185,7 +192,7 @@ void ServerHandler::handle() {
         }
 
         if (!targetClient || !targetClient->isOpen()) {
-            makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+            makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
             return;
         }
 
@@ -193,7 +200,7 @@ void ServerHandler::handle() {
         std::size_t available = targetClient->socket().available(ec);
 
         if (ec || available == 0) {
-            makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+            makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
             return;
         }
 
@@ -203,11 +210,11 @@ void ServerHandler::handle() {
                 ec);
 
         if (ec || n == 0) {
-            makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+            makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
             return;
         }
 
-        makeEncryptedHttpResponse(
+        makePayloadHttpResponse(
                 std::string(data.data(), n),
                 "200 OK",
                 (config_->general().connectionReuse ? "keep-alive" : "close"));
@@ -224,7 +231,7 @@ void ServerHandler::handle() {
             sessions_.erase(it);
         }
 
-        makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+        makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
         return;
     }
 
@@ -238,7 +245,7 @@ void ServerHandler::handle() {
                         "] [ServerHandler handle] [INNER REQUEST MISSING HEADER END]",
                 Log::Level::DEBUG);
 
-        makeEncryptedHttpResponse("", "400 Bad Request", "close");
+        makePayloadHttpResponse("", "400 Bad Request", "close");
         return;
     }
 
@@ -256,7 +263,7 @@ void ServerHandler::handle() {
                         streambufToString(readBuffer_),
                 Log::Level::DEBUG);
 
-        makeEncryptedHttpResponse("", "400 Bad Request", "close");
+        makePayloadHttpResponse("", "400 Bad Request", "close");
         return;
     }
 
@@ -271,7 +278,7 @@ void ServerHandler::handle() {
                                     inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                             Log::Level::INFO);
 
-                    makeEncryptedHttpResponse(
+                    makePayloadHttpResponse(
                             "HTTP/1.1 502 Bad Gateway\r\n\r\n",
                             "502 Bad Gateway",
                             "close");
@@ -288,7 +295,7 @@ void ServerHandler::handle() {
                                 inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                         Log::Level::INFO);
 
-                makeEncryptedHttpResponse(
+                makePayloadHttpResponse(
                         "HTTP/1.1 200 Connection Established\r\n\r\n",
                         "200 OK",
                         "keep-alive");
@@ -314,7 +321,7 @@ void ServerHandler::handle() {
                                 inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                         Log::Level::INFO);
 
-                makeEncryptedHttpResponse(
+                makePayloadHttpResponse(
                         "HTTP/1.1 502 Bad Gateway\r\n\r\n",
                         "502 Bad Gateway",
                         "close");
@@ -342,7 +349,7 @@ void ServerHandler::handle() {
                 sessions_[session.empty() ? to_string(uuid_) : session] = targetClient;
             }
 
-            makeEncryptedHttpResponse(
+            makePayloadHttpResponse(
                     "HTTP/1.1 200 Connection Established\r\n\r\n",
                     "200 OK",
                     "keep-alive");
@@ -359,7 +366,7 @@ void ServerHandler::handle() {
             if (!client_->socket().is_open()) {
                 if (!client_->doConnect(inner->dstIp(), inner->dstPort())) {
                     client_->socket().close();
-                    makeEncryptedHttpResponse("", "502 Bad Gateway", "close");
+                    makePayloadHttpResponse("", "502 Bad Gateway", "close");
                     return;
                 }
             }
@@ -369,11 +376,11 @@ void ServerHandler::handle() {
 
             if (client_->readBuffer().size() == 0) {
                 client_->socket().close();
-                makeEncryptedHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+                makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
                 return;
             }
 
-            makeEncryptedHttpResponse(
+            makePayloadHttpResponse(
                     streambufToString(client_->readBuffer()),
                     "200 OK",
                     (config_->general().connectionReuse ? "keep-alive" : "close"));

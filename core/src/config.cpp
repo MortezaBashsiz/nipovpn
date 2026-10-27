@@ -18,6 +18,7 @@ Config::Config(RunMode mode, const std::string &filePath)
                 configYaml_["general"]["pullTimeout"].as<unsigned short>(1),
                 configYaml_["general"]["tunnelEnable"].as<bool>(false),
                 configYaml_["general"]["connectionReuse"].as<bool>(false),
+                configYaml_["general"]["aesEnable"].as<bool>(true),
                 configYaml_["general"]["tlsEnable"].as<bool>(false),
                 configYaml_["general"]["tlsVerifyPeer"].as<bool>(false),
                 configYaml_["general"]["tlsCertFile"].as<std::string>(""),
@@ -74,7 +75,7 @@ std::string Config::toString() const {
 
     ss << "\nConfig :\n"
        << " General :\n"
-       << "   token: " << general_.token << "\n"
+       << "   token: " << (general_.token.empty() ? "" : "<hidden>") << "\n"
        << "   protocol: " << general_.protocol << "\n"
        << "   bufferSize: " << general_.bufferSize << "\n"
        << "   fakeUrls: ";
@@ -114,6 +115,7 @@ std::string Config::toString() const {
        << "   pullTimeout: " << general_.pullTimeout << "\n"
        << "   tunnelEnable: " << std::boolalpha << general_.tunnelEnable << "\n"
        << "   connectionReuse: " << std::boolalpha << general_.connectionReuse << "\n"
+       << "   aesEnable: " << std::boolalpha << general_.aesEnable << "\n"
        << "   tlsEnable: " << std::boolalpha << general_.tlsEnable << "\n"
        << "   tlsVerifyPeer: " << std::boolalpha << general_.tlsVerifyPeer << "\n"
        << "   tlsCertFile: " << general_.tlsCertFile << "\n"
