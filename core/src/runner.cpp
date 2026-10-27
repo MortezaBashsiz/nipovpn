@@ -25,6 +25,13 @@ void Runner::run() {
         log_->write("Config initialized in " + config_->modeToString() + " mode", Log::Level::INFO);
         log_->write(config_->toString(), Log::Level::INFO);
 
+        if (config_->general().aesEnable && config_->general().token == SampleToken) {
+            log_->write(
+                    "[WARNING] general.token is the public sample token; "
+                    "set a unique random token on both agent and server",
+                    Log::Level::ERROR);
+        }
+
         auto tcpServer = TCPServer::create(io_context_, config_, log_);
 
         for (auto i = 0; i < config_->threads(); ++i) {

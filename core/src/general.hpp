@@ -25,6 +25,8 @@
 #include <vector>
 
 static constexpr std::size_t BufferSize = 65536;
+static constexpr std::size_t MinTokenLength = 32;
+static constexpr const char *SampleToken = "af445adb-2434-4975-9445-2c1b2231";
 
 class Uncopyable {
 public:
@@ -184,19 +186,29 @@ inline std::string encode64(const std::string &inputStr) {
     return encoded;
 }
 
+static constexpr std::size_t AesGcmNonceLength = 12;
+static constexpr std::size_t AesGcmTagLength = 16;
+
+inline std::string deriveAesKey(const std::string &token) {
+    unsigned char digest[EVP_MAX_MD_SIZE];
+    unsigned int digestLen = 0;
+    EVP_Digest(token.data(), token.size(), digest, &digestLen, EVP_sha256(), NULL);
+    return std::string(reinterpret_cast<char *>(digest), digestLen);
+}
+
 inline BoolStr aes256Encrypt(const std::string &plaintext,
-                             const std::string &key) {
+                             const std::string &token) {
     BoolStr result{false, "Encryption failed"};
 
-    unsigned char iv[EVP_MAX_IV_LENGTH];
-    if (!RAND_bytes(iv, sizeof(iv))) {
-        result.message = "IV generation failed";
+    const std::string key = deriveAesKey(token);
+
+    unsigned char nonce[AesGcmNonceLength];
+    if (!RAND_bytes(nonce, sizeof(nonce))) {
+        result.message = "Nonce generation failed";
         return result;
     }
 
-    int ciphertext_len =
-            plaintext.size() + EVP_CIPHER_block_size(EVP_aes_256_cbc());
-    std::vector<unsigned char> ciphertext(ciphertext_len);
+    std::vector<unsigned char> ciphertext(plaintext.size());
 
     using EvpCipherCtxPtr = std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)>;
     EvpCipherCtxPtr ctx(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
@@ -205,22 +217,24 @@ inline BoolStr aes256Encrypt(const std::string &plaintext,
         return result;
     }
 
-    if (EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_cbc(), NULL,
-                           reinterpret_cast<const unsigned char *>(key.c_str()),
-                           iv) != 1) {
+    if (EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_gcm(), NULL, NULL, NULL) != 1 ||
+        EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_IVLEN, AesGcmNonceLength, NULL) != 1 ||
+        EVP_EncryptInit_ex(ctx.get(), NULL, NULL,
+                           reinterpret_cast<const unsigned char *>(key.data()),
+                           nonce) != 1) {
         result.message = "Encryption initialization failed";
         return result;
     }
 
-    int len;
+    int len = 0;
     if (EVP_EncryptUpdate(
                 ctx.get(), ciphertext.data(), &len,
-                reinterpret_cast<const unsigned char *>(plaintext.c_str()),
+                reinterpret_cast<const unsigned char *>(plaintext.data()),
                 plaintext.size()) != 1) {
         result.message = "Encryption update failed";
         return result;
     }
-    ciphertext_len = len;
+    int ciphertext_len = len;
 
     if (EVP_EncryptFinal_ex(ctx.get(), ciphertext.data() + len, &len) != 1) {
         result.message = "Encryption finalization failed";
@@ -228,28 +242,38 @@ inline BoolStr aes256Encrypt(const std::string &plaintext,
     }
     ciphertext_len += len;
 
-    std::string final_result(reinterpret_cast<char *>(iv), sizeof(iv));
-    final_result.append(reinterpret_cast<char *>(ciphertext.data()),
-                        ciphertext_len);
+    unsigned char tag[AesGcmTagLength];
+    if (EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_GET_TAG, AesGcmTagLength, tag) != 1) {
+        result.message = "Tag generation failed";
+        return result;
+    }
+
+    std::string final_result(reinterpret_cast<char *>(nonce), sizeof(nonce));
+    final_result.append(reinterpret_cast<char *>(ciphertext.data()), ciphertext_len);
+    final_result.append(reinterpret_cast<char *>(tag), sizeof(tag));
 
     result.ok = true;
     result.message = final_result;
     return result;
 }
 
-inline BoolStr aes256Decrypt(const std::string &ciphertext_with_iv,
-                             const std::string &key) {
+inline BoolStr aes256Decrypt(const std::string &sealed,
+                             const std::string &token) {
     BoolStr result{false, "Decryption failed"};
 
-    unsigned char iv[EVP_MAX_IV_LENGTH];
-    std::memcpy(iv, ciphertext_with_iv.c_str(),
-                EVP_CIPHER_iv_length(EVP_aes_256_cbc()));
+    if (sealed.size() < AesGcmNonceLength + AesGcmTagLength) {
+        result.message = "Ciphertext too short";
+        return result;
+    }
 
-    std::string ciphertext =
-            ciphertext_with_iv.substr(EVP_CIPHER_iv_length(EVP_aes_256_cbc()));
+    const std::string key = deriveAesKey(token);
 
-    int max_plaintext_len = ciphertext.size();
-    std::vector<unsigned char> plaintext(max_plaintext_len);
+    const auto *nonce = reinterpret_cast<const unsigned char *>(sealed.data());
+    const auto *ciphertext = nonce + AesGcmNonceLength;
+    const std::size_t ciphertextLen = sealed.size() - AesGcmNonceLength - AesGcmTagLength;
+    std::string tag = sealed.substr(sealed.size() - AesGcmTagLength);
+
+    std::vector<unsigned char> plaintext(ciphertextLen);
 
     using EvpCipherCtxPtr = std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)>;
     EvpCipherCtxPtr ctx(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
@@ -258,25 +282,31 @@ inline BoolStr aes256Decrypt(const std::string &ciphertext_with_iv,
         return result;
     }
 
-    if (EVP_DecryptInit_ex(ctx.get(), EVP_aes_256_cbc(), NULL,
-                           reinterpret_cast<const unsigned char *>(key.c_str()),
-                           iv) != 1) {
+    if (EVP_DecryptInit_ex(ctx.get(), EVP_aes_256_gcm(), NULL, NULL, NULL) != 1 ||
+        EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_IVLEN, AesGcmNonceLength, NULL) != 1 ||
+        EVP_DecryptInit_ex(ctx.get(), NULL, NULL,
+                           reinterpret_cast<const unsigned char *>(key.data()),
+                           nonce) != 1) {
         result.message = "Decryption initialization failed";
         return result;
     }
 
-    int len;
-    if (EVP_DecryptUpdate(
-                ctx.get(), plaintext.data(), &len,
-                reinterpret_cast<const unsigned char *>(ciphertext.c_str()),
-                ciphertext.size()) != 1) {
+    int len = 0;
+    if (EVP_DecryptUpdate(ctx.get(), plaintext.data(), &len, ciphertext,
+                          ciphertextLen) != 1) {
         result.message = "Decryption update failed";
         return result;
     }
     int plaintext_len = len;
 
+    if (EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_TAG, AesGcmTagLength,
+                            tag.data()) != 1) {
+        result.message = "Setting tag failed";
+        return result;
+    }
+
     if (EVP_DecryptFinal_ex(ctx.get(), plaintext.data() + len, &len) != 1) {
-        result.message = "Decryption finalization failed";
+        result.message = "Authentication failed (wrong token or tampered payload)";
         return result;
     }
     plaintext_len += len;
@@ -286,6 +316,31 @@ inline BoolStr aes256Decrypt(const std::string &ciphertext_with_iv,
             std::string(reinterpret_cast<char *>(plaintext.data()), plaintext_len);
 
     return result;
+}
+
+inline std::string makeEnvelope(const std::string &action,
+                                const std::string &session,
+                                const std::string &data) {
+    return action + "\n" + session + "\n" + data;
+}
+
+struct Envelope {
+    std::string action;
+    std::string session;
+    std::string data;
+};
+
+inline bool parseEnvelope(const std::string &raw, Envelope &out) {
+    const auto actionEnd = raw.find('\n');
+    if (actionEnd == std::string::npos) return false;
+
+    const auto sessionEnd = raw.find('\n', actionEnd + 1);
+    if (sessionEnd == std::string::npos) return false;
+
+    out.action = raw.substr(0, actionEnd);
+    out.session = raw.substr(actionEnd + 1, sessionEnd - actionEnd - 1);
+    out.data = raw.substr(sessionEnd + 1);
+    return true;
 }
 
 inline BoolStr validateConfig(int argc, const char *argv[]) {
@@ -368,6 +423,12 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
 
     if (configYaml["general"]["bufferSize"].as<unsigned int>() < 1 || configYaml["general"]["bufferSize"].as<unsigned int>() > 65536) {
         result.message = "bufferSize must be between 1 and 65536\n";
+        return result;
+    }
+
+    if (configYaml["general"]["aesEnable"].as<bool>(true) &&
+        configYaml["general"]["token"].as<std::string>().size() < MinTokenLength) {
+        result.message = "token must be at least 32 bytes when aesEnable is true\n";
         return result;
     }
 
