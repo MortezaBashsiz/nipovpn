@@ -25,9 +25,7 @@
 #include <vector>
 
 static constexpr std::size_t BufferSize = 65536;
-// Minimum token length; the AES key is derived from the whole token with SHA-256.
 static constexpr std::size_t MinTokenLength = 32;
-// Token shipped in the sample config; anyone can read it, so warn when it is used.
 static constexpr const char *SampleToken = "af445adb-2434-4975-9445-2c1b2231";
 
 class Uncopyable {
@@ -188,9 +186,6 @@ inline std::string encode64(const std::string &inputStr) {
     return encoded;
 }
 
-// Payload encryption is AES-256-GCM. The key is SHA-256(token), and the wire
-// format is nonce (12 bytes) || ciphertext || tag (16 bytes). The tag makes any
-// tampering with the payload fail decryption.
 static constexpr std::size_t AesGcmNonceLength = 12;
 static constexpr std::size_t AesGcmTagLength = 16;
 
@@ -323,8 +318,6 @@ inline BoolStr aes256Decrypt(const std::string &sealed,
     return result;
 }
 
-// Agent -> server request payload: "<action>\n<session>\n<data>". It is carried
-// inside the (encrypted) body so no custom headers are needed on the wire.
 inline std::string makeEnvelope(const std::string &action,
                                 const std::string &session,
                                 const std::string &data) {

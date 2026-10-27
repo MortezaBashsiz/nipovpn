@@ -148,6 +148,7 @@ private:
     bool tunnelMode_;
     bool tunnelClosed_;
     bool pollInProgress_;
+    unsigned int pollDelayMs_;
     std::atomic_bool closed_{false};
 
     std::array<char, BufferSize> downstreamBuf_;

@@ -29,6 +29,11 @@ TCPConnection::TCPConnection(boost::asio::io_context &io_context,
     connect_ = false;
     tunnelClosed_ = false;
     pollInProgress_ = false;
+    pollDelayMs_ = 0;
+}
+
+namespace {
+    constexpr unsigned int MaxPollDelayMs = 50;
 }
 
 boost::asio::ip::tcp::socket &TCPConnection::socket() { return socket_; }
@@ -299,6 +304,7 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
                                         self->client_->socketShutdown();
                                     }
 
+                                    self->pollDelayMs_ = self->config_->general().pullTimeout;
                                     self->startTunnelReadFromClient();
                                     self->startTunnelPollServer();
                                 }
@@ -692,6 +698,10 @@ void TCPConnection::startTunnelReadFromClient() {
                         std::string raw(self->downstreamBuf_.data(), bytes);
 
                         self->postTunnelAction("send", raw);
+
+                        self->pollDelayMs_ = self->config_->general().pullTimeout;
+                        if (self->pollInProgress_) self->pollTimer_.cancel();
+
                         self->startTunnelReadFromClient();
                     }));
 }
@@ -701,16 +711,29 @@ void TCPConnection::startTunnelPollServer() {
 
     pollInProgress_ = true;
 
-    pollTimer_.expires_after(std::chrono::milliseconds(config_->general().pullTimeout));
+    pollTimer_.expires_after(std::chrono::milliseconds(pollDelayMs_));
     pollTimer_.async_wait(
             boost::asio::bind_executor(
                     strand_,
                     [self = shared_from_this()](const boost::system::error_code &ec) {
                         self->pollInProgress_ = false;
 
-                        if (ec || self->tunnelClosed_ || !self->socket_.is_open()) return;
+                        if (self->tunnelClosed_ || !self->socket_.is_open()) return;
+
+                        if (ec == boost::asio::error::operation_aborted) {
+                            self->startTunnelPollServer();
+                            return;
+                        }
+
+                        if (ec) return;
 
                         std::string data = self->postTunnelAction("recv", "");
+
+                        const unsigned int baseDelay = self->config_->general().pullTimeout;
+                        self->pollDelayMs_ =
+                                data.empty()
+                                        ? std::min(std::max(self->pollDelayMs_ * 2, 1u), std::max(MaxPollDelayMs, baseDelay))
+                                        : baseDelay;
 
                         if (!data.empty()) {
                             boost::asio::async_write(

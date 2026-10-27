@@ -18,9 +18,6 @@
 
 namespace {
 
-    // Connects with a deadline enforced by poll() on the socket itself. The asio
-    // timer in resetTimeout() cannot do this: it needs a free io_context thread to
-    // fire, and blocking connects to unreachable hosts can occupy all of them.
     template<typename Socket>
     void connectWithTimeout(Socket &socket,
                             const boost::asio::ip::tcp::resolver::results_type &endpoints,
@@ -44,8 +41,6 @@ namespace {
             socket.native_non_blocking(true, ec);
             if (ec) continue;
 
-            // asio's synchronous connect() waits without a limit on EINPROGRESS,
-            // so the non-blocking connect is issued on the native handle directly.
             const auto endpoint = entry.endpoint();
             const bool started =
                     ::connect(socket.native_handle(), endpoint.data(),
@@ -94,7 +89,7 @@ namespace {
         socket.close(ignored);
     }
 
-}// namespace
+}
 
 TCPClient::TCPClient(boost::asio::io_context &io_context,
                      const std::shared_ptr<Config> &config,
