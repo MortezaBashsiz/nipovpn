@@ -50,9 +50,9 @@ private:
                            std::string clientConnStr,
                            boost::uuids::uuid uuid);
 
-    void makeEncryptedHttpResponse(const std::string &plainBody,
-                                   const std::string &status = "200 OK",
-                                   const std::string &connection = "close");
+    void makePayloadHttpResponse(const std::string &plainBody,
+                                 const std::string &status = "200 OK",
+                                 const std::string &connection = "close");
 
     void makePlainHttpResponse(const std::string &body,
                                const std::string &status = "200 OK",

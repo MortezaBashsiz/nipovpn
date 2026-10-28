@@ -187,32 +187,46 @@ jobs:
             texinfo \
             jq
 
-      - name: Install Android NDK r29
+      - name: Clone termux-packages
         run: |
+          git clone --depth=1 https://github.com/termux/termux-packages.git
+
+      - name: Install Android NDK required by termux-packages
+        run: |
+          NDK_NUM="$(sed -n 's/^: "${TERMUX_NDK_VERSION_NUM:="\([0-9]*\)"}"/\1/p' termux-packages/scripts/properties.sh)"
+          NDK_REV="$(sed -n 's/^: "${TERMUX_NDK_REVISION:="\([a-z]*\)"}"/\1/p' termux-packages/scripts/properties.sh)"
+
+          if [ -z "$NDK_NUM" ]; then
+            echo "Could not read the NDK version from termux-packages/scripts/properties.sh"
+            grep -n NDK termux-packages/scripts/properties.sh || true
+            exit 1
+          fi
+
+          NDK_VERSION="r${NDK_NUM}${NDK_REV}"
+          echo "termux-packages requires Android NDK $NDK_VERSION"
+
           mkdir -p "$HOME/lib"
           cd "$HOME/lib"
 
-          wget -q https://dl.google.com/android/repository/android-ndk-r29-linux.zip
-          unzip -q android-ndk-r29-linux.zip
+          wget -q "https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux.zip"
+          unzip -q "android-ndk-${NDK_VERSION}-linux.zip"
 
-          EXTRACTED_DIR="$(find "$HOME/lib" -maxdepth 1 -type d -name 'android-ndk-r29*' | head -n 1)"
+          EXTRACTED_DIR="$(find "$HOME/lib" -maxdepth 1 -type d -name "android-ndk-${NDK_VERSION}*" | head -n 1)"
 
           if [ -z "$EXTRACTED_DIR" ]; then
-            echo "Android NDK r29 directory not found"
+            echo "Android NDK $NDK_VERSION directory not found"
             ls -lah "$HOME/lib"
             exit 1
           fi
 
-          ln -sfn "$EXTRACTED_DIR" "$HOME/lib/android-ndk-r29"
+          if [ "$EXTRACTED_DIR" != "$HOME/lib/android-ndk-${NDK_VERSION}" ]; then
+            ln -sfn "$EXTRACTED_DIR" "$HOME/lib/android-ndk-${NDK_VERSION}"
+          fi
 
-          echo "NDK=$HOME/lib/android-ndk-r29" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_ROOT=$HOME/lib/android-ndk-r29" >> "$GITHUB_ENV"
+          echo "NDK=$HOME/lib/android-ndk-${NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$HOME/lib/android-ndk-${NDK_VERSION}" >> "$GITHUB_ENV"
 
-          ls -ld "$HOME/lib/android-ndk-r29"
-
-      - name: Clone termux-packages
-        run: |
-          git clone --depth=1 https://github.com/termux/termux-packages.git
+          ls -ld "$HOME/lib/android-ndk-${NDK_VERSION}"
 
       - name: Create Termux package recipe
         run: |

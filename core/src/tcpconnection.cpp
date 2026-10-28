@@ -29,6 +29,11 @@ TCPConnection::TCPConnection(boost::asio::io_context &io_context,
     connect_ = false;
     tunnelClosed_ = false;
     pollInProgress_ = false;
+    pollDelayMs_ = 0;
+}
+
+namespace {
+    constexpr unsigned int MaxPollDelayMs = 50;
 }
 
 boost::asio::ip::tcp::socket &TCPConnection::socket() { return socket_; }
@@ -299,6 +304,7 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
                                         self->client_->socketShutdown();
                                     }
 
+                                    self->pollDelayMs_ = self->config_->general().pullTimeout;
                                     self->startTunnelReadFromClient();
                                     self->startTunnelPollServer();
                                 }
@@ -461,11 +467,13 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
             }
         }
 
-        BoolStr enc = aes256Encrypt(
-                hexArrToStr(
-                        reinterpret_cast<const unsigned char *>(rawBody.data()),
-                        rawBody.size()),
-                config_->general().token);
+        const std::string payload = makeEnvelope(
+                action, to_string(uuid_),
+                hexArrToStr(reinterpret_cast<const unsigned char *>(rawBody.data()),
+                            rawBody.size()));
+        BoolStr enc = config_->general().aesEnable
+                              ? aes256Encrypt(payload, config_->general().token)
+                              : BoolStr{true, payload};
 
         if (!enc.ok) return "";
 
@@ -480,9 +488,7 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
             << "Host: " << makeRelayHostHeader() << "\r\n"
             << "User-Agent: " << config_->agent().userAgent << "\r\n"
             << "Accept: */*\r\n"
-            << "Content-Type: application/text\r\n"
-            << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
-            << "X-Nipo-Action: " << action << "\r\n"
+            << "Content-Type: text/plain; charset=utf-8\r\n"
             << "Content-Length: " << encodedBody.size() << "\r\n"
             << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
             << "\r\n"
@@ -536,10 +542,12 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
     const auto pos = response.find("\r\n\r\n");
     if (pos == std::string::npos) return "";
 
-    const std::string encryptedBody = response.substr(pos + 4);
-    if (encryptedBody.empty()) return "";
+    const std::string responseBody = response.substr(pos + 4);
+    if (responseBody.empty()) return "";
 
-    BoolStr dec = aes256Decrypt(encryptedBody, config_->general().token);
+    BoolStr dec = config_->general().aesEnable
+                          ? aes256Decrypt(responseBody, config_->general().token)
+                          : BoolStr{true, responseBody};
     if (!dec.ok) return "";
 
     return dec.message;
@@ -690,6 +698,10 @@ void TCPConnection::startTunnelReadFromClient() {
                         std::string raw(self->downstreamBuf_.data(), bytes);
 
                         self->postTunnelAction("send", raw);
+
+                        self->pollDelayMs_ = self->config_->general().pullTimeout;
+                        if (self->pollInProgress_) self->pollTimer_.cancel();
+
                         self->startTunnelReadFromClient();
                     }));
 }
@@ -699,16 +711,29 @@ void TCPConnection::startTunnelPollServer() {
 
     pollInProgress_ = true;
 
-    pollTimer_.expires_after(std::chrono::milliseconds(config_->general().pullTimeout));
+    pollTimer_.expires_after(std::chrono::milliseconds(pollDelayMs_));
     pollTimer_.async_wait(
             boost::asio::bind_executor(
                     strand_,
                     [self = shared_from_this()](const boost::system::error_code &ec) {
                         self->pollInProgress_ = false;
 
-                        if (ec || self->tunnelClosed_ || !self->socket_.is_open()) return;
+                        if (self->tunnelClosed_ || !self->socket_.is_open()) return;
+
+                        if (ec == boost::asio::error::operation_aborted) {
+                            self->startTunnelPollServer();
+                            return;
+                        }
+
+                        if (ec) return;
 
                         std::string data = self->postTunnelAction("recv", "");
+
+                        const unsigned int baseDelay = self->config_->general().pullTimeout;
+                        self->pollDelayMs_ =
+                                data.empty()
+                                        ? std::min(std::max(self->pollDelayMs_ * 2, 1u), std::max(MaxPollDelayMs, baseDelay))
+                                        : baseDelay;
 
                         if (!data.empty()) {
                             boost::asio::async_write(

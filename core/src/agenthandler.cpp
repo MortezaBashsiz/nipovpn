@@ -76,8 +76,15 @@ void AgentHandler::handle() {
         }
     }
 
+    const std::string action =
+            request_->httpType() == HTTP::HttpType::connect ? "open" : "request";
+
     BoolStr encryption{false, std::string("FAILED")};
-    encryption = aes256Encrypt(hexStreambufToStr(readBuffer_), config_->general().token);
+    const std::string payload =
+            makeEnvelope(action, to_string(uuid_), hexStreambufToStr(readBuffer_));
+    encryption = config_->general().aesEnable
+                         ? aes256Encrypt(payload, config_->general().token)
+                         : BoolStr{true, payload};
     if (!encryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Failed] : [ " +
                             encryption.message + "] ",
@@ -87,8 +94,6 @@ void AgentHandler::handle() {
     }
 
     const std::string innerRequest = encode64(encryption.message);
-    const std::string action =
-            request_->httpType() == HTTP::HttpType::connect ? "open" : "request";
 
     std::ostringstream outer;
     const bool directTunnelOpen =
@@ -99,9 +104,7 @@ void AgentHandler::handle() {
           << "Host: " << relayHostHeader(config_) << "\r\n"
           << "User-Agent: " << config_->agent().userAgent << "\r\n"
           << "Accept: */*\r\n"
-          << "Content-Type: application/text\r\n"
-          << "X-Nipo-Session: " << to_string(uuid_) << "\r\n"
-          << "X-Nipo-Action: " << action << "\r\n"
+          << "Content-Type: text/plain; charset=utf-8\r\n"
           << "Content-Length: " << innerRequest.size() << "\r\n"
           << "Connection: "
           << ((config_->general().connectionReuse || directTunnelOpen) ? "keep-alive" : "close")
@@ -129,14 +132,16 @@ void AgentHandler::handle() {
         return;
     }
 
-    const std::string encryptedBody = outerResponse.substr(bodyPos + 4);
-    if (encryptedBody.empty()) {
+    const std::string responseBody = outerResponse.substr(bodyPos + 4);
+    if (responseBody.empty()) {
         client_->socketShutdown();
         return;
     }
 
     BoolStr decryption{false, std::string("FAILED")};
-    decryption = aes256Decrypt(encryptedBody, config_->general().token);
+    decryption = config_->general().aesEnable
+                         ? aes256Decrypt(responseBody, config_->general().token)
+                         : BoolStr{true, responseBody};
     if (!decryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Failed] : [ " +
                             decryption.message + "] ",
@@ -146,7 +151,7 @@ void AgentHandler::handle() {
     }
 
     copyStringToStreambuf(decryption.message, writeBuffer_);
-    log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Done]",
+    log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Payload Decoded]",
                 Log::Level::DEBUG);
 
     connect_ = request_->httpType() == HTTP::HttpType::connect;
