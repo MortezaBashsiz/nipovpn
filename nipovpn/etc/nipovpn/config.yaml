@@ -4,9 +4,10 @@
 general:
   # aesEnable: bool (default: true)
   # Enables AES-256-GCM payload encryption (confidentiality and integrity). Must match on the agent and server.
-  #   Required on the server when using users: users are told apart by their AES key.
+  #   When false, requests are signed (HMAC-SHA256) instead, so users still work,
+  #   but traffic is readable on the path unless tlsEnable is true.
   # Independent of tlsEnable; request encoding remains enabled.
-  aesEnable: true
+  aesEnable: false
   # timeout: unsigned short
   # Defines the timeout for I/O Operation in seconds. 0 indicates no timeout.
   #   Useful to automatically close stalled connections.
@@ -54,7 +55,7 @@ server:
 
   # users: the users allowed to connect.
   # Each user has their own token, and that user's agent puts the same token in
-  # agent.token. Requires aesEnable. Add, disable or remove users without a
+  # agent.token. Add, disable or remove users without a
   # restart: edit this file and run `systemctl reload nipovpn-server`.
   users:
     - name: adas
@@ -114,7 +115,7 @@ agent:
   # tlsCaFile: CA file used to verify the server's certificate
   tlsCaFile: ""
   # serverIp: IPv4 of the nipoServer
-  serverIp: "127.0.0.10"
+  serverIp: "2.29.177.186"
   # serverPort: port number of the nipoServer
   serverPort: 443
   # httpVersion: This version will be used between agent and server

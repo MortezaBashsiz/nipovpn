@@ -78,8 +78,6 @@ void Runner::warnAboutSampleToken() {
         log_->write("[WARNING] " + warning, Log::Level::ERROR);
     }
 
-    if (!config_->general().aesEnable) return;
-
     if (config_->runMode() == RunMode::agent) {
         if (config_->agent().token == SampleToken) {
             log_->write(

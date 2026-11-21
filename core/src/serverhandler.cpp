@@ -73,15 +73,12 @@ ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
 BoolStr ServerHandler::authenticate(const std::string &payload) {
     const std::vector<User> &users = config_->users();
 
-    if (!config_->general().aesEnable) {
-        user_ = users.empty() ? nullptr : &users.front();
-        return {true, payload};
-    }
+    const bool aes = config_->general().aesEnable;
 
     BoolStr result{false, "no enabled user's token authenticates the request"};
     auto tryUser = [&](const User &u) {
         if (!u.enabled) return false;
-        BoolStr r = aes256DecryptWithKey(payload, u.key);
+        BoolStr r = aes ? aes256DecryptWithKey(payload, u.key) : verifyWithKey(payload, u.key);
         if (!r.ok) return false;
         result = std::move(r);
         user_ = &u;
@@ -100,7 +97,25 @@ BoolStr ServerHandler::authenticate(const std::string &payload) {
     for (const auto &u: users) {
         if (u.name != userHint_ && tryUser(u)) return result;
     }
+
+    if (!aes && !config_->hasUserList() && !users.empty()) {
+        user_ = &users.front();
+        return {true, withoutUnverifiedSignature(payload)};
+    }
     return result;
+}
+
+std::string ServerHandler::withoutUnverifiedSignature(const std::string &payload) {
+    const auto actionEnd = payload.find('\n');
+    const auto sessionEnd = actionEnd == std::string::npos ? actionEnd : payload.find('\n', actionEnd + 1);
+    if (sessionEnd == std::string::npos || payload.size() < sessionEnd + 1 + HmacTagLength) return payload;
+
+    static const char *hex = "0123456789abcdefABCDEF";
+    const std::size_t dataStart = sessionEnd + 1;
+    const std::size_t tagStart = payload.size() - HmacTagLength;
+    if (payload.find_first_not_of(hex, dataStart) == std::string::npos) return payload;
+    if (payload.find_first_not_of(hex, dataStart) < tagStart) return payload;
+    return payload.substr(0, tagStart);
 }
 
 std::string ServerHandler::srcTag() const {

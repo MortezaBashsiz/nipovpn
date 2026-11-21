@@ -511,7 +511,7 @@ std::optional<std::string> TCPConnection::postTunnelAction(const std::string &ac
                             rawBody.size()));
         BoolStr enc = config_->general().aesEnable
                               ? aes256Encrypt(payload, config_->agent().token)
-                              : BoolStr{true, payload};
+                              : BoolStr{true, signWithKey(payload, deriveAesKey(config_->agent().token))};
 
         if (!enc.ok) return "";
 

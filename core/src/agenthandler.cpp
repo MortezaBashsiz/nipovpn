@@ -84,7 +84,7 @@ void AgentHandler::handle() {
             makeEnvelope(action, to_string(uuid_), hexStreambufToStr(readBuffer_));
     encryption = config_->general().aesEnable
                          ? aes256Encrypt(payload, config_->agent().token)
-                         : BoolStr{true, payload};
+                         : BoolStr{true, signWithKey(payload, deriveAesKey(config_->agent().token))};
     if (!encryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Failed] : [ " +
                             encryption.message + "] ",
