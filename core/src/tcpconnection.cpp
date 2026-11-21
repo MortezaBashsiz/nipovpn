@@ -36,6 +36,40 @@ namespace {
     constexpr unsigned int MaxPollDelayMs = 50;
 }
 
+std::mutex TCPConnection::registryMutex_;
+std::unordered_map<std::string, std::vector<std::weak_ptr<TCPConnection>>> TCPConnection::byUser_;
+
+void TCPConnection::trackUser(const std::string &user) {
+    if (user.empty() || user == trackedUser_) return;
+    trackedUser_ = user;
+
+    std::lock_guard<std::mutex> lock(registryMutex_);
+    auto &list = byUser_[user];
+    list.erase(std::remove_if(list.begin(), list.end(),
+                              [](const std::weak_ptr<TCPConnection> &w) { return w.expired(); }),
+               list.end());
+    list.push_back(weak_from_this());
+}
+
+std::size_t TCPConnection::revokeUsers(const std::vector<std::string> &users) {
+    std::vector<pointer> open;
+    {
+        std::lock_guard<std::mutex> lock(registryMutex_);
+        for (const auto &name: users) {
+            auto it = byUser_.find(name);
+            if (it == byUser_.end()) continue;
+            for (const auto &w: it->second) {
+                if (auto conn = w.lock()) open.push_back(conn);
+            }
+            byUser_.erase(it);
+        }
+    }
+    for (const auto &conn: open) {
+        boost::asio::post(conn->strand_, [conn] { conn->socketShutdown(); });
+    }
+    return open.size();
+}
+
 boost::asio::ip::tcp::socket &TCPConnection::socket() { return socket_; }
 
 TCPConnection::ssl_stream &TCPConnection::tlsSocket() { return *tlsSocket_; }
@@ -370,9 +404,11 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
                 log_,
                 client_,
                 remotePeer,
-                uuid_);
+                uuid_,
+                userHint_);
 
         serverHandler_->handle();
+        trackUser(serverHandler_->userName());
 
         end_ = serverHandler_->end_;
         connect_ = serverHandler_->connect_;
@@ -443,8 +479,8 @@ std::string TCPConnection::makeRelayHostHeader() const {
     return hostHeader;
 }
 
-std::string TCPConnection::postTunnelAction(const std::string &action,
-                                            const std::string &rawBody) {
+std::optional<std::string> TCPConnection::postTunnelAction(const std::string &action,
+                                                           const std::string &rawBody) {
     std::lock_guard<std::mutex> relayLock(relayMutex_);
 
     client_->uuid_ = uuid_;
@@ -472,7 +508,7 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
                 hexArrToStr(reinterpret_cast<const unsigned char *>(rawBody.data()),
                             rawBody.size()));
         BoolStr enc = config_->general().aesEnable
-                              ? aes256Encrypt(payload, config_->general().token)
+                              ? aes256Encrypt(payload, config_->agent().token)
                               : BoolStr{true, payload};
 
         if (!enc.ok) return "";
@@ -540,15 +576,22 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
     }
 
     const auto pos = response.find("\r\n\r\n");
-    if (pos == std::string::npos) return "";
+    if (pos == std::string::npos) return std::nullopt;
+
+    // "HTTP/1.1 200 OK": anything but 200 means the server refused the request,
+    // for example because this agent's token is no longer accepted.
+    const auto space = response.find(' ');
+    if (space == std::string::npos || response.compare(space + 1, 3, "200") != 0) {
+        return std::nullopt;
+    }
 
     const std::string responseBody = response.substr(pos + 4);
-    if (responseBody.empty()) return "";
+    if (responseBody.empty()) return std::string();
 
     BoolStr dec = config_->general().aesEnable
-                          ? aes256Decrypt(responseBody, config_->general().token)
+                          ? aes256Decrypt(responseBody, config_->agent().token)
                           : BoolStr{true, responseBody};
-    if (!dec.ok) return "";
+    if (!dec.ok) return std::nullopt;
 
     return dec.message;
 }
@@ -697,7 +740,10 @@ void TCPConnection::startTunnelReadFromClient() {
 
                         std::string raw(self->downstreamBuf_.data(), bytes);
 
-                        self->postTunnelAction("send", raw);
+                        if (!self->postTunnelAction("send", raw)) {
+                            self->abortTunnel("send refused or failed");
+                            return;
+                        }
 
                         self->pollDelayMs_ = self->config_->general().pullTimeout;
                         if (self->pollInProgress_) self->pollTimer_.cancel();
@@ -727,7 +773,12 @@ void TCPConnection::startTunnelPollServer() {
 
                         if (ec) return;
 
-                        std::string data = self->postTunnelAction("recv", "");
+                        std::optional<std::string> reply = self->postTunnelAction("recv", "");
+                        if (!reply) {
+                            self->abortTunnel("recv refused or failed");
+                            return;
+                        }
+                        std::string data = std::move(*reply);
 
                         const unsigned int baseDelay = self->config_->general().pullTimeout;
                         self->pollDelayMs_ =
@@ -755,6 +806,18 @@ void TCPConnection::startTunnelPollServer() {
 
                         self->startTunnelPollServer();
                     }));
+}
+
+void TCPConnection::abortTunnel(const std::string &reason) {
+    if (tunnelClosed_) return;
+
+    log_->write("[" + to_string(uuid_) + "] [TCPConnection] [Tunnel closed] " + reason,
+                Log::Level::INFO);
+
+    // No "close" action: the server has already dropped or refused the session.
+    tunnelClosed_ = true;
+    pollTimer_.cancel();
+    socketShutdown();
 }
 
 void TCPConnection::closeTunnelSession() {

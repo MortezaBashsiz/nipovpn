@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
@@ -31,7 +32,10 @@ public:
 
     std::shared_ptr<Config> config() const { return config_; }
 
-    Level level() const { return level_; }
+    Level level() const { return level_.load(); }
+
+    // Applies log.logLevel from the current config (used after a reload).
+    void applyConfigLevel();
 
     void write(const std::string &message, Level level) const;
 
@@ -40,8 +44,10 @@ private:
 
     static std::string levelToString(Level level);
 
+    static bool parseLevel(const std::string &name, Level &out);
+
     std::shared_ptr<Config> config_;
-    Level level_;
+    std::atomic<Level> level_;
     std::string mode_;
 
     mutable std::mutex logMutex_;

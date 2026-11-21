@@ -4,6 +4,7 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "config.hpp"
 #include "general.hpp"
@@ -21,9 +22,16 @@ public:
                           const std::shared_ptr<Log> &log,
                           TCPClient::pointer client,
                           std::string clientConnStr,
-                          boost::uuids::uuid uuid) {
-        return pointer(new ServerHandler(readBuffer, writeBuffer, config, log, client, clientConnStr, uuid));
+                          boost::uuids::uuid uuid,
+                          std::string &userHint) {
+        return pointer(new ServerHandler(readBuffer, writeBuffer, config, log, client, clientConnStr, uuid, userHint));
     }
+
+    // Closes the polling-mode sessions of these users. Returns how many.
+    static std::size_t revokeSessions(const std::vector<std::string> &users);
+
+    // The user who sent the request, or empty if it was not authenticated.
+    std::string userName() const { return user_ ? user_->name : std::string(); }
 
     ~ServerHandler();
 
@@ -48,7 +56,14 @@ private:
                            const std::shared_ptr<Log> &log,
                            TCPClient::pointer client,
                            std::string clientConnStr,
-                           boost::uuids::uuid uuid);
+                           boost::uuids::uuid uuid,
+                           std::string &userHint);
+
+    // Finds the user whose key authenticates payload and decrypts it.
+    BoolStr authenticate(const std::string &payload);
+
+    // "<client address>] [USER <name>" for log lines of the form "[SRC ...]".
+    std::string srcTag() const;
 
     void makePayloadHttpResponse(const std::string &plainBody,
                                  const std::string &status = "200 OK",
@@ -58,8 +73,13 @@ private:
                                const std::string &status = "200 OK",
                                const std::string &connection = "close");
 
+    struct Session {
+        TCPClient::pointer client;
+        std::string user;
+    };
+
     static std::mutex sessionsMutex_;
-    static std::unordered_map<std::string, TCPClient::pointer> sessions_;
+    static std::unordered_map<std::string, Session> sessions_;
 
     std::shared_ptr<Config> config_;
     std::shared_ptr<Log> log_;
@@ -70,4 +90,9 @@ private:
     std::string clientConnStr_;
     boost::uuids::uuid uuid_;
     std::mutex mutex_;
+
+    // Last user authenticated on this TCP connection; tried first next time.
+    std::string &userHint_;
+    // Points into a config snapshot, which is never freed.
+    const User *user_ = nullptr;
 };
