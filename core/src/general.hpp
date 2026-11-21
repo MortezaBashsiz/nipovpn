@@ -14,6 +14,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <cstdint>
 #include <cstring>
 #include <ctime>
 #include <fstream>
@@ -196,7 +197,6 @@ inline std::string deriveAesKey(const std::string &token) {
     return std::string(reinterpret_cast<char *>(digest), digestLen);
 }
 
-// key is a 32-byte AES-256 key, normally deriveAesKey(token).
 inline BoolStr aes256EncryptWithKey(const std::string &plaintext,
                                     const std::string &key) {
     BoolStr result{false, "Encryption failed"};
@@ -256,7 +256,6 @@ inline BoolStr aes256EncryptWithKey(const std::string &plaintext,
     return result;
 }
 
-// key is a 32-byte AES-256 key, normally deriveAesKey(token).
 inline BoolStr aes256DecryptWithKey(const std::string &sealed,
                                     const std::string &key) {
     BoolStr result{false, "Decryption failed"};
@@ -351,6 +350,69 @@ inline bool parseEnvelope(const std::string &raw, Envelope &out) {
     return true;
 }
 
+inline bool parseByteSize(const std::string &text, std::uint64_t &out) {
+    std::size_t i = 0;
+    while (i < text.size() && text[i] == ' ') ++i;
+    const std::size_t numStart = i;
+    bool dot = false;
+    while (i < text.size() && ((text[i] >= '0' && text[i] <= '9') || (text[i] == '.' && !dot))) {
+        if (text[i] == '.') dot = true;
+        ++i;
+    }
+    if (i == numStart) return false;
+    double value = 0;
+    try {
+        value = std::stod(text.substr(numStart, i - numStart));
+    } catch (const std::exception &) {
+        return false;
+    }
+    while (i < text.size() && text[i] == ' ') ++i;
+    std::string unit = text.substr(i);
+    while (!unit.empty() && unit.back() == ' ') unit.pop_back();
+    for (auto &c: unit) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+    double multiplier = 0;
+    if (unit == "b") multiplier = 1;
+    else if (unit == "kb")
+        multiplier = 1e3;
+    else if (unit == "mb")
+        multiplier = 1e6;
+    else if (unit == "gb")
+        multiplier = 1e9;
+    else if (unit == "tb")
+        multiplier = 1e12;
+    else if (unit == "kib")
+        multiplier = 1024.0;
+    else if (unit == "mib")
+        multiplier = 1024.0 * 1024;
+    else if (unit == "gib")
+        multiplier = 1024.0 * 1024 * 1024;
+    else if (unit == "tib")
+        multiplier = 1024.0 * 1024 * 1024 * 1024;
+    else
+        return false;
+
+    const double bytes = value * multiplier;
+    if (bytes < 1 || bytes > 1.8e19) return false;
+    out = static_cast<std::uint64_t>(bytes);
+    return true;
+}
+
+inline std::string formatBytes(std::uint64_t bytes) {
+    const char *units[] = {"B", "KB", "MB", "GB", "TB", "PB"};
+    double value = static_cast<double>(bytes);
+    int unit = 0;
+    while (value >= 1000 && unit < 5) {
+        value /= 1000;
+        ++unit;
+    }
+    std::ostringstream out;
+    if (unit == 0) out << bytes << " B";
+    else
+        out << std::fixed << std::setprecision(2) << value << " " << units[unit];
+    return out.str();
+}
+
 inline bool isValidUserName(const std::string &name) {
     if (name.empty() || name.size() > 64) return false;
     for (const char c: name) {
@@ -362,8 +424,6 @@ inline bool isValidUserName(const std::string &name) {
     return true;
 }
 
-// Validates a config file for mode "server" or "agent". Used at startup and
-// on every reload, so a bad file never replaces a running config.
 inline BoolStr validateConfigFile(const std::string &mode, const std::string &path) {
     BoolStr result{false, "Validation failed"};
 
@@ -454,11 +514,17 @@ inline BoolStr validateConfigFile(const std::string &mode, const std::string &pa
         result.message = std::string("Error in agent.token: ") + e.what() + "\n";
         return result;
     }
-    // Deprecated location, still read so existing configs keep working.
     const std::string legacyToken = configYaml["general"]["token"].as<std::string>("");
 
-    // The agent sends agent.token; the server accepts the tokens in users.
-    const YAML::Node users = configYaml["users"];
+    for (const char *block: {"users", "usage"}) {
+        if (configYaml[block]) {
+            result.message = std::string(block) + " belongs under the server block: move it to server." +
+                             block + "\n";
+            return result;
+        }
+    }
+
+    const YAML::Node users = configYaml["server"]["users"];
     const bool serverUsers = mode == "server" && users && !users.IsNull();
 
     if (mode == "agent") {
@@ -473,16 +539,16 @@ inline BoolStr validateConfigFile(const std::string &mode, const std::string &pa
         }
     } else if (serverUsers) {
         if (!users.IsSequence()) {
-            result.message = "users must be a list\n";
+            result.message = "server.users must be a list\n";
             return result;
         }
         if (users.size() == 0) {
-            result.message = "users must have at least one entry\n";
+            result.message = "server.users must have at least one entry\n";
             return result;
         }
         if (!aesEnable) {
             result.message =
-                    "users require general.aesEnable: true; the server tells users apart by their AES key\n";
+                    "server.users require general.aesEnable: true; the server tells users apart by their AES key\n";
             return result;
         }
 
@@ -490,7 +556,7 @@ inline BoolStr validateConfigFile(const std::string &mode, const std::string &pa
         std::vector<std::string> tokens;
         for (std::size_t i = 0; i < users.size(); ++i) {
             const YAML::Node user = users[i];
-            const std::string where = "users[" + std::to_string(i) + "]";
+            const std::string where = "server.users[" + std::to_string(i) + "]";
             std::string name;
             std::string userToken;
             try {
@@ -498,6 +564,13 @@ inline BoolStr validateConfigFile(const std::string &mode, const std::string &pa
                 name = user["name"].as<std::string>();
                 userToken = user["token"].as<std::string>();
                 user["enabled"].as<bool>(true);
+                if (user["limit"]) {
+                    std::uint64_t limit = 0;
+                    if (!parseByteSize(user["limit"].as<std::string>(), limit)) {
+                        throw std::runtime_error(
+                                "limit must be a size with a unit, such as 2GB, 500MB or 1.5GiB");
+                    }
+                }
             } catch (const std::exception &e) {
                 result.message = "Error in " + where + ": " + e.what() + "\n";
                 return result;
@@ -526,10 +599,21 @@ inline BoolStr validateConfigFile(const std::string &mode, const std::string &pa
             names.push_back(name);
             tokens.push_back(userToken);
         }
+        if (const YAML::Node usage = configYaml["server"]["usage"]) {
+            try {
+                usage["file"].as<std::string>("");
+                const int resetDay = usage["resetDay"].as<int>(1);
+                if (resetDay < 1 || resetDay > 28) {
+                    throw std::runtime_error("resetDay must be between 1 and 28");
+                }
+            } catch (const std::exception &e) {
+                result.message = std::string("Error in server.usage: ") + e.what() + "\n";
+                return result;
+            }
+        }
     } else if (aesEnable) {
-        // A server without users: only the deprecated general.token remains.
         if (legacyToken.empty()) {
-            result.message = "the server needs a users list with at least one user\n";
+            result.message = "the server needs a server.users list with at least one user\n";
             return result;
         }
         if (legacyToken.size() < MinTokenLength) {

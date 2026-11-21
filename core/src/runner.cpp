@@ -1,5 +1,7 @@
 #include "runner.hpp"
 
+#include "usage.hpp"
+
 Runner::Runner(const std::shared_ptr<Config> &config,
                const std::shared_ptr<Log> &log)
     : config_(config),
@@ -8,7 +10,9 @@ Runner::Runner(const std::shared_ptr<Config> &config,
       work_guard_(boost::asio::make_work_guard(io_context_)),
       running_(true),
       strand_(boost::asio::make_strand(io_context_)),
-      signals_(io_context_) {}
+      signals_(io_context_),
+      stopSignals_(io_context_),
+      usageTimer_(io_context_) {}
 
 Runner::~Runner() {
     running_.store(false);
@@ -31,6 +35,8 @@ void Runner::run() {
         auto tcpServer = TCPServer::create(io_context_, config_, log_);
 
         waitForReloadSignal();
+        waitForStopSignal();
+        startUsage();
 
         for (auto i = 0; i < config_->threads(); ++i) {
             threadPool_.emplace_back([this] { workerThread(); });
@@ -105,7 +111,7 @@ void Runner::waitForReloadSignal() {
     }
 
     signals_.async_wait([this](const boost::system::error_code &error, int) {
-        if (error) return;// operation_aborted on shutdown
+        if (error) return;
         reload();
         waitForReloadSignal();
     });
@@ -125,6 +131,11 @@ void Runner::reload() {
     log_->write("[Runner reload] " + result.message, Log::Level::INFO);
     warnAboutSampleToken();
 
+    if (config_->runMode() == RunMode::server) {
+        Usage::instance().configure(*config_, nullptr, *log_);
+        Usage::instance().flush(*log_);
+    }
+
     if (!result.revokedUsers.empty()) {
         const std::size_t connections = TCPConnection::revokeUsers(result.revokedUsers);
         const std::size_t sessions = ServerHandler::revokeSessions(result.revokedUsers);
@@ -133,4 +144,55 @@ void Runner::reload() {
                             " tunnel sessions of revoked users",
                     Log::Level::INFO);
     }
+}
+
+void Runner::startUsage() {
+    if (config_->runMode() != RunMode::server) return;
+
+    Usage::instance().configure(
+            *config_, [this](const std::string &user) { onUsageLimit(user); }, *log_);
+    if (!config_->hasUserList()) return;
+
+    Usage::instance().flush(*log_);
+    log_->write("[Usage] tracking usage in " + config_->usageFile() + ", period from " +
+                        Usage::periodStart(config_->usageResetDay()),
+                Log::Level::INFO);
+    scheduleUsageFlush();
+}
+
+void Runner::scheduleUsageFlush() {
+    usageTimer_.expires_after(std::chrono::seconds(30));
+    usageTimer_.async_wait([this](const boost::system::error_code &error) {
+        if (error) return;
+        Usage::instance().flush(*log_);
+        scheduleUsageFlush();
+    });
+}
+
+void Runner::onUsageLimit(const std::string &user) {
+    std::string limit;
+    for (const auto &u: config_->users()) {
+        if (u.name == user) limit = formatBytes(u.limit);
+    }
+    log_->write("[Usage] user " + user + " reached their limit of " + limit +
+                        "; blocked until the next period",
+                Log::Level::INFO);
+    TCPConnection::revokeUsers({user});
+    ServerHandler::revokeSessions({user});
+}
+
+void Runner::waitForStopSignal() {
+    boost::system::error_code ec;
+    stopSignals_.add(SIGINT, ec);
+    stopSignals_.add(SIGTERM, ec);
+
+    stopSignals_.async_wait([this](const boost::system::error_code &error, int signal) {
+        if (error) return;
+        log_->write("[Runner] received signal " + std::to_string(signal) + ", stopping",
+                    Log::Level::INFO);
+        if (config_->runMode() == RunMode::server) {
+            Usage::instance().flush(*log_);
+        }
+        stop();
+    });
 }

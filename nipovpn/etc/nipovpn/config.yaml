@@ -17,7 +17,7 @@ general:
   # fakeUrls:
   # Defines the list of fake urls between agent and server
   fakeUrls:
-    - nipo.ciron.net
+    - nipo.sudoer.net
     - sudoer.ir
     - sudoer.net
     - google.com
@@ -67,7 +67,6 @@ general:
   tlsKeyFile: "/etc/nipovpn/server.key"
   tlsCaFile: ""
 
-
 # This block is to define log directives
 log:
   # logLevel: "INFO|TRACE|DEBUG"
@@ -85,11 +84,38 @@ server:
   # listenPort: the port number which will be used on server
   listenPort: 443
 
+  # usage: optional per-user usage tracking.
+  # Usage (bytes each user sends and receives) is kept in the usage file, which
+  # you can also edit to change or reset a user's usage (e.g. set "used" to 0).
+  usage:
+    # file: where usage is kept (default: /var/lib/nipovpn/usage.yaml)
+    file: "/var/lib/nipovpn/usage.yaml"
+    # resetDay: day of the month (1-28) on which everyone's usage resets (default: 1)
+    resetDay: 1
+
+  # users: the users allowed to connect.
+  # Each user has their own token, and that user's agent puts the same token in
+  # agent.token. Requires aesEnable. Add, disable or remove users without a
+  # restart: edit this file and run `systemctl reload nipovpn-server`.
+  users:
+    - name: adas
+      # token: at least 32 bytes, unique per user, e.g. `openssl rand -hex 16`
+      token: "b354d990-1d1e-4956-94dd-75adfc692668"
+      # enabled: bool (default: true). false rejects the user and, on reload,
+      #   closes their open connections.
+      # limit: optional traffic allowance per month (upload + download), e.g. 2GB,
+      #   500MB or 1.5GiB. When reached, the user is blocked until the next period.
+      enabled: true
+    - name: nokhod
+      token: "4bc22ec2-b29b-4279-acc2-bfa1702e8dec"
+      enabled: true
+      limit: 1GB
+
 
 # This block is to define agent directives
 agent:
   # threads: number of threads in agent
-  threads: 8
+  threads: 2
   # listenIp: which must be IPv4 which is used on agent
   listenIp: "0.0.0.0"
   # listenPort: the port number which will be used on agent
@@ -105,20 +131,4 @@ agent:
   # token: the token this agent sends; it must be the token of an enabled user
   #   in the server's users list. At least 32 bytes. The AES-256-GCM key is derived from it.
   #   Generate one with `openssl rand -hex 16`
-  token: "b354d990-1d1e-4956-94dd-75adfc692668"
-
-
-# This block is used only by the server: the users allowed to connect.
-# Each user has their own token, and that user's agent puts the same token in
-# agent.token. Requires aesEnable. Add, disable or remove users without a
-# restart: edit this file and run `systemctl reload nipovpn-server`.
-users:
- - name: alice
-   # token: at least 32 bytes, unique per user, e.g. `openssl rand -hex 16`
-   token: "b354d990-1d1e-4956-94dd-75adfc692668"
-   # enabled: bool (default: true). false rejects the user and, on reload,
-   #   closes their open connections.
-   enabled: true
- - name: bob
-   token: "4bc22ec2-b29b-4279-acc2-bfa1702e8dec"
-   enabled: true
+  token: "4bc22ec2-b29b-4279-acc2-bfa1702e8dec"

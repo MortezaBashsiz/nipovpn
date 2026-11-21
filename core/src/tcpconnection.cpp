@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "http_utils.hpp"
+#include "usage.hpp"
 
 TCPConnection::TCPConnection(boost::asio::io_context &io_context,
                              const std::shared_ptr<Config> &config,
@@ -42,6 +43,7 @@ std::unordered_map<std::string, std::vector<std::weak_ptr<TCPConnection>>> TCPCo
 void TCPConnection::trackUser(const std::string &user) {
     if (user.empty() || user == trackedUser_) return;
     trackedUser_ = user;
+    usage_ = Usage::instance().counter(user);
 
     std::lock_guard<std::mutex> lock(registryMutex_);
     auto &list = byUser_[user];
@@ -578,8 +580,6 @@ std::optional<std::string> TCPConnection::postTunnelAction(const std::string &ac
     const auto pos = response.find("\r\n\r\n");
     if (pos == std::string::npos) return std::nullopt;
 
-    // "HTTP/1.1 200 OK": anything but 200 means the server refused the request,
-    // for example because this agent's token is no longer accepted.
     const auto space = response.find(' ');
     if (space == std::string::npos || response.compare(space + 1, 3, "200") != 0) {
         return std::nullopt;
@@ -656,7 +656,6 @@ bool TCPConnection::handleSocks5Handshake() {
                     std::to_string(header[0]),
             Log::Level::DEBUG);
 
-
     unsigned char req[4];
     if (!readExactFromClient(req, 4)) return false;
 
@@ -722,7 +721,6 @@ bool TCPConnection::handleSocks5Handshake() {
 
     return true;
 }
-
 
 void TCPConnection::startTunnelReadFromClient() {
     if (tunnelClosed_ || !socket_.is_open()) return;
@@ -814,7 +812,6 @@ void TCPConnection::abortTunnel(const std::string &reason) {
     log_->write("[" + to_string(uuid_) + "] [TCPConnection] [Tunnel closed] " + reason,
                 Log::Level::INFO);
 
-    // No "close" action: the server has already dropped or refused the session.
     tunnelClosed_ = true;
     pollTimer_.cancel();
     socketShutdown();
@@ -1092,6 +1089,8 @@ void TCPConnection::relayAgentToTarget() {
                     return;
                 }
 
+                Usage::instance().add(self->usage_, bytes);
+
                 boost::asio::async_write(
                         self->client_->socket(),
                         boost::asio::buffer(self->downstreamBuf_.data(), bytes),
@@ -1125,6 +1124,8 @@ void TCPConnection::relayTargetToAgent() {
                             self->socketShutdown();
                             return;
                         }
+
+                        Usage::instance().add(self->usage_, bytes);
 
                         self->asyncWriteToAgentConnection(
                                 self->upstreamBuf_.data(),

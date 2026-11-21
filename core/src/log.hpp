@@ -34,7 +34,6 @@ public:
 
     Level level() const { return level_.load(); }
 
-    // Applies log.logLevel from the current config (used after a reload).
     void applyConfigLevel();
 
     void write(const std::string &message, Level level) const;

@@ -1,6 +1,5 @@
 #include "config.hpp"
 
-
 namespace {
     std::string trimNewlines(std::string s) {
         while (!s.empty() && (s.back() == '\n' || s.back() == '\r')) s.pop_back();
@@ -12,7 +11,6 @@ std::unique_ptr<Config::Settings> Config::load(RunMode mode, const std::string &
     const YAML::Node yaml = YAML::LoadFile(filePath);
     auto s = std::make_unique<Settings>();
 
-    // Deprecated: the token used to live in general.
     const std::string legacyToken = yaml["general"]["token"].as<std::string>("");
 
     s->general = {yaml["general"]["protocol"].as<std::string>(""),
@@ -50,21 +48,25 @@ std::unique_ptr<Config::Settings> Config::load(RunMode mode, const std::string &
     }
 
     if (mode == RunMode::server) {
-        const YAML::Node users = yaml["users"];
+        s->usageFile = yaml["server"]["usage"]["file"].as<std::string>("/var/lib/nipovpn/usage.yaml");
+        s->usageResetDay = yaml["server"]["usage"]["resetDay"].as<int>(1);
+
+        const YAML::Node users = yaml["server"]["users"];
         if (users && users.IsSequence()) {
             s->usersFromFile = true;
             for (const auto &u: users) {
                 const std::string token = u["token"].as<std::string>();
-                s->users.push_back({u["name"].as<std::string>(), token,
-                                    deriveAesKey(token), u["enabled"].as<bool>(true)});
+                std::uint64_t limit = 0;
+                if (u["limit"]) parseByteSize(u["limit"].as<std::string>(), limit);
+                s->users.push_back({u["name"].as<std::string>(), token, deriveAesKey(token),
+                                    u["enabled"].as<bool>(true), limit});
             }
         } else {
-            // No users list: accept the deprecated general.token as one user.
             s->users.push_back({"default", legacyToken, deriveAesKey(legacyToken), true});
             if (!legacyToken.empty()) {
                 s->warnings.push_back(
                         "general.token is deprecated on the server; "
-                        "put the token in a users list instead");
+                        "put the token in a server.users list instead");
             }
         }
     }
@@ -126,7 +128,6 @@ Config::ReloadResult Config::reload() {
     const Settings &prev = current();
     std::vector<std::string> notes;
 
-    // Keep settings that are only applied at startup, and say so.
     auto keep = [&notes](auto &field, const auto &old, const char *name) {
         if (field != old) {
             notes.push_back(std::string(name) + " changed but needs a restart");
@@ -142,10 +143,9 @@ Config::ReloadResult Config::reload() {
         keep(next->agent.listenPort, prev.agent.listenPort, "agent.listenPort");
         keep(next->agent.threads, prev.agent.threads, "agent.threads");
     }
-    // Open connections are bound to TLS or plain TCP at accept time.
+    keep(next->usageFile, prev.usageFile, "usage.file");
     keep(next->general.tlsEnable, prev.general.tlsEnable, "general.tlsEnable");
 
-    // A user loses access when they disappear, are disabled, or get a new token.
     std::vector<std::string> revoked;
     for (const auto &old: prev.users) {
         if (!old.enabled) continue;
@@ -260,7 +260,8 @@ std::string Config::toString() const {
     if (runMode_ == RunMode::server && cur.usersFromFile) {
         ss << " Users :\n";
         for (const auto &u: cur.users) {
-            ss << "   " << u.name << (u.enabled ? "" : " (disabled)") << "\n";
+            ss << "   " << u.name << (u.enabled ? "" : " (disabled)")
+               << (u.limit ? " limit " + formatBytes(u.limit) : std::string()) << "\n";
         }
     }
 
@@ -289,6 +290,18 @@ const std::vector<User> &Config::users() const {
 
 const std::vector<std::string> &Config::warnings() const {
     return current().warnings;
+}
+
+bool Config::hasUserList() const {
+    return current().usersFromFile;
+}
+
+const std::string &Config::usageFile() const {
+    return current().usageFile;
+}
+
+int Config::usageResetDay() const {
+    return current().usageResetDay;
 }
 
 unsigned short Config::threads() const {

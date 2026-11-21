@@ -11,6 +11,7 @@
 #include "http.hpp"
 #include "log.hpp"
 #include "tcpclient.hpp"
+#include "usage.hpp"
 
 class ServerHandler : private Uncopyable {
 public:
@@ -27,10 +28,8 @@ public:
         return pointer(new ServerHandler(readBuffer, writeBuffer, config, log, client, clientConnStr, uuid, userHint));
     }
 
-    // Closes the polling-mode sessions of these users. Returns how many.
     static std::size_t revokeSessions(const std::vector<std::string> &users);
 
-    // The user who sent the request, or empty if it was not authenticated.
     std::string userName() const { return user_ ? user_->name : std::string(); }
 
     ~ServerHandler();
@@ -59,10 +58,8 @@ private:
                            boost::uuids::uuid uuid,
                            std::string &userHint);
 
-    // Finds the user whose key authenticates payload and decrypts it.
     BoolStr authenticate(const std::string &payload);
 
-    // "<client address>] [USER <name>" for log lines of the form "[SRC ...]".
     std::string srcTag() const;
 
     void makePayloadHttpResponse(const std::string &plainBody,
@@ -91,8 +88,7 @@ private:
     boost::uuids::uuid uuid_;
     std::mutex mutex_;
 
-    // Last user authenticated on this TCP connection; tried first next time.
     std::string &userHint_;
-    // Points into a config snapshot, which is never freed.
     const User *user_ = nullptr;
+    std::shared_ptr<Usage::Counter> usage_;
 };

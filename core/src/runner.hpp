@@ -4,6 +4,7 @@
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <csignal>
 #include <iostream>
 #include <thread>
@@ -33,13 +34,17 @@ private:
 
     void stop();
 
-    // Re-reads the config file (on SIGHUP) and closes connections of users
-    // who lost access.
     void reload();
 
     void waitForReloadSignal();
 
     void warnAboutSampleToken();
+
+    void startUsage();
+    void scheduleUsageFlush();
+    void onUsageLimit(const std::string &user);
+
+    void waitForStopSignal();
 
     std::shared_ptr<Config> config_;
     std::shared_ptr<Log> log_;
@@ -55,4 +60,6 @@ private:
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 
     boost::asio::signal_set signals_;
+    boost::asio::signal_set stopSignals_;
+    boost::asio::steady_timer usageTimer_;
 };
