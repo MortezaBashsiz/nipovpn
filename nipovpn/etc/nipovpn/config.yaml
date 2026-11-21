@@ -1,11 +1,9 @@
 ---
 # This block contains general and global configuration which is in both modes
 general:
-  # token: at least 32 bytes of string. The AES-256-GCM key is derived from it. Must match on agent and server.
-  #   This sample value is public: replace it, e.g. with the output of `openssl rand -hex 16`
-  token: "af445adb-2434-4975-9445-2c1b2231"
   # aesEnable: bool (default: true)
   # Enables AES-256-GCM payload encryption (confidentiality and integrity). Must match on the agent and server.
+  #   Required on the server when using users: users are told apart by their AES key.
   # Independent of tlsEnable; request encoding remains enabled.
   aesEnable: true
   # protocol:
@@ -104,3 +102,23 @@ agent:
   httpVersion: "1.1"
   # userAgent: This is the http user agent which will be used between agent and server
   userAgent : "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0"
+  # token: the token this agent sends; it must be the token of an enabled user
+  #   in the server's users list. At least 32 bytes. The AES-256-GCM key is derived from it.
+  #   Generate one with `openssl rand -hex 16`
+  token: "b354d990-1d1e-4956-94dd-75adfc692668"
+
+
+# This block is used only by the server: the users allowed to connect.
+# Each user has their own token, and that user's agent puts the same token in
+# agent.token. Requires aesEnable. Add, disable or remove users without a
+# restart: edit this file and run `systemctl reload nipovpn-server`.
+users:
+ - name: alice
+   # token: at least 32 bytes, unique per user, e.g. `openssl rand -hex 16`
+   token: "b354d990-1d1e-4956-94dd-75adfc692668"
+   # enabled: bool (default: true). false rejects the user and, on reload,
+   #   closes their open connections.
+   enabled: true
+ - name: bob
+   token: "4bc22ec2-b29b-4279-acc2-bfa1702e8dec"
+   enabled: true

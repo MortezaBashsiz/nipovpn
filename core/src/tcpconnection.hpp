@@ -12,7 +12,10 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "agenthandler.hpp"
 #include "general.hpp"
@@ -54,6 +57,10 @@ public:
     void handleReadServer(const boost::system::error_code &error, size_t bytes_transferred);
 
     void socketShutdown();
+
+    // Closes every server-side connection authenticated as one of these
+    // users, from any thread. Returns how many were open.
+    static std::size_t revokeUsers(const std::vector<std::string> &users);
 
     void enableDirectTunnelMode();
 
@@ -120,9 +127,15 @@ private:
 
     void startTunnelReadFromClient();
     void startTunnelPollServer();
-    std::string postTunnelAction(const std::string &action, const std::string &rawBody);
+    // Returns the decrypted response body (empty when the server has no data),
+    // or nullopt when the server refused the request or could not be reached.
+    std::optional<std::string> postTunnelAction(const std::string &action, const std::string &rawBody);
+    // Closes a tunnel the server no longer serves (e.g. the user was revoked).
+    void abortTunnel(const std::string &reason);
     std::string makeRelayHostHeader() const;
     void closeTunnelSession();
+
+    void trackUser(const std::string &user);
 
     boost::asio::ip::tcp::socket socket_;
     boost::asio::ssl::context sslContext_;
@@ -150,6 +163,14 @@ private:
     bool pollInProgress_;
     unsigned int pollDelayMs_;
     std::atomic_bool closed_{false};
+
+    // Server mode: last user authenticated on this connection, and the user
+    // it is registered under for revocation.
+    std::string userHint_;
+    std::string trackedUser_;
+
+    static std::mutex registryMutex_;
+    static std::unordered_map<std::string, std::vector<std::weak_ptr<TCPConnection>>> byUser_;
 
     std::array<char, BufferSize> downstreamBuf_;
     std::array<char, BufferSize> upstreamBuf_;

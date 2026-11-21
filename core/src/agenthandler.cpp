@@ -83,7 +83,7 @@ void AgentHandler::handle() {
     const std::string payload =
             makeEnvelope(action, to_string(uuid_), hexStreambufToStr(readBuffer_));
     encryption = config_->general().aesEnable
-                         ? aes256Encrypt(payload, config_->general().token)
+                         ? aes256Encrypt(payload, config_->agent().token)
                          : BoolStr{true, payload};
     if (!encryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Failed] : [ " +
@@ -140,7 +140,7 @@ void AgentHandler::handle() {
 
     BoolStr decryption{false, std::string("FAILED")};
     decryption = config_->general().aesEnable
-                         ? aes256Decrypt(responseBody, config_->general().token)
+                         ? aes256Decrypt(responseBody, config_->agent().token)
                          : BoolStr{true, responseBody};
     if (!decryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Failed] : [ " +

@@ -30,7 +30,8 @@ def build_payload(cfg, name=None, server_ip=None):
 
     server_ip = server_ip or to_str(agent.get("serverIp"))
     config = {
-        "token": to_str(general.get("token")),
+        # agent.token; general.token is the deprecated location.
+        "token": to_str(agent.get("token") or general.get("token")),
         "protocol": to_str(general.get("protocol")),
         "fakeUrls": to_lines(general.get("fakeUrls")),
         "methods": to_lines(general.get("methods")),

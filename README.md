@@ -48,7 +48,7 @@ It is written in C++20 on top of Boost.Asio, OpenSSL and yaml-cpp.
 ### Encryption
 
 - **AES-256-GCM payload encryption** (on by default). The key is the SHA-256 of
-  `general.token`; each message gets a random 12-byte nonce and a 16-byte
+  the user's token; each message gets a random 12-byte nonce and a 16-byte
   authentication tag, so tampered or wrongly keyed payloads are rejected.
 - **TLS between agent and server** (`tlsEnable`): TLS 1.2 minimum, TLS 1.3
   preferred, with AEAD-only cipher suites (AES-GCM, ChaCha20-Poly1305).
@@ -78,6 +78,10 @@ neither.
 ### Operations
 
 - **Config validation at startup** with clear error messages.
+- **Multiple users** on one server, each with their own token. Users can be
+  added, disabled or removed without a restart. See [Multiple users](#multiple-users).
+- **Reload without restart** on `SIGHUP` (`systemctl reload`). See
+  [Reloading the configuration](#reloading-the-configuration).
 - **Warning when the public sample token is still in use.**
 - **Log levels** `INFO`, `TRACE` (per-request source/destination) and `DEBUG`;
   logs go to a file and to stdout.
@@ -178,13 +182,23 @@ sudo mkdir -p /var/log/nipovpn/
 sudo touch /var/log/nipovpn/nipovpn.log
 ```
 
-### 2. Pick a shared token
+### 2. Create a user
 
-`general.token` must be at least 32 bytes and identical on the agent and the
-server. Do not use the sample token from the shipped config.
+Generate a token of at least 32 bytes for each person. Do not use the sample
+tokens from the shipped config.
 
 ```bash
 openssl rand -hex 16   # prints 32 hex characters
+```
+
+On the server, list it in `users`. On that person's machine, put the same
+token in `agent.token`:
+
+```yaml
+# server config            # agent config
+users:                     agent:
+  - name: alice              token: "<alice's token>"
+    token: "<alice's token>"
 ```
 
 ### 3. TLS certificate (if `tlsEnable: true`)
@@ -209,8 +223,8 @@ sudo nipovpn server /etc/nipovpn/config.yaml
 ### 5. Run the agent
 
 On your machine, set `agent.serverIp`/`agent.serverPort` to the server's
-address and make sure `token`, `aesEnable`, `tlsEnable` and `tunnelEnable` match
-the server. Then:
+address, set `agent.token` to one of the server's users, and make sure
+`aesEnable`, `tlsEnable` and `tunnelEnable` match the server. Then:
 
 ```bash
 sudo nipovpn agent /etc/nipovpn/config.yaml
@@ -238,7 +252,6 @@ Settings marked **must match** have to be the same on agent and server.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `token` | string | — | Shared secret, ≥ 32 bytes when `aesEnable` is on. The AES key is derived from it. **Must match.** |
 | `aesEnable` | bool | `true` | AES-256-GCM payload encryption. **Must match.** |
 | `protocol` | `http` \| `socks5` | — | Protocol the agent accepts from local applications. |
 | `bufferSize` | 1–65536 | `65536` | Maximum bytes read per operation. |
@@ -281,6 +294,79 @@ Settings marked **must match** have to be the same on agent and server.
 | `serverPort` | `8080` | Port of the NipoVPN server. |
 | `httpVersion` | `1.1` | HTTP version in decoy requests. |
 | `userAgent` | `NipoAgent` | `User-Agent` header in decoy requests. |
+| `token` | — | The token this agent sends, ≥ 32 bytes when `aesEnable` is on. Must be the token of an enabled user on the server. The AES key is derived from it. |
+
+### `users` (server only)
+
+The users allowed to connect, each with their own token. Required on the server
+when `aesEnable` is on. Agents do not use this block.
+
+| Key | Default | Description |
+|---|---|---|
+| `name` | — | 1–64 characters of `A-Z a-z 0-9 . _ - @`. Unique. Shown in the server log. |
+| `token` | — | The user's token, ≥ 32 bytes. Unique. The user's agent puts it in `agent.token`. |
+| `enabled` | `true` | `false` rejects the user without deleting the entry. |
+
+## Multiple users
+
+Every person gets their own token. The **server** lists them all in `users`:
+
+```yaml
+users:
+  - name: alice
+    token: "4f3c9a...32 or more characters"
+  - name: bob
+    token: "b81e07...32 or more characters"
+    enabled: false        # bob is rejected until this is set back to true
+```
+
+Each user's agent puts their token in `agent.token`. All other settings that
+must match (such as `aesEnable`, `tlsEnable` and `tunnelEnable`) are shared by
+everyone.
+
+- The server identifies a request's user by which token decrypts it.
+  Nothing on the wire names the user, so this adds nothing for a censor to
+  fingerprint. For the same reason, users require `aesEnable: true`.
+- The server log shows the user on each connection: `[SRC ...] [USER alice]`.
+- A tunnel opened by one user cannot be used by another user.
+- **Upgrading from `general.token`:** older configs still work. An agent reads
+  `general.token` when `agent.token` is missing, and a server without a `users`
+  list accepts `general.token` as a single user named `default`. Both log a
+  deprecation warning at startup. To migrate, move the agent's token to
+  `agent.token` and add it to the server's `users` list. Agents of any version
+  keep working, since the token on the wire is the same.
+- Each new connection costs one decryption attempt per enabled user until a
+  token matches. A reused connection tries its last user first. This is fine
+  for dozens of users; with hundreds, prefer `connectionReuse: true`.
+
+To add, disable or remove a user, edit the config and [reload](#reloading-the-configuration).
+When a user is removed or disabled, or their token changes, the server closes
+their open connections and tunnels on reload.
+
+## Reloading the configuration
+
+Send `SIGHUP` to apply config changes without dropping other users' connections:
+
+```bash
+sudo systemctl reload nipovpn-server.service    # or nipovpn-agent.service
+docker kill -s HUP nipovpn                      # Docker
+kill -HUP "$(pidof nipovpn)"                    # anything else
+```
+
+The file is validated first. If it is invalid, the running configuration is
+kept and the error is logged at `ERROR` level, so a typo never takes the server
+down. A successful reload logs a summary, for example:
+
+```
+[Runner reload] config reloaded; 2 of 3 users enabled; access revoked for: bob
+[Runner reload] closed 1 connections and 0 tunnel sessions of revoked users
+```
+
+New requests use the new settings at once. These settings only change on
+restart: `listenIp`, `listenPort`, `threads` and `tlsEnable`. If you change
+them, the reload logs `... changed but needs a restart`. Certificate files are
+read for every new connection, so a renewed certificate needs no reload at
+all. Reload is not available on Windows.
 
 ## Security notes
 
@@ -307,7 +393,11 @@ Log lines look like:
 
 ```
 2026-01-01_12:00:00 [AGENT] [INFO] [<session-uuid>] [CONNECT] [SRC 127.0.0.1:51234] [ORIGIN example.com:443]
+2026-01-01_12:00:00 [SERVER] [INFO] [<session-uuid>] [CONNECT] [SRC 203.0.113.7:40112] [USER alice] [ORIGIN example.com:443]
 ```
+
+On the server, `[USER ...]` is the user from the `users` list, or `default`
+when the server still uses the deprecated `general.token`.
 
 - `INFO`: startup, effective configuration (token hidden), connections opened.
 - `TRACE`: adds the destination of every forwarded request.
@@ -324,9 +414,15 @@ journalctl -u nipovpn-server.service -f
 | Symptom | Likely cause |
 |---|---|
 | `Configuration validation failed: ...` | A required key is missing or invalid; the message names the block. |
-| `token must be at least 32 bytes when aesEnable is true` | Use a longer token (`openssl rand -hex 16`). |
+| `agent.token must be at least 32 bytes when aesEnable is true` | Use a longer token (`openssl rand -hex 16`). |
 | `Error opening log file` | Create the log directory and file (see Quick start). |
-| Server logs `Decryption Failed` / `Invalid Envelope` | `token`, `aesEnable` or NipoVPN versions differ between agent and server. |
+| Server logs `Decryption Failed` / `Invalid Envelope` | `token`, `aesEnable` or NipoVPN versions differ between agent and server. With a `users` list: the agent's token is not an enabled user's token. |
+| `agent.token is required` | Set the agent's token in the `agent` block (it used to be `general.token`). |
+| `the server needs a users list with at least one user` | Add a `users` list to the server config. |
+| `[WARNING] general.token is deprecated` | Move the token to `agent.token` (agent) or a `users` entry (server). |
+| `users require general.aesEnable: true` | Users are told apart by their AES key; turn on `aesEnable`. |
+| `[Runner reload] config not reloaded: ...` | The edited file is invalid; the old configuration is still running. Fix the file and reload again. |
+| Agent logs `[Tunnel closed] recv refused or failed` | The server rejected the agent's token (e.g. the user was disabled) or became unreachable. |
 | Agent logs `[TLS] [ERROR]` | `tlsEnable` differs between the two sides, or the certificate/key path is wrong. |
 | `[CONNECT] [ERROR] [To Server]` | Agent cannot reach `serverIp:serverPort` (firewall, wrong address, server not running). |
 

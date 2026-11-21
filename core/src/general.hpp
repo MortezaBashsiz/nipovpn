@@ -196,11 +196,10 @@ inline std::string deriveAesKey(const std::string &token) {
     return std::string(reinterpret_cast<char *>(digest), digestLen);
 }
 
-inline BoolStr aes256Encrypt(const std::string &plaintext,
-                             const std::string &token) {
+// key is a 32-byte AES-256 key, normally deriveAesKey(token).
+inline BoolStr aes256EncryptWithKey(const std::string &plaintext,
+                                    const std::string &key) {
     BoolStr result{false, "Encryption failed"};
-
-    const std::string key = deriveAesKey(token);
 
     unsigned char nonce[AesGcmNonceLength];
     if (!RAND_bytes(nonce, sizeof(nonce))) {
@@ -257,16 +256,15 @@ inline BoolStr aes256Encrypt(const std::string &plaintext,
     return result;
 }
 
-inline BoolStr aes256Decrypt(const std::string &sealed,
-                             const std::string &token) {
+// key is a 32-byte AES-256 key, normally deriveAesKey(token).
+inline BoolStr aes256DecryptWithKey(const std::string &sealed,
+                                    const std::string &key) {
     BoolStr result{false, "Decryption failed"};
 
     if (sealed.size() < AesGcmNonceLength + AesGcmTagLength) {
         result.message = "Ciphertext too short";
         return result;
     }
-
-    const std::string key = deriveAesKey(token);
 
     const auto *nonce = reinterpret_cast<const unsigned char *>(sealed.data());
     const auto *ciphertext = nonce + AesGcmNonceLength;
@@ -318,6 +316,16 @@ inline BoolStr aes256Decrypt(const std::string &sealed,
     return result;
 }
 
+inline BoolStr aes256Encrypt(const std::string &plaintext,
+                             const std::string &token) {
+    return aes256EncryptWithKey(plaintext, deriveAesKey(token));
+}
+
+inline BoolStr aes256Decrypt(const std::string &sealed,
+                             const std::string &token) {
+    return aes256DecryptWithKey(sealed, deriveAesKey(token));
+}
+
 inline std::string makeEnvelope(const std::string &action,
                                 const std::string &session,
                                 const std::string &data) {
@@ -343,30 +351,35 @@ inline bool parseEnvelope(const std::string &raw, Envelope &out) {
     return true;
 }
 
-inline BoolStr validateConfig(int argc, const char *argv[]) {
+inline bool isValidUserName(const std::string &name) {
+    if (name.empty() || name.size() > 64) return false;
+    for (const char c: name) {
+        const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                        (c >= '0' && c <= '9') || c == '.' || c == '_' ||
+                        c == '-' || c == '@';
+        if (!ok) return false;
+    }
+    return true;
+}
+
+// Validates a config file for mode "server" or "agent". Used at startup and
+// on every reload, so a bad file never replaces a running config.
+inline BoolStr validateConfigFile(const std::string &mode, const std::string &path) {
     BoolStr result{false, "Validation failed"};
 
-    if (argc != 3) {
-        result.message =
-                "Requires 2 arguments: mode [server|agent] and config file "
-                "path\nExample: nipovpn server config.yaml\n";
-        return result;
-    }
-
-    if (std::string(argv[1]) != "server" && std::string(argv[1]) != "agent") {
+    if (mode != "server" && mode != "agent") {
         result.message = "First argument must be one of [server|agent]\n";
         return result;
     }
 
-    if (!fileExists(argv[2])) {
-        result.message =
-                std::string("Config file ") + argv[2] + " does not exist\n";
+    if (!fileExists(path)) {
+        result.message = "Config file " + path + " does not exist\n";
         return result;
     }
 
     YAML::Node configYaml;
     try {
-        configYaml = YAML::LoadFile(argv[2]);
+        configYaml = YAML::LoadFile(path);
     } catch (const std::exception &e) {
         result.message =
                 std::string("Error parsing config file: ") + e.what() + "\n";
@@ -374,7 +387,7 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
     }
 
     try {
-        configYaml["general"]["token"].as<std::string>();
+        configYaml["general"]["token"].as<std::string>("");
         configYaml["general"]["protocol"].as<std::string>();
         configYaml["general"]["bufferSize"].as<unsigned int>();
         configYaml["general"]["fakeUrls"].as<std::vector<std::string>>();
@@ -426,13 +439,115 @@ inline BoolStr validateConfig(int argc, const char *argv[]) {
         return result;
     }
 
-    if (configYaml["general"]["aesEnable"].as<bool>(true) &&
-        configYaml["general"]["token"].as<std::string>().size() < MinTokenLength) {
-        result.message = "token must be at least 32 bytes when aesEnable is true\n";
+    const std::string logLevel = configYaml["log"]["logLevel"].as<std::string>();
+    if (logLevel != "INFO" && logLevel != "TRACE" && logLevel != "DEBUG") {
+        result.message = "logLevel must be one of [INFO|TRACE|DEBUG]\n";
         return result;
+    }
+
+    const bool aesEnable = configYaml["general"]["aesEnable"].as<bool>(true);
+
+    std::string agentToken;
+    try {
+        agentToken = configYaml["agent"]["token"].as<std::string>("");
+    } catch (const std::exception &e) {
+        result.message = std::string("Error in agent.token: ") + e.what() + "\n";
+        return result;
+    }
+    // Deprecated location, still read so existing configs keep working.
+    const std::string legacyToken = configYaml["general"]["token"].as<std::string>("");
+
+    // The agent sends agent.token; the server accepts the tokens in users.
+    const YAML::Node users = configYaml["users"];
+    const bool serverUsers = mode == "server" && users && !users.IsNull();
+
+    if (mode == "agent") {
+        const std::string token = agentToken.empty() ? legacyToken : agentToken;
+        if (token.empty()) {
+            result.message = "agent.token is required\n";
+            return result;
+        }
+        if (aesEnable && token.size() < MinTokenLength) {
+            result.message = "agent.token must be at least 32 bytes when aesEnable is true\n";
+            return result;
+        }
+    } else if (serverUsers) {
+        if (!users.IsSequence()) {
+            result.message = "users must be a list\n";
+            return result;
+        }
+        if (users.size() == 0) {
+            result.message = "users must have at least one entry\n";
+            return result;
+        }
+        if (!aesEnable) {
+            result.message =
+                    "users require general.aesEnable: true; the server tells users apart by their AES key\n";
+            return result;
+        }
+
+        std::vector<std::string> names;
+        std::vector<std::string> tokens;
+        for (std::size_t i = 0; i < users.size(); ++i) {
+            const YAML::Node user = users[i];
+            const std::string where = "users[" + std::to_string(i) + "]";
+            std::string name;
+            std::string userToken;
+            try {
+                if (!user.IsMap()) throw std::runtime_error("must be a map with name and token");
+                name = user["name"].as<std::string>();
+                userToken = user["token"].as<std::string>();
+                user["enabled"].as<bool>(true);
+            } catch (const std::exception &e) {
+                result.message = "Error in " + where + ": " + e.what() + "\n";
+                return result;
+            }
+            if (!isValidUserName(name)) {
+                result.message = where + ".name must be 1-64 characters of [A-Za-z0-9._@-]\n";
+                return result;
+            }
+            if (userToken.size() < MinTokenLength) {
+                result.message = "token of user " + name + " must be at least " +
+                                 std::to_string(MinTokenLength) + " bytes\n";
+                return result;
+            }
+            for (const auto &n: names) {
+                if (n == name) {
+                    result.message = "user name " + name + " is used more than once\n";
+                    return result;
+                }
+            }
+            for (std::size_t j = 0; j < tokens.size(); ++j) {
+                if (tokens[j] == userToken) {
+                    result.message = "users " + names[j] + " and " + name + " have the same token\n";
+                    return result;
+                }
+            }
+            names.push_back(name);
+            tokens.push_back(userToken);
+        }
+    } else if (aesEnable) {
+        // A server without users: only the deprecated general.token remains.
+        if (legacyToken.empty()) {
+            result.message = "the server needs a users list with at least one user\n";
+            return result;
+        }
+        if (legacyToken.size() < MinTokenLength) {
+            result.message = "general.token must be at least 32 bytes when aesEnable is true\n";
+            return result;
+        }
     }
 
     result.ok = true;
     result.message = "OK";
     return result;
+}
+
+inline BoolStr validateConfig(int argc, const char *argv[]) {
+    if (argc != 3) {
+        return {false,
+                "Requires 2 arguments: mode [server|agent] and config file "
+                "path\nExample: nipovpn server config.yaml\n"};
+    }
+    return validateConfigFile(argv[1], argv[2]);
 }

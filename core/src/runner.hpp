@@ -3,6 +3,8 @@
 #include <atomic>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/signal_set.hpp>
+#include <csignal>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -31,6 +33,14 @@ private:
 
     void stop();
 
+    // Re-reads the config file (on SIGHUP) and closes connections of users
+    // who lost access.
+    void reload();
+
+    void waitForReloadSignal();
+
+    void warnAboutSampleToken();
+
     std::shared_ptr<Config> config_;
     std::shared_ptr<Log> log_;
 
@@ -43,4 +53,6 @@ private:
     std::vector<runnerThread> threadPool_;
 
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
+
+    boost::asio::signal_set signals_;
 };

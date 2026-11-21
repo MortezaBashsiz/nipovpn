@@ -7,7 +7,29 @@
 #include "http_utils.hpp"
 
 std::mutex ServerHandler::sessionsMutex_;
-std::unordered_map<std::string, TCPClient::pointer> ServerHandler::sessions_;
+std::unordered_map<std::string, ServerHandler::Session> ServerHandler::sessions_;
+
+std::size_t ServerHandler::revokeSessions(const std::vector<std::string> &users) {
+    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    std::size_t closed = 0;
+    for (auto it = sessions_.begin(); it != sessions_.end();) {
+        bool revoked = false;
+        for (const auto &name: users) {
+            if (it->second.user == name) {
+                revoked = true;
+                break;
+            }
+        }
+        if (revoked) {
+            it->second.client->socketShutdown();
+            it = sessions_.erase(it);
+            ++closed;
+        } else {
+            ++it;
+        }
+    }
+    return closed;
+}
 
 std::string ServerHandler::HttpUtils::lowerCopy(std::string s) {
     return http_utils::toLowerCopy(std::move(s));
@@ -32,7 +54,8 @@ ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
                              const std::shared_ptr<Log> &log,
                              TCPClient::pointer client,
                              std::string clientConnStr,
-                             boost::uuids::uuid uuid)
+                             boost::uuids::uuid uuid,
+                             std::string &userHint)
     : config_(config),
       log_(log),
       client_(std::move(client)),
@@ -40,9 +63,49 @@ ServerHandler::ServerHandler(boost::asio::streambuf &readBuffer,
       writeBuffer_(writeBuffer),
       request_(HTTP::create(config, log, readBuffer, uuid)),
       clientConnStr_(std::move(clientConnStr)),
-      uuid_(uuid) {
+      uuid_(uuid),
+      userHint_(userHint) {
     end_ = false;
     connect_ = false;
+}
+
+BoolStr ServerHandler::authenticate(const std::string &payload) {
+    const std::vector<User> &users = config_->users();
+
+    if (!config_->general().aesEnable) {
+        // Only possible without a users list: the single "default" user.
+        user_ = users.empty() ? nullptr : &users.front();
+        return {true, payload};
+    }
+
+    BoolStr result{false, "no enabled user's token authenticates the request"};
+    auto tryUser = [&](const User &u) {
+        if (!u.enabled) return false;
+        BoolStr r = aes256DecryptWithKey(payload, u.key);
+        if (!r.ok) return false;
+        result = std::move(r);
+        user_ = &u;
+        userHint_ = u.name;
+        return true;
+    };
+
+    // Most requests on a connection come from the same user.
+    if (!userHint_.empty()) {
+        for (const auto &u: users) {
+            if (u.name == userHint_) {
+                if (tryUser(u)) return result;
+                break;
+            }
+        }
+    }
+    for (const auto &u: users) {
+        if (u.name != userHint_ && tryUser(u)) return result;
+    }
+    return result;
+}
+
+std::string ServerHandler::srcTag() const {
+    return clientConnStr_ + (user_ ? "] [USER " + user_->name : std::string());
 }
 
 ServerHandler::~ServerHandler() {}
@@ -68,9 +131,12 @@ void ServerHandler::makePlainHttpResponse(const std::string &body,
 void ServerHandler::makePayloadHttpResponse(const std::string &plainBody,
                                             const std::string &status,
                                             const std::string &connection) {
-    BoolStr encryption = config_->general().aesEnable
-                                 ? aes256Encrypt(plainBody, config_->general().token)
-                                 : BoolStr{true, plainBody};
+    BoolStr encryption{false, "no authenticated user to encrypt for"};
+    if (!config_->general().aesEnable) {
+        encryption = {true, plainBody};
+    } else if (user_) {
+        encryption = aes256EncryptWithKey(plainBody, user_->key);
+    }
 
     if (!encryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [ServerHandler] [Encryption Failed] " + encryption.message,
@@ -110,10 +176,7 @@ void ServerHandler::handle() {
     BoolStr decryption{false, std::string("FAILED")};
 
     try {
-        const std::string payload = decode64(requestBody);
-        decryption = config_->general().aesEnable
-                             ? aes256Decrypt(payload, config_->general().token)
-                             : BoolStr{true, payload};
+        decryption = authenticate(decode64(requestBody));
     } catch (const std::exception &e) {
         log_->write(
                 "[" + to_string(uuid_) +
@@ -161,8 +224,8 @@ void ServerHandler::handle() {
             std::lock_guard<std::mutex> sessionLock(sessionsMutex_);
             auto it = sessions_.find(session);
 
-            if (it != sessions_.end()) {
-                targetClient = it->second;
+            if (it != sessions_.end() && it->second.user == userName()) {
+                targetClient = it->second.client;
             }
         }
 
@@ -186,8 +249,8 @@ void ServerHandler::handle() {
             std::lock_guard<std::mutex> sessionLock(sessionsMutex_);
             auto it = sessions_.find(session);
 
-            if (it != sessions_.end()) {
-                targetClient = it->second;
+            if (it != sessions_.end() && it->second.user == userName()) {
+                targetClient = it->second.client;
             }
         }
 
@@ -226,8 +289,8 @@ void ServerHandler::handle() {
         std::lock_guard<std::mutex> sessionLock(sessionsMutex_);
         auto it = sessions_.find(session);
 
-        if (it != sessions_.end()) {
-            it->second->socketShutdown();
+        if (it != sessions_.end() && it->second.user == userName()) {
+            it->second.client->socketShutdown();
             sessions_.erase(it);
         }
 
@@ -274,7 +337,7 @@ void ServerHandler::handle() {
                     log_->write(
                             "[" + to_string(uuid_) +
                                     "] [CONNECT] [ERROR] [Resolving Host] [SRC " +
-                                    clientConnStr_ + "] [DST " +
+                                    srcTag() + "] [DST " +
                                     inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                             Log::Level::INFO);
 
@@ -291,7 +354,7 @@ void ServerHandler::handle() {
                 log_->write(
                         "[" + to_string(uuid_) +
                                 "] [CONNECT] [SRC " +
-                                clientConnStr_ + "] [DST " +
+                                srcTag() + "] [DST " +
                                 inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                         Log::Level::INFO);
 
@@ -317,7 +380,7 @@ void ServerHandler::handle() {
                 log_->write(
                         "[" + to_string(uuid_) +
                                 "] [CONNECT] [ERROR] [Resolving Host] [SRC " +
-                                clientConnStr_ + "] [DST " +
+                                srcTag() + "] [DST " +
                                 inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                         Log::Level::INFO);
 
@@ -334,7 +397,7 @@ void ServerHandler::handle() {
             log_->write(
                     "[" + to_string(uuid_) +
                             "] [CONNECT] [SRC " +
-                            clientConnStr_ + "] [ORIGIN " +
+                            srcTag() + "] [ORIGIN " +
                             inner->dstIp() + ":" + std::to_string(inner->dstPort()) + "]",
                     Log::Level::INFO);
 
@@ -346,7 +409,17 @@ void ServerHandler::handle() {
 
             {
                 std::lock_guard<std::mutex> sessionLock(sessionsMutex_);
-                sessions_[session.empty() ? to_string(uuid_) : session] = targetClient;
+                const std::string key = session.empty() ? to_string(uuid_) : session;
+                auto it = sessions_.find(key);
+
+                // Never let one user take over another user's session.
+                if (it != sessions_.end() && it->second.user != userName()) {
+                    targetClient->socketShutdown();
+                    makePayloadHttpResponse("", "403 Forbidden", "close");
+                    return;
+                }
+
+                sessions_[key] = Session{targetClient, userName()};
             }
 
             makePayloadHttpResponse(

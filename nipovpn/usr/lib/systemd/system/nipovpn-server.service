@@ -4,6 +4,7 @@ After=network.target auditd.service
 
 [Service]
 ExecStart=/usr/bin/nipovpn server /etc/nipovpn/config.yaml 
+ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process
 Restart=on-failure
 Type=simple
