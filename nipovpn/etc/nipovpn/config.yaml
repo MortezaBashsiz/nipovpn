@@ -1,71 +1,23 @@
 ---
-# This block contains general and global configuration which is in both modes
+# This block holds settings both the agent and the server use.
+#   aesEnable, tunnelEnable and tlsEnable must be the same on both.
 general:
   # aesEnable: bool (default: true)
   # Enables AES-256-GCM payload encryption (confidentiality and integrity). Must match on the agent and server.
   #   Required on the server when using users: users are told apart by their AES key.
   # Independent of tlsEnable; request encoding remains enabled.
   aesEnable: true
-  # protocol:
-  # Defines the protocol between client and agent
-  #   Choose http or socks5
-  protocol: socks5
-  # bufferSize: unsigned short
-  # Defines the maximum buffer size for each request in Bytes. Default is 65536
-  #   Do not use less than 1 and more than 65536
-  bufferSize: 65536
-  # fakeUrls:
-  # Defines the list of fake urls between agent and server
-  fakeUrls:
-    - nipo.sudoer.net
-    - sudoer.ir
-    - sudoer.net
-    - google.com
-    - cloudflare.com
-  # methods:
-  # Defines the list of using methods
-  #   you like to send requests from agent to server
-  # Program will choose randomly from this list
-  methods:
-    - GET
-    - POST
-    - PUT
-    - DELETE
-  # endPoints:
-  # Defines the list of using endpoints
-  #   you like to send requests from agent to server
-  # Program will choose randomly from this list
-  endPoints:
-    - api
-    - login
-    - user
-    - update
   # timeout: unsigned short
   # Defines the timeout for I/O Operation in seconds. 0 indicates no timeout.
   #   Useful to automatically close stalled connections.
   timeout: 10
-  # pullTimeout: unsigned short
-  # Defines the timeout for I/O Operation in milliseconds.
-  #   Useful to expire serverside read timer.
-  pullTimeout: 1
   # tunnelEnable: bool
   # Defines the connection mode between agent and server. If enabled then the traffic
   #   will be TCP/TLS tunnel like.
   tunnelEnable: false
-  # connectionReuse: bool
-  # If true then it will use same connection between agent and server to handle client request
-  #   If false then it will create new connection for each request between agent and server
-  connectionReuse: true
   # tlsEnable: bool
   # It enables or disables tls between agent and server
   tlsEnable: true
-  # tlsVerifyPeer: bool
-  # Use it to controll if the certificate should be validated or not
-  tlsVerifyPeer: false
-  # Use following configurations to specify the key and cert which will be used between agent and server
-  tlsCertFile: "/etc/nipovpn/server.crt"
-  tlsKeyFile: "/etc/nipovpn/server.key"
-  tlsCaFile: ""
 
 # This block is to define log directives
 log:
@@ -83,6 +35,13 @@ server:
   listenIp: "0.0.0.0"
   # listenPort: the port number which will be used on server
   listenPort: 443
+  # bufferSize: maximum bytes read from a destination at a time in polling mode,
+  #   1-65536 (default: 65536)
+  bufferSize: 65536
+  # tlsCertFile, tlsKeyFile: the server's certificate (PEM, chain allowed) and
+  #   private key, used when tlsEnable is true
+  tlsCertFile: "/etc/nipovpn/server.crt"
+  tlsKeyFile: "/etc/nipovpn/server.key"
 
   # usage: optional per-user usage tracking.
   # Usage (bytes each user sends and receives) is kept in the usage file, which
@@ -120,6 +79,40 @@ agent:
   listenIp: "0.0.0.0"
   # listenPort: the port number which will be used on agent
   listenPort: 8080
+  # protocol: the protocol local applications use to connect to the agent
+  #   Choose http or socks5
+  protocol: socks5
+  # fakeUrls: hosts used at random for the Host header and TLS SNI of
+  #   the requests the agent sends to the server
+  fakeUrls:
+    - nipo.sudoer.net
+    - sudoer.ir
+    - sudoer.net
+    - google.com
+    - cloudflare.com
+  # methods: HTTP methods used at random for those requests
+  methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+  # endPoints: URL paths used at random for those requests
+  endPoints:
+    - api
+    - login
+    - user
+    - update
+  # pullTimeout: base interval in milliseconds between polls in polling mode
+  pullTimeout: 1
+  # connectionReuse: bool
+  #   true: send requests to the server over one kept-alive connection
+  #   false: open a new connection to the server for each request
+  #   The server follows the agent's choice.
+  connectionReuse: true
+  # tlsVerifyPeer: bool. Verify the server's certificate when tlsEnable is true
+  tlsVerifyPeer: false
+  # tlsCaFile: CA file used to verify the server's certificate
+  tlsCaFile: ""
   # serverIp: IPv4 of the nipoServer
   serverIp: "127.0.0.10"
   # serverPort: port number of the nipoServer

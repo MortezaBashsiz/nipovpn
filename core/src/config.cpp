@@ -13,26 +13,27 @@ std::unique_ptr<Config::Settings> Config::load(RunMode mode, const std::string &
 
     const std::string legacyToken = yaml["general"]["token"].as<std::string>("");
 
-    s->general = {yaml["general"]["protocol"].as<std::string>(""),
-                  yaml["general"]["bufferSize"].as<unsigned int>(65536),
-                  yaml["general"]["fakeUrls"].as<std::vector<std::string>>(),
-                  yaml["general"]["methods"].as<std::vector<std::string>>(),
-                  yaml["general"]["endPoints"].as<std::vector<std::string>>(),
-                  yaml["general"]["timeout"].as<unsigned short>(10),
-                  yaml["general"]["pullTimeout"].as<unsigned short>(1),
+    std::vector<std::string> deprecated;
+    auto setting = [&](const char *block, const char *key) {
+        if ((mode == RunMode::agent) == (std::string(block) == "agent") &&
+            isDeprecatedSetting(yaml, block, key)) {
+            deprecated.push_back(key);
+        }
+        return movedSetting(yaml, block, key);
+    };
+
+    s->general = {yaml["general"]["timeout"].as<unsigned short>(10),
                   yaml["general"]["tunnelEnable"].as<bool>(false),
-                  yaml["general"]["connectionReuse"].as<bool>(false),
                   yaml["general"]["aesEnable"].as<bool>(true),
-                  yaml["general"]["tlsEnable"].as<bool>(false),
-                  yaml["general"]["tlsVerifyPeer"].as<bool>(false),
-                  yaml["general"]["tlsCertFile"].as<std::string>(""),
-                  yaml["general"]["tlsKeyFile"].as<std::string>(""),
-                  yaml["general"]["tlsCaFile"].as<std::string>("")};
+                  yaml["general"]["tlsEnable"].as<bool>(false)};
     s->log = {yaml["log"]["logLevel"].as<std::string>("INFO"),
               yaml["log"]["logFile"].as<std::string>()};
     s->server = {yaml["server"]["threads"].as<unsigned short>(2),
                  yaml["server"]["listenIp"].as<std::string>("127.0.0.1"),
-                 yaml["server"]["listenPort"].as<unsigned short>(8080)};
+                 yaml["server"]["listenPort"].as<unsigned short>(8080),
+                 setting("server", "bufferSize").as<unsigned int>(65536),
+                 setting("server", "tlsCertFile").as<std::string>(""),
+                 setting("server", "tlsKeyFile").as<std::string>("")};
     s->agent = {yaml["agent"]["threads"].as<unsigned short>(2),
                 yaml["agent"]["listenIp"].as<std::string>("127.0.0.1"),
                 yaml["agent"]["listenPort"].as<unsigned short>(8080),
@@ -40,7 +41,22 @@ std::unique_ptr<Config::Settings> Config::load(RunMode mode, const std::string &
                 yaml["agent"]["serverPort"].as<unsigned short>(8080),
                 yaml["agent"]["httpVersion"].as<std::string>("1.1"),
                 yaml["agent"]["userAgent"].as<std::string>("NipoAgent"),
-                yaml["agent"]["token"].as<std::string>("")};
+                yaml["agent"]["token"].as<std::string>(""),
+                setting("agent", "protocol").as<std::string>(""),
+                setting("agent", "fakeUrls").as<std::vector<std::string>>(std::vector<std::string>{}),
+                setting("agent", "methods").as<std::vector<std::string>>(std::vector<std::string>{}),
+                setting("agent", "endPoints").as<std::vector<std::string>>(std::vector<std::string>{}),
+                setting("agent", "pullTimeout").as<unsigned short>(1),
+                setting("agent", "connectionReuse").as<bool>(false),
+                setting("agent", "tlsVerifyPeer").as<bool>(false),
+                setting("agent", "tlsCaFile").as<std::string>("")};
+
+    if (!deprecated.empty()) {
+        std::string keys;
+        for (const auto &key: deprecated) keys += (keys.empty() ? "" : ", ") + key;
+        s->warnings.push_back("these settings moved out of general: " + keys + "; move them to the " +
+                              (mode == RunMode::agent ? "agent" : "server") + " block");
+    }
 
     if (mode == RunMode::agent && s->agent.token.empty() && !legacyToken.empty()) {
         s->agent.token = legacyToken;
@@ -143,7 +159,7 @@ Config::ReloadResult Config::reload() {
         keep(next->agent.listenPort, prev.agent.listenPort, "agent.listenPort");
         keep(next->agent.threads, prev.agent.threads, "agent.threads");
     }
-    keep(next->usageFile, prev.usageFile, "usage.file");
+    keep(next->usageFile, prev.usageFile, "server.usage.file");
     keep(next->general.tlsEnable, prev.general.tlsEnable, "general.tlsEnable");
 
     std::vector<std::string> revoked;
@@ -192,51 +208,10 @@ std::string Config::toString() const {
 
     ss << "\nConfig :\n"
        << " General :\n"
-       << "   protocol: " << general_.protocol << "\n"
-       << "   bufferSize: " << general_.bufferSize << "\n"
-       << "   fakeUrls: ";
-
-    for (std::size_t i = 0; i < general_.fakeUrls.size(); ++i) {
-        ss << general_.fakeUrls[i];
-
-        if (i != general_.fakeUrls.size() - 1) {
-            ss << ", ";
-        }
-    }
-
-    ss << "\n"
-       << "   methods: ";
-
-    for (std::size_t i = 0; i < general_.methods.size(); ++i) {
-        ss << general_.methods[i];
-
-        if (i != general_.methods.size() - 1) {
-            ss << ", ";
-        }
-    }
-
-    ss << "\n"
-       << "   endPoints: ";
-
-    for (std::size_t i = 0; i < general_.endPoints.size(); ++i) {
-        ss << general_.endPoints[i];
-
-        if (i != general_.endPoints.size() - 1) {
-            ss << ", ";
-        }
-    }
-
-    ss << "\n"
        << "   timeout: " << general_.timeout << "\n"
-       << "   pullTimeout: " << general_.pullTimeout << "\n"
        << "   tunnelEnable: " << std::boolalpha << general_.tunnelEnable << "\n"
-       << "   connectionReuse: " << std::boolalpha << general_.connectionReuse << "\n"
        << "   aesEnable: " << std::boolalpha << general_.aesEnable << "\n"
        << "   tlsEnable: " << std::boolalpha << general_.tlsEnable << "\n"
-       << "   tlsVerifyPeer: " << std::boolalpha << general_.tlsVerifyPeer << "\n"
-       << "   tlsCertFile: " << general_.tlsCertFile << "\n"
-       << "   tlsKeyFile: " << general_.tlsKeyFile << "\n"
-       << "   tlsCaFile: " << general_.tlsCaFile << "\n"
 
        << " Log :\n"
        << "   logLevel: " << log_.level << "\n"
@@ -246,6 +221,9 @@ std::string Config::toString() const {
        << "   threads: " << server_.threads << "\n"
        << "   listenIp: " << server_.listenIp << "\n"
        << "   listenPort: " << server_.listenPort << "\n"
+       << "   bufferSize: " << server_.bufferSize << "\n"
+       << "   tlsCertFile: " << server_.tlsCertFile << "\n"
+       << "   tlsKeyFile: " << server_.tlsKeyFile << "\n"
 
        << " Agent :\n"
        << "   threads: " << agent_.threads << "\n"
@@ -255,6 +233,14 @@ std::string Config::toString() const {
        << "   serverPort: " << agent_.serverPort << "\n"
        << "   httpVersion: " << agent_.httpVersion << "\n"
        << "   userAgent: " << agent_.userAgent << "\n"
+       << "   protocol: " << agent_.protocol << "\n"
+       << "   fakeUrls: " << boost::algorithm::join(agent_.fakeUrls, ", ") << "\n"
+       << "   methods: " << boost::algorithm::join(agent_.methods, ", ") << "\n"
+       << "   endPoints: " << boost::algorithm::join(agent_.endPoints, ", ") << "\n"
+       << "   pullTimeout: " << agent_.pullTimeout << "\n"
+       << "   connectionReuse: " << std::boolalpha << agent_.connectionReuse << "\n"
+       << "   tlsVerifyPeer: " << std::boolalpha << agent_.tlsVerifyPeer << "\n"
+       << "   tlsCaFile: " << agent_.tlsCaFile << "\n"
        << "   token: " << (agent_.token.empty() ? "" : "<hidden>") << "\n";
 
     if (runMode_ == RunMode::server && cur.usersFromFile) {
@@ -358,9 +344,9 @@ std::string Config::modeToString() const {
 }
 
 std::string Config::randomFakeUrl() const {
-    const General &general_ = current().general;
+    const Agent &agent_ = current().agent;
 
-    if (general_.fakeUrls.empty()) {
+    if (agent_.fakeUrls.empty()) {
         return "www.google.com";
     }
 
@@ -368,15 +354,15 @@ std::string Config::randomFakeUrl() const {
 
     std::uniform_int_distribution<std::size_t> distribution(
             0,
-            general_.fakeUrls.size() - 1);
+            agent_.fakeUrls.size() - 1);
 
-    return general_.fakeUrls[distribution(generator)];
+    return agent_.fakeUrls[distribution(generator)];
 }
 
 std::string Config::randomMethod() const {
-    const General &general_ = current().general;
+    const Agent &agent_ = current().agent;
 
-    if (general_.methods.empty()) {
+    if (agent_.methods.empty()) {
         return "GET";
     }
 
@@ -384,15 +370,15 @@ std::string Config::randomMethod() const {
 
     std::uniform_int_distribution<std::size_t> distribution(
             0,
-            general_.methods.size() - 1);
+            agent_.methods.size() - 1);
 
-    return general_.methods[distribution(generator)];
+    return agent_.methods[distribution(generator)];
 }
 
 std::string Config::randomEndPoint() const {
-    const General &general_ = current().general;
+    const Agent &agent_ = current().agent;
 
-    if (general_.endPoints.empty()) {
+    if (agent_.endPoints.empty()) {
         return "api";
     }
 
@@ -400,7 +386,7 @@ std::string Config::randomEndPoint() const {
 
     std::uniform_int_distribution<std::size_t> distribution(
             0,
-            general_.endPoints.size() - 1);
+            agent_.endPoints.size() - 1);
 
-    return general_.endPoints[distribution(generator)];
+    return agent_.endPoints[distribution(generator)];
 }

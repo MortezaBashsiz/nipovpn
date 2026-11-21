@@ -109,6 +109,10 @@ std::string ServerHandler::srcTag() const {
 
 ServerHandler::~ServerHandler() {}
 
+std::string ServerHandler::connectionHeader() const {
+    return requestKeepAlive_ ? "keep-alive" : "close";
+}
+
 void ServerHandler::makePlainHttpResponse(const std::string &body,
                                           const std::string &status,
                                           const std::string &connection) {
@@ -122,6 +126,7 @@ void ServerHandler::makePlainHttpResponse(const std::string &body,
           << body;
 
     copyStringToStreambuf(outer.str(), writeBuffer_);
+    keepAlive_ = connection == "keep-alive";
 
     end_ = false;
     connect_ = false;
@@ -163,6 +168,7 @@ void ServerHandler::handle() {
     }
 
     const auto &outerReq = request_->parsedHttpRequest();
+    requestKeepAlive_ = outerReq.keep_alive();
 
     const std::string outerRaw = streambufToString(readBuffer_);
 
@@ -238,7 +244,7 @@ void ServerHandler::handle() {
         }
 
         if (!targetClient || !targetClient->isOpen()) {
-            makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+            makePayloadHttpResponse("", "200 OK", connectionHeader());
             return;
         }
 
@@ -247,7 +253,7 @@ void ServerHandler::handle() {
         Usage::instance().add(usage_, tunnelBuf.size());
         targetClient->doWrite(tunnelBuf);
 
-        makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+        makePayloadHttpResponse("", "200 OK", connectionHeader());
         return;
     }
 
@@ -264,7 +270,7 @@ void ServerHandler::handle() {
         }
 
         if (!targetClient || !targetClient->isOpen()) {
-            makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+            makePayloadHttpResponse("", "200 OK", connectionHeader());
             return;
         }
 
@@ -272,17 +278,17 @@ void ServerHandler::handle() {
         std::size_t available = targetClient->socket().available(ec);
 
         if (ec || available == 0) {
-            makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+            makePayloadHttpResponse("", "200 OK", connectionHeader());
             return;
         }
 
-        std::vector<char> data(std::min<std::size_t>(available, config_->general().bufferSize));
+        std::vector<char> data(std::min<std::size_t>(available, config_->server().bufferSize));
         std::size_t n = targetClient->socket().read_some(
                 boost::asio::buffer(data),
                 ec);
 
         if (ec || n == 0) {
-            makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+            makePayloadHttpResponse("", "200 OK", connectionHeader());
             return;
         }
 
@@ -291,7 +297,7 @@ void ServerHandler::handle() {
         makePayloadHttpResponse(
                 std::string(data.data(), n),
                 "200 OK",
-                (config_->general().connectionReuse ? "keep-alive" : "close"));
+                connectionHeader());
 
         return;
     }
@@ -305,7 +311,7 @@ void ServerHandler::handle() {
             sessions_.erase(it);
         }
 
-        makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+        makePayloadHttpResponse("", "200 OK", connectionHeader());
         return;
     }
 
@@ -436,7 +442,7 @@ void ServerHandler::handle() {
             makePayloadHttpResponse(
                     "HTTP/1.1 200 Connection Established\r\n\r\n",
                     "200 OK",
-                    "keep-alive");
+                    connectionHeader());
 
             connect_ = false;
             end_ = false;
@@ -462,14 +468,14 @@ void ServerHandler::handle() {
 
             if (client_->readBuffer().size() == 0) {
                 client_->socket().close();
-                makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
+                makePayloadHttpResponse("", "200 OK", connectionHeader());
                 return;
             }
 
             makePayloadHttpResponse(
                     streambufToString(client_->readBuffer()),
                     "200 OK",
-                    (config_->general().connectionReuse ? "keep-alive" : "close"));
+                    connectionHeader());
 
             connect_ = false;
             end_ = false;

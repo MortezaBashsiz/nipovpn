@@ -40,6 +40,7 @@ public:
 
     bool end_;
     bool connect_;
+    bool keepAlive_ = false;
 
 private:
     struct HttpUtils {
@@ -65,6 +66,9 @@ private:
     void makePayloadHttpResponse(const std::string &plainBody,
                                  const std::string &status = "200 OK",
                                  const std::string &connection = "close");
+
+    std::string connectionHeader() const;
+    bool requestKeepAlive_ = false;
 
     void makePlainHttpResponse(const std::string &body,
                                const std::string &status = "200 OK",

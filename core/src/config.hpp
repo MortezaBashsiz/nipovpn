@@ -29,21 +29,10 @@ struct User {
 class Config : private Uncopyable {
 public:
     struct General {
-        std::string protocol;
-        unsigned int bufferSize;
-        std::vector<std::string> fakeUrls;
-        std::vector<std::string> methods;
-        std::vector<std::string> endPoints;
         unsigned short timeout;
-        unsigned short pullTimeout;
         bool tunnelEnable;
-        bool connectionReuse;
         bool aesEnable;
         bool tlsEnable;
-        bool tlsVerifyPeer;
-        std::string tlsCertFile;
-        std::string tlsKeyFile;
-        std::string tlsCaFile;
     };
 
     struct Log {
@@ -55,6 +44,9 @@ public:
         unsigned short threads;
         std::string listenIp;
         unsigned short listenPort;
+        unsigned int bufferSize;
+        std::string tlsCertFile;
+        std::string tlsKeyFile;
     };
 
     struct Agent {
@@ -66,6 +58,14 @@ public:
         std::string httpVersion;
         std::string userAgent;
         std::string token;
+        std::string protocol;
+        std::vector<std::string> fakeUrls;
+        std::vector<std::string> methods;
+        std::vector<std::string> endPoints;
+        unsigned short pullTimeout;
+        bool connectionReuse;
+        bool tlsVerifyPeer;
+        std::string tlsCaFile;
     };
 
     struct Settings {

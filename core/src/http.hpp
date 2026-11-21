@@ -60,9 +60,6 @@ public:
 
     bool parseTls();
 
-    std::string genHttpPostReqString(const std::string &body) const;
-
-    std::string genHttpRestPostReqString() const;
 
     std::string genHttpOkResString(const std::string &body) const;
 

@@ -24,7 +24,7 @@ It is written in C++20 on top of Boost.Asio, OpenSSL and yaml-cpp.
 
 ### Client side (agent)
 
-- **HTTP proxy and SOCKS5 proxy** for local applications (`general.protocol`).
+- **HTTP proxy and SOCKS5 proxy** for local applications (`agent.protocol`).
   - HTTP: plain HTTP requests and `CONNECT` tunnels (HTTPS).
   - SOCKS5: `CONNECT` command, no authentication, with IPv4, IPv6 and domain
     name targets.
@@ -236,10 +236,10 @@ sudo nipovpn agent /etc/nipovpn/config.yaml
 ### 6. Point your applications at the agent
 
 ```bash
-# protocol: socks5
+# agent.protocol: socks5
 curl --socks5-hostname 127.0.0.1:8080 https://example.com
 
-# protocol: http
+# agent.protocol: http
 curl -x http://127.0.0.1:8080 https://example.com
 ```
 
@@ -253,23 +253,15 @@ Settings marked **must match** have to be the same on agent and server.
 
 ### `general`
 
+Settings both sides use. Old configs that still have one of the settings below
+in `general` keep working, with a warning naming the keys to move.
+
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `aesEnable` | bool | `true` | AES-256-GCM payload encryption. **Must match.** |
-| `protocol` | `http` \| `socks5` | — | Protocol the agent accepts from local applications. |
-| `bufferSize` | 1–65536 | `65536` | Maximum bytes read per operation. |
-| `fakeUrls` | list | — | Hosts used at random for the decoy `Host` header and TLS SNI. |
-| `methods` | list | — | HTTP methods used at random for decoy requests. |
-| `endPoints` | list | — | URL paths used at random for decoy requests (`/api`, `/login`, ...). |
-| `timeout` | seconds | `10` | I/O timeout for stalled connections. `0` disables it. |
-| `pullTimeout` | milliseconds | `1` | Base polling interval in polling mode. |
 | `tunnelEnable` | bool | `false` | `true` = direct tunnel mode, `false` = polling mode. **Must match.** |
-| `connectionReuse` | bool | `false` | Reuse one keep-alive connection between agent and server. |
 | `tlsEnable` | bool | `false` | TLS between agent and server. **Must match.** |
-| `tlsVerifyPeer` | bool | `false` | Agent verifies the server certificate. |
-| `tlsCertFile` | path | — | Server certificate (PEM, chain allowed). |
-| `tlsKeyFile` | path | — | Server private key (PEM). |
-| `tlsCaFile` | path | — | CA file the agent uses when `tlsVerifyPeer` is on. |
+| `timeout` | seconds | `10` | I/O timeout for stalled connections. `0` disables it. Each side uses its own value. |
 
 ### `log`
 
@@ -285,6 +277,9 @@ Settings marked **must match** have to be the same on agent and server.
 | `threads` | `2` | Worker threads. |
 | `listenIp` | `127.0.0.1` | IPv4 address to listen on. |
 | `listenPort` | `8080` | Port to listen on (443 is a good choice to blend in). |
+| `bufferSize` | `65536` | Maximum bytes read from a destination at a time in polling mode, 1–65536. |
+| `tlsCertFile` | — | Server certificate (PEM, chain allowed), used when `tlsEnable` is on. |
+| `tlsKeyFile` | — | Server private key (PEM). |
 
 ### `agent`
 
@@ -293,10 +288,18 @@ Settings marked **must match** have to be the same on agent and server.
 | `threads` | `2` | Worker threads. |
 | `listenIp` | `127.0.0.1` | IPv4 address for local applications to connect to. |
 | `listenPort` | `8080` | Port for local applications. |
+| `protocol` | — | `http` or `socks5`: the protocol local applications use to connect to the agent. |
 | `serverIp` | `127.0.0.1` | IPv4 address of the NipoVPN server. |
 | `serverPort` | `8080` | Port of the NipoVPN server. |
 | `httpVersion` | `1.1` | HTTP version in decoy requests. |
 | `userAgent` | `NipoAgent` | `User-Agent` header in decoy requests. |
+| `fakeUrls` | — | Hosts used at random for the decoy `Host` header and TLS SNI. |
+| `methods` | `GET` | HTTP methods used at random for decoy requests. |
+| `endPoints` | `api` | URL paths used at random for decoy requests (`/api`, `/login`, ...). |
+| `pullTimeout` | `1` | Base polling interval in milliseconds in polling mode. |
+| `connectionReuse` | `false` | Reuse one keep-alive connection to the server. The server follows the agent's choice. |
+| `tlsVerifyPeer` | `false` | Verify the server certificate. |
+| `tlsCaFile` | — | CA file used when `tlsVerifyPeer` is on. |
 | `token` | — | The token this agent sends, ≥ 32 bytes when `aesEnable` is on. Must be the token of an enabled user on the server. The AES key is derived from it. |
 
 ### `server.users`
@@ -489,6 +492,7 @@ journalctl -u nipovpn-server.service -f
 | `the server needs a server.users list with at least one user` | Add a `users` list under `server` in the server config. |
 | `users belongs under the server block` | Configs from before this change had `users`/`usage` at the top level; indent them under `server:`. |
 | `[WARNING] general.token is deprecated` | Move the token to `agent.token` (agent) or a `server.users` entry (server). |
+| `[WARNING] these settings moved out of general: ...` | Move the listed keys from `general` to the block the warning names (`agent` or `server`). |
 | `limit must be a size with a unit` | Write the limit with a unit: `2GB`, `500MB`, `1.5GiB`, or `1024B` for bytes. |
 | `[Usage] cannot read .../usage.yaml` | The usage file has a syntax error, probably from a manual edit. Fix it; usage is not saved until then. |
 | `[Usage] cannot save usage` | The server cannot write `server.usage.file`; check the directory and permissions. |
