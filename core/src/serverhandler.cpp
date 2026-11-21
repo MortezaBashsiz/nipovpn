@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "http_utils.hpp"
+#include "usage.hpp"
 
 std::mutex ServerHandler::sessionsMutex_;
 std::unordered_map<std::string, ServerHandler::Session> ServerHandler::sessions_;
@@ -73,7 +74,6 @@ BoolStr ServerHandler::authenticate(const std::string &payload) {
     const std::vector<User> &users = config_->users();
 
     if (!config_->general().aesEnable) {
-        // Only possible without a users list: the single "default" user.
         user_ = users.empty() ? nullptr : &users.front();
         return {true, payload};
     }
@@ -89,7 +89,6 @@ BoolStr ServerHandler::authenticate(const std::string &payload) {
         return true;
     };
 
-    // Most requests on a connection come from the same user.
     if (!userHint_.empty()) {
         for (const auto &u: users) {
             if (u.name == userHint_) {
@@ -198,6 +197,15 @@ void ServerHandler::handle() {
         return;
     }
 
+    usage_ = user_ ? Usage::instance().counter(user_->name) : nullptr;
+    if (usage_ && Usage::overLimit(*usage_)) {
+        log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [USER " + user_->name +
+                            "] refused: usage limit reached",
+                    Log::Level::DEBUG);
+        makePlainHttpResponse("", "403 Forbidden", "close");
+        return;
+    }
+
     Envelope envelope;
     if (!parseEnvelope(decryption.message, envelope)) {
         log_->write(
@@ -236,6 +244,7 @@ void ServerHandler::handle() {
 
         boost::asio::streambuf tunnelBuf;
         copyStringToStreambuf(hexToASCII(decryption.message), tunnelBuf);
+        Usage::instance().add(usage_, tunnelBuf.size());
         targetClient->doWrite(tunnelBuf);
 
         makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
@@ -276,6 +285,8 @@ void ServerHandler::handle() {
             makePayloadHttpResponse("", "200 OK", (config_->general().connectionReuse ? "keep-alive" : "close"));
             return;
         }
+
+        Usage::instance().add(usage_, n);
 
         makePayloadHttpResponse(
                 std::string(data.data(), n),
@@ -404,6 +415,7 @@ void ServerHandler::handle() {
             if (!pendingTunnelData.empty()) {
                 boost::asio::streambuf pendingBuf;
                 copyStringToStreambuf(pendingTunnelData, pendingBuf);
+                Usage::instance().add(usage_, pendingBuf.size());
                 targetClient->doWrite(pendingBuf);
             }
 
@@ -412,7 +424,6 @@ void ServerHandler::handle() {
                 const std::string key = session.empty() ? to_string(uuid_) : session;
                 auto it = sessions_.find(key);
 
-                // Never let one user take over another user's session.
                 if (it != sessions_.end() && it->second.user != userName()) {
                     targetClient->socketShutdown();
                     makePayloadHttpResponse("", "403 Forbidden", "close");
@@ -444,8 +455,10 @@ void ServerHandler::handle() {
                 }
             }
 
+            Usage::instance().add(usage_, readBuffer_.size());
             client_->doWrite(readBuffer_);
             client_->doReadServer();
+            Usage::instance().add(usage_, client_->readBuffer().size());
 
             if (client_->readBuffer().size() == 0) {
                 client_->socket().close();

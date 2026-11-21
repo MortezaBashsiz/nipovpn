@@ -374,7 +374,6 @@ void TCPClient::writeBuffer(boost::asio::streambuf &buffer) {
     moveStreambuf(buffer, writeBuffer_);
 }
 
-
 bool TCPClient::doWrite(boost::asio::streambuf &buffer) {
     try {
         writeBuffer_.consume(writeBuffer_.size());

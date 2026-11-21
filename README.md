@@ -78,6 +78,8 @@ neither.
 ### Operations
 
 - **Config validation at startup** with clear error messages.
+- **Per-user monthly traffic limits** (e.g. 2 GB), with usage kept in an
+  editable file. See [Usage limits](#usage-limits).
 - **Multiple users** on one server, each with their own token. Users can be
   added, disabled or removed without a restart. See [Multiple users](#multiple-users).
 - **Reload without restart** on `SIGHUP` (`systemctl reload`). See
@@ -191,14 +193,15 @@ tokens from the shipped config.
 openssl rand -hex 16   # prints 32 hex characters
 ```
 
-On the server, list it in `users`. On that person's machine, put the same
-token in `agent.token`:
+On the server, list it in `server.users`. On that person's machine, put the
+same token in `agent.token`:
 
 ```yaml
-# server config            # agent config
-users:                     agent:
-  - name: alice              token: "<alice's token>"
-    token: "<alice's token>"
+# server config              # agent config
+server:                      agent:
+  users:                       token: "<alice's token>"
+    - name: alice
+      token: "<alice's token>"
 ```
 
 ### 3. TLS certificate (if `tlsEnable: true`)
@@ -296,7 +299,7 @@ Settings marked **must match** have to be the same on agent and server.
 | `userAgent` | `NipoAgent` | `User-Agent` header in decoy requests. |
 | `token` | — | The token this agent sends, ≥ 32 bytes when `aesEnable` is on. Must be the token of an enabled user on the server. The AES key is derived from it. |
 
-### `users` (server only)
+### `server.users`
 
 The users allowed to connect, each with their own token. Required on the server
 when `aesEnable` is on. Agents do not use this block.
@@ -306,18 +309,28 @@ when `aesEnable` is on. Agents do not use this block.
 | `name` | — | 1–64 characters of `A-Z a-z 0-9 . _ - @`. Unique. Shown in the server log. |
 | `token` | — | The user's token, ≥ 32 bytes. Unique. The user's agent puts it in `agent.token`. |
 | `enabled` | `true` | `false` rejects the user without deleting the entry. |
+| `limit` | none | Traffic allowed per month, e.g. `2GB`, `500MB`, `1.5GiB`. See [Usage limits](#usage-limits). |
+
+### `server.usage` (optional)
+
+| Key | Default | Description |
+|---|---|---|
+| `file` | `/var/lib/nipovpn/usage.yaml` | Where per-user usage is kept. Changing it needs a restart. |
+| `resetDay` | `1` | Day of the month (1–28) on which everyone's usage goes back to zero. |
 
 ## Multiple users
 
-Every person gets their own token. The **server** lists them all in `users`:
+Every person gets their own token. The **server** lists them all in
+`server.users`:
 
 ```yaml
-users:
-  - name: alice
-    token: "4f3c9a...32 or more characters"
-  - name: bob
-    token: "b81e07...32 or more characters"
-    enabled: false        # bob is rejected until this is set back to true
+server:
+  users:
+    - name: alice
+      token: "4f3c9a...32 or more characters"
+    - name: bob
+      token: "b81e07...32 or more characters"
+      enabled: false        # bob is rejected until this is set back to true
 ```
 
 Each user's agent puts their token in `agent.token`. All other settings that
@@ -330,10 +343,10 @@ everyone.
 - The server log shows the user on each connection: `[SRC ...] [USER alice]`.
 - A tunnel opened by one user cannot be used by another user.
 - **Upgrading from `general.token`:** older configs still work. An agent reads
-  `general.token` when `agent.token` is missing, and a server without a `users`
+  `general.token` when `agent.token` is missing, and a server without a `server.users`
   list accepts `general.token` as a single user named `default`. Both log a
   deprecation warning at startup. To migrate, move the agent's token to
-  `agent.token` and add it to the server's `users` list. Agents of any version
+  `agent.token` and add it to the server's `server.users` list. Agents of any version
   keep working, since the token on the wire is the same.
 - Each new connection costs one decryption attempt per enabled user until a
   token matches. A reused connection tries its last user first. This is fine
@@ -342,6 +355,61 @@ everyone.
 To add, disable or remove a user, edit the config and [reload](#reloading-the-configuration).
 When a user is removed or disabled, or their token changes, the server closes
 their open connections and tunnels on reload.
+
+## Usage limits
+
+A server with a `server.users` list counts each user's traffic: the bytes they send to
+websites plus the bytes they receive from them. NipoVPN's own overhead (decoy
+HTTP framing, base64, encryption) is not counted. Give a user a monthly
+allowance with `limit`:
+
+```yaml
+server:
+  usage:
+    resetDay: 1            # everyone's usage resets on the 1st of each month
+  users:
+    - name: alice
+      token: "..."
+      limit: 2GB           # KB/MB/GB/TB = powers of 1000; KiB/MiB/GiB/TiB = powers of 1024
+    - name: bob
+      token: "..."         # no limit
+```
+
+When a user reaches their limit, the server closes their open connections and
+refuses new ones until the next period, and logs:
+
+```
+[Usage] user alice reached their limit of 2.00 GB; blocked until the next period
+```
+
+They regain access as soon as their usage drops below the limit: at the next
+`resetDay`, when you raise their limit (edit the config and reload), or when you
+reset them.
+
+**Seeing and changing usage.** The server writes usage to `server.usage.file`
+(default `/var/lib/nipovpn/usage.yaml`) every 30 seconds, on reload and on
+shutdown:
+
+```yaml
+period: "2026-11-01"
+users:
+  alice: {used: 2000123456}  # 2.00 GB of 2.00 GB (100%), blocked
+  bob: {used: 734003200}  # 734.00 MB, no limit
+```
+
+To reset or change a user's usage, edit their `used` number (for example set it
+to `0`) and save. The server applies the edit within 30 seconds, or right away
+on reload. Traffic counted in the meantime is kept on top of your value. Do not
+edit `period`.
+
+Notes:
+
+- The file is the only record of usage, so it survives restarts. With Docker,
+  keep `/var/lib/nipovpn` on a volume (the compose file does).
+- If the file cannot be parsed, the server logs an error and stops saving until
+  you fix it, rather than overwriting your edit.
+- A user who is removed and later added back keeps their usage for the period.
+- Usage is not tracked on a server without a `server.users` list.
 
 ## Reloading the configuration
 
@@ -363,7 +431,7 @@ down. A successful reload logs a summary, for example:
 ```
 
 New requests use the new settings at once. These settings only change on
-restart: `listenIp`, `listenPort`, `threads` and `tlsEnable`. If you change
+restart: `listenIp`, `listenPort`, `threads`, `tlsEnable` and `server.usage.file`. If you change
 them, the reload logs `... changed but needs a restart`. Certificate files are
 read for every new connection, so a renewed certificate needs no reload at
 all. Reload is not available on Windows.
@@ -396,7 +464,7 @@ Log lines look like:
 2026-01-01_12:00:00 [SERVER] [INFO] [<session-uuid>] [CONNECT] [SRC 203.0.113.7:40112] [USER alice] [ORIGIN example.com:443]
 ```
 
-On the server, `[USER ...]` is the user from the `users` list, or `default`
+On the server, `[USER ...]` is the user from the `server.users` list, or `default`
 when the server still uses the deprecated `general.token`.
 
 - `INFO`: startup, effective configuration (token hidden), connections opened.
@@ -416,10 +484,14 @@ journalctl -u nipovpn-server.service -f
 | `Configuration validation failed: ...` | A required key is missing or invalid; the message names the block. |
 | `agent.token must be at least 32 bytes when aesEnable is true` | Use a longer token (`openssl rand -hex 16`). |
 | `Error opening log file` | Create the log directory and file (see Quick start). |
-| Server logs `Decryption Failed` / `Invalid Envelope` | `token`, `aesEnable` or NipoVPN versions differ between agent and server. With a `users` list: the agent's token is not an enabled user's token. |
+| Server logs `Decryption Failed` / `Invalid Envelope` | `token`, `aesEnable` or NipoVPN versions differ between agent and server. With `server.users`: the agent's token is not an enabled user's token. |
 | `agent.token is required` | Set the agent's token in the `agent` block (it used to be `general.token`). |
-| `the server needs a users list with at least one user` | Add a `users` list to the server config. |
-| `[WARNING] general.token is deprecated` | Move the token to `agent.token` (agent) or a `users` entry (server). |
+| `the server needs a server.users list with at least one user` | Add a `users` list under `server` in the server config. |
+| `users belongs under the server block` | Configs from before this change had `users`/`usage` at the top level; indent them under `server:`. |
+| `[WARNING] general.token is deprecated` | Move the token to `agent.token` (agent) or a `server.users` entry (server). |
+| `limit must be a size with a unit` | Write the limit with a unit: `2GB`, `500MB`, `1.5GiB`, or `1024B` for bytes. |
+| `[Usage] cannot read .../usage.yaml` | The usage file has a syntax error, probably from a manual edit. Fix it; usage is not saved until then. |
+| `[Usage] cannot save usage` | The server cannot write `server.usage.file`; check the directory and permissions. |
 | `users require general.aesEnable: true` | Users are told apart by their AES key; turn on `aesEnable`. |
 | `[Runner reload] config not reloaded: ...` | The edited file is invalid; the old configuration is still running. Fix the file and reload again. |
 | Agent logs `[Tunnel closed] recv refused or failed` | The server rejected the agent's token (e.g. the user was disabled) or became unreachable. |

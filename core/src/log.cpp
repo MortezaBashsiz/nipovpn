@@ -55,7 +55,6 @@ void Log::write(const std::string &message, Level level) const {
 
         if (logFile.is_open()) {
 
-
             auto now = std::time(nullptr);
             auto localTime = *std::localtime(&now);
 

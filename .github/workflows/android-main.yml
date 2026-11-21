@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 env:
-  PACKAGE_VERSION: 1.1.60
+  PACKAGE_VERSION: 2.1.0
 
 jobs:
   build-android:

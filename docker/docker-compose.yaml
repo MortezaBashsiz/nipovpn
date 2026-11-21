@@ -17,6 +17,8 @@ services:
     volumes:
       - ../nipovpn/etc/nipovpn/config.yaml:/etc/nipovpn/config.yaml:ro
       - nipovpn_logs:/var/log/nipovpn
+      # Per-user usage (server with a users list); keeps counts across restarts.
+      - nipovpn_state:/var/lib/nipovpn
 
     command:
       - ${NIPOVPN_MODE:-server}
@@ -24,3 +26,4 @@ services:
 
 volumes:
   nipovpn_logs:
+  nipovpn_state:

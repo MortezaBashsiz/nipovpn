@@ -3,6 +3,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <random>
@@ -17,13 +18,12 @@ enum class RunMode {
     agent
 };
 
-// A server-side user. Users are told apart by their token: the server tries
-// each enabled user's key until one authenticates the request.
 struct User {
     std::string name;
     std::string token;
-    std::string key;// deriveAesKey(token), computed once at load time
+    std::string key;
     bool enabled;
+    std::uint64_t limit = 0;
 };
 
 class Config : private Uncopyable {
@@ -65,30 +65,24 @@ public:
         unsigned short serverPort;
         std::string httpVersion;
         std::string userAgent;
-        // The token this agent sends. On the server it must belong to an
-        // enabled user.
         std::string token;
     };
 
-    // Everything read from the config file. A snapshot is never modified
-    // after it is published.
     struct Settings {
         General general;
         Log log;
         Server server;
         Agent agent;
-        // Server mode only. Without a users list in the file this holds one
-        // user named "default" with the deprecated general.token.
         std::vector<User> users;
         bool usersFromFile = false;
-        // Deprecated settings found in the file, to be logged.
+        std::string usageFile;
+        int usageResetDay = 1;
         std::vector<std::string> warnings;
     };
 
     struct ReloadResult {
         bool ok;
         std::string message;
-        // Users whose access ended: removed, disabled, or given a new token.
         std::vector<std::string> revokedUsers;
     };
 
@@ -100,18 +94,16 @@ public:
 
     ~Config();
 
-    // These return references into the current snapshot. Snapshots are kept
-    // for the life of the process, so the references stay valid after a
-    // reload; they just stop being current.
     const General &general() const;
     const Log &log() const;
     const Server &server() const;
     const Agent &agent() const;
     const std::vector<User> &users() const;
     const std::vector<std::string> &warnings() const;
+    bool hasUserList() const;
+    const std::string &usageFile() const;
+    int usageResetDay() const;
 
-    // Re-reads the config file. On any error the running config is kept.
-    // listenIp, listenPort, threads and tlsEnable only change on restart.
     ReloadResult reload();
 
     unsigned short threads() const;

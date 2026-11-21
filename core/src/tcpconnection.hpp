@@ -20,6 +20,7 @@
 #include "agenthandler.hpp"
 #include "general.hpp"
 #include "serverhandler.hpp"
+#include "usage.hpp"
 
 class TCPConnection : public std::enable_shared_from_this<TCPConnection> {
 public:
@@ -58,8 +59,6 @@ public:
 
     void socketShutdown();
 
-    // Closes every server-side connection authenticated as one of these
-    // users, from any thread. Returns how many were open.
     static std::size_t revokeUsers(const std::vector<std::string> &users);
 
     void enableDirectTunnelMode();
@@ -127,10 +126,7 @@ private:
 
     void startTunnelReadFromClient();
     void startTunnelPollServer();
-    // Returns the decrypted response body (empty when the server has no data),
-    // or nullopt when the server refused the request or could not be reached.
     std::optional<std::string> postTunnelAction(const std::string &action, const std::string &rawBody);
-    // Closes a tunnel the server no longer serves (e.g. the user was revoked).
     void abortTunnel(const std::string &reason);
     std::string makeRelayHostHeader() const;
     void closeTunnelSession();
@@ -164,10 +160,9 @@ private:
     unsigned int pollDelayMs_;
     std::atomic_bool closed_{false};
 
-    // Server mode: last user authenticated on this connection, and the user
-    // it is registered under for revocation.
     std::string userHint_;
     std::string trackedUser_;
+    std::shared_ptr<Usage::Counter> usage_;
 
     static std::mutex registryMutex_;
     static std::unordered_map<std::string, std::vector<std::weak_ptr<TCPConnection>>> byUser_;

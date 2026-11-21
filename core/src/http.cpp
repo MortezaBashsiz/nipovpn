@@ -22,9 +22,7 @@ HTTP::HTTP(const HTTP &http)
       uuid_(http.uuid_) {
 }
 
-
 HTTP::~HTTP() {}
-
 
 bool HTTP::detectType() {
     std::string requestStr{hexStreambufToStr(buffer_)};
@@ -185,7 +183,6 @@ std::string HTTP::genHttpOkResString(const std::string &body) const {
            "Connection: keep-alive\r\n" + "Cache-Control: no-cache\r\n" +
            "Pragma: no-cache\r\n" + "\r\n" + body + "COMP\r\n\r\n";
 }
-
 
 bool HTTP::parseHostPort(const std::string &input,
                          std::string &host,

@@ -9,7 +9,6 @@
 #include "log.hpp"
 #include "tcpclient.hpp"
 
-
 class AgentHandler : private Uncopyable {
 public:
     using pointer = std::shared_ptr<AgentHandler>;
