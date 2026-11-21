@@ -88,9 +88,9 @@ bool TCPConnection::initTlsServerContext() {
 
         SSL_CTX_set_min_proto_version(sslContext_.native_handle(), TLS1_2_VERSION);
 
-        sslContext_.use_certificate_chain_file(config_->general().tlsCertFile);
+        sslContext_.use_certificate_chain_file(config_->server().tlsCertFile);
         sslContext_.use_private_key_file(
-                config_->general().tlsKeyFile,
+                config_->server().tlsKeyFile,
                 boost::asio::ssl::context::pem);
 
         if (!SSL_CTX_check_private_key(sslContext_.native_handle())) {
@@ -231,7 +231,7 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
 
         boost::system::error_code errorIn;
 
-        if (config_->general().protocol == "socks5") {
+        if (config_->agent().protocol == "socks5") {
             if (!handleSocks5Handshake()) {
                 socketShutdown();
                 return;
@@ -296,7 +296,7 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
         end_ = agentHandler_->end_;
         connect_ = agentHandler_->connect_;
 
-        if (config_->general().protocol == "socks5" && connect_) {
+        if (config_->agent().protocol == "socks5" && connect_) {
             writeBuffer_.consume(writeBuffer_.size());
 
             const unsigned char ok[10] = {
@@ -336,11 +336,11 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
                                     self->relayClientToServer();
                                     self->relayServerToClient();
                                 } else {
-                                    if (!self->config_->general().connectionReuse) {
+                                    if (!self->config_->agent().connectionReuse) {
                                         self->client_->socketShutdown();
                                     }
 
-                                    self->pollDelayMs_ = self->config_->general().pullTimeout;
+                                    self->pollDelayMs_ = self->config_->agent().pullTimeout;
                                     self->startTunnelReadFromClient();
                                     self->startTunnelPollServer();
                                 }
@@ -423,7 +423,7 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
         resetTimeout();
 
         auto writeHandler =
-                [self = shared_from_this()](
+                [self = shared_from_this(), keepAlive = serverHandler_->keepAlive_](
                         const boost::system::error_code &ec,
                         std::size_t) {
                     self->cancelTimeout();
@@ -440,7 +440,7 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
                         return;
                     }
 
-                    if (self->config_->general().connectionReuse) {
+                    if (keepAlive) {
                         self->doReadServer();
                     } else {
                         self->socketShutdown();
@@ -518,7 +518,7 @@ std::optional<std::string> TCPConnection::postTunnelAction(const std::string &ac
         const std::string encodedBody = encode64(enc.message);
 
         const bool keepAlive =
-                config_->general().connectionReuse && action != "close";
+                config_->agent().connectionReuse && action != "close";
 
         std::ostringstream req;
         req << config_->randomMethod() + " /" + config_->randomEndPoint()
@@ -571,7 +571,7 @@ std::optional<std::string> TCPConnection::postTunnelAction(const std::string &ac
     std::string response = sendOnce();
 
     if (response.empty() &&
-        config_->general().connectionReuse &&
+        config_->agent().connectionReuse &&
         action != "close") {
         client_->socketShutdown();
         response = sendOnce();
@@ -743,7 +743,7 @@ void TCPConnection::startTunnelReadFromClient() {
                             return;
                         }
 
-                        self->pollDelayMs_ = self->config_->general().pullTimeout;
+                        self->pollDelayMs_ = self->config_->agent().pullTimeout;
                         if (self->pollInProgress_) self->pollTimer_.cancel();
 
                         self->startTunnelReadFromClient();
@@ -778,7 +778,7 @@ void TCPConnection::startTunnelPollServer() {
                         }
                         std::string data = std::move(*reply);
 
-                        const unsigned int baseDelay = self->config_->general().pullTimeout;
+                        const unsigned int baseDelay = self->config_->agent().pullTimeout;
                         self->pollDelayMs_ =
                                 data.empty()
                                         ? std::min(std::max(self->pollDelayMs_ * 2, 1u), std::max(MaxPollDelayMs, baseDelay))

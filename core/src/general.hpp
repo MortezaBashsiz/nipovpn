@@ -424,6 +424,15 @@ inline bool isValidUserName(const std::string &name) {
     return true;
 }
 
+inline YAML::Node movedSetting(const YAML::Node &yaml, const char *block, const char *key) {
+    if (yaml[block][key]) return yaml[block][key];
+    return yaml["general"][key];
+}
+
+inline bool isDeprecatedSetting(const YAML::Node &yaml, const char *block, const char *key) {
+    return !yaml[block][key] && yaml["general"][key];
+}
+
 inline BoolStr validateConfigFile(const std::string &mode, const std::string &path) {
     BoolStr result{false, "Validation failed"};
 
@@ -448,13 +457,7 @@ inline BoolStr validateConfigFile(const std::string &mode, const std::string &pa
 
     try {
         configYaml["general"]["token"].as<std::string>("");
-        configYaml["general"]["protocol"].as<std::string>();
-        configYaml["general"]["bufferSize"].as<unsigned int>();
-        configYaml["general"]["fakeUrls"].as<std::vector<std::string>>();
-        configYaml["general"]["methods"].as<std::vector<std::string>>();
-        configYaml["general"]["endPoints"].as<std::vector<std::string>>();
         configYaml["general"]["timeout"].as<unsigned short>();
-        configYaml["general"]["pullTimeout"].as<unsigned short>();
         configYaml["general"]["tunnelEnable"].as<bool>();
     } catch (const std::exception &e) {
         result.message = std::string("Error in 'general' block: ") + e.what() + "\n";
@@ -489,14 +492,45 @@ inline BoolStr validateConfigFile(const std::string &mode, const std::string &pa
         return result;
     }
 
-    if (configYaml["general"]["protocol"].as<std::string>() != "http" && configYaml["general"]["protocol"].as<std::string>() != "socks5") {
-        result.message = "protocol must be one of [http|socks5]\n";
+    const char *side = mode == "agent" ? "agent" : "server";
+    std::string key;
+    try {
+        auto check = [&](const char *name, auto sample) {
+            key = name;
+            const YAML::Node node = movedSetting(configYaml, side, name);
+            if (node) node.as<decltype(sample)>();
+        };
+        if (mode == "agent") {
+            check("protocol", std::string());
+            check("fakeUrls", std::vector<std::string>());
+            check("methods", std::vector<std::string>());
+            check("endPoints", std::vector<std::string>());
+            check("pullTimeout", static_cast<unsigned short>(0));
+            check("connectionReuse", false);
+            check("tlsVerifyPeer", false);
+            check("tlsCaFile", std::string());
+        } else {
+            check("bufferSize", 0u);
+            check("tlsCertFile", std::string());
+            check("tlsKeyFile", std::string());
+        }
+    } catch (const std::exception &e) {
+        result.message = std::string("Error in ") + side + "." + key + ": " + e.what() + "\n";
         return result;
     }
 
-    if (configYaml["general"]["bufferSize"].as<unsigned int>() < 1 || configYaml["general"]["bufferSize"].as<unsigned int>() > 65536) {
-        result.message = "bufferSize must be between 1 and 65536\n";
-        return result;
+    if (mode == "agent") {
+        const std::string protocol = movedSetting(configYaml, "agent", "protocol").as<std::string>("");
+        if (protocol != "http" && protocol != "socks5") {
+            result.message = "agent.protocol must be one of [http|socks5]\n";
+            return result;
+        }
+    } else {
+        const unsigned int bufferSize = movedSetting(configYaml, "server", "bufferSize").as<unsigned int>(65536);
+        if (bufferSize < 1 || bufferSize > 65536) {
+            result.message = "server.bufferSize must be between 1 and 65536\n";
+            return result;
+        }
     }
 
     const std::string logLevel = configYaml["log"]["logLevel"].as<std::string>();

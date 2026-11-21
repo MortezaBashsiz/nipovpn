@@ -107,7 +107,7 @@ void AgentHandler::handle() {
           << "Content-Type: text/plain; charset=utf-8\r\n"
           << "Content-Length: " << innerRequest.size() << "\r\n"
           << "Connection: "
-          << ((config_->general().connectionReuse || directTunnelOpen) ? "keep-alive" : "close")
+          << ((config_->agent().connectionReuse || directTunnelOpen) ? "keep-alive" : "close")
           << "\r\n"
           << "\r\n"
           << innerRequest;
@@ -117,7 +117,7 @@ void AgentHandler::handle() {
     client_->doWrite(readBuffer_);
     client_->doReadAgent();
 
-    if (client_->readBuffer().size() == 0 && !config_->general().connectionReuse) {
+    if (client_->readBuffer().size() == 0 && !config_->agent().connectionReuse) {
         client_->socketShutdown();
         return;
     }
