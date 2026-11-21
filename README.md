@@ -116,7 +116,8 @@ Browser/app ──HTTP or SOCKS5──▶ Agent ──decoy HTTP(S)──▶ Ser
 1. A local application sends a request to the agent (HTTP proxy or SOCKS5).
    SOCKS5 requests are converted to an HTTP `CONNECT` internally.
 2. The agent builds an envelope `action + session ID + request bytes`, encrypts
-   it with AES-256-GCM (if `aesEnable`) and Base64-encodes it.
+   it with AES-256-GCM (if `aesEnable`; otherwise signs it with HMAC-SHA256)
+   and Base64-encodes it.
 3. The envelope is sent as the body of a decoy request such as
    `PUT /login` with `Host: cloudflare.com`, over TLS if `tlsEnable`.
 4. The server decodes and decrypts the body and performs the action:
@@ -300,12 +301,12 @@ in `general` keep working, with a warning naming the keys to move.
 | `connectionReuse` | `false` | Reuse one keep-alive connection to the server. The server follows the agent's choice. |
 | `tlsVerifyPeer` | `false` | Verify the server certificate. |
 | `tlsCaFile` | — | CA file used when `tlsVerifyPeer` is on. |
-| `token` | — | The token this agent sends, ≥ 32 bytes when `aesEnable` is on. Must be the token of an enabled user on the server. The AES key is derived from it. |
+| `token` | — | This agent's token, ≥ 32 bytes. Must be the token of an enabled user on the server. The AES key (or, with `aesEnable: false`, the signing key) is derived from it; the token itself is never sent. |
 
 ### `server.users`
 
-The users allowed to connect, each with their own token. Required on the server
-when `aesEnable` is on. Agents do not use this block.
+The users allowed to connect, each with their own token. Agents do not use
+this block.
 
 | Key | Default | Description |
 |---|---|---|
@@ -340,9 +341,12 @@ Each user's agent puts their token in `agent.token`. All other settings that
 must match (such as `aesEnable`, `tlsEnable` and `tunnelEnable`) are shared by
 everyone.
 
-- The server identifies a request's user by which token decrypts it.
-  Nothing on the wire names the user, so this adds nothing for a censor to
-  fingerprint. For the same reason, users require `aesEnable: true`.
+- The server identifies a request's user by which token decrypts it, or with
+  `aesEnable: false`, by which token's HMAC-SHA256 signature matches. Nothing on
+  the wire names the user, so this adds nothing for a censor to fingerprint.
+- With `aesEnable: false`, requests are signed but not encrypted: tampered
+  requests are rejected, but anyone on the path can read them unless
+  `tlsEnable` is on.
 - The server log shows the user on each connection: `[SRC ...] [USER alice]`.
 - A tunnel opened by one user cannot be used by another user.
 - **Upgrading from `general.token`:** older configs still work. An agent reads
@@ -485,7 +489,7 @@ journalctl -u nipovpn-server.service -f
 | Symptom | Likely cause |
 |---|---|
 | `Configuration validation failed: ...` | A required key is missing or invalid; the message names the block. |
-| `agent.token must be at least 32 bytes when aesEnable is true` | Use a longer token (`openssl rand -hex 16`). |
+| `agent.token must be at least 32 bytes` | Use a longer token (`openssl rand -hex 16`). |
 | `Error opening log file` | Create the log directory and file (see Quick start). |
 | Server logs `Decryption Failed` / `Invalid Envelope` | `token`, `aesEnable` or NipoVPN versions differ between agent and server. With `server.users`: the agent's token is not an enabled user's token. |
 | `agent.token is required` | Set the agent's token in the `agent` block (it used to be `general.token`). |
@@ -496,7 +500,6 @@ journalctl -u nipovpn-server.service -f
 | `limit must be a size with a unit` | Write the limit with a unit: `2GB`, `500MB`, `1.5GiB`, or `1024B` for bytes. |
 | `[Usage] cannot read .../usage.yaml` | The usage file has a syntax error, probably from a manual edit. Fix it; usage is not saved until then. |
 | `[Usage] cannot save usage` | The server cannot write `server.usage.file`; check the directory and permissions. |
-| `users require general.aesEnable: true` | Users are told apart by their AES key; turn on `aesEnable`. |
 | `[Runner reload] config not reloaded: ...` | The edited file is invalid; the old configuration is still running. Fix the file and reload again. |
 | Agent logs `[Tunnel closed] recv refused or failed` | The server rejected the agent's token (e.g. the user was disabled) or became unreachable. |
 | Agent logs `[TLS] [ERROR]` | `tlsEnable` differs between the two sides, or the certificate/key path is wrong. |

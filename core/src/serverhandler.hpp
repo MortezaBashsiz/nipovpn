@@ -63,6 +63,8 @@ private:
 
     std::string srcTag() const;
 
+    static std::string withoutUnverifiedSignature(const std::string &payload);
+
     void makePayloadHttpResponse(const std::string &plainBody,
                                  const std::string &status = "200 OK",
                                  const std::string &connection = "close");

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <openssl/conf.h>
+#include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#include <openssl/hmac.h>
 #include <openssl/rand.h>
 #include <yaml-cpp/yaml.h>
 
@@ -315,6 +317,30 @@ inline BoolStr aes256DecryptWithKey(const std::string &sealed,
     return result;
 }
 
+constexpr std::size_t HmacTagLength = 32;
+
+inline std::string hmacSha256(const std::string &data, const std::string &key) {
+    unsigned char tag[EVP_MAX_MD_SIZE];
+    unsigned int tagLen = 0;
+    HMAC(EVP_sha256(), key.data(), static_cast<int>(key.size()),
+         reinterpret_cast<const unsigned char *>(data.data()), data.size(), tag, &tagLen);
+    return std::string(reinterpret_cast<char *>(tag), tagLen);
+}
+
+inline std::string signWithKey(const std::string &payload, const std::string &key) {
+    return payload + hmacSha256(payload, key);
+}
+
+inline BoolStr verifyWithKey(const std::string &signedPayload, const std::string &key) {
+    if (signedPayload.size() < HmacTagLength) return {false, "payload too short for a signature"};
+    const std::string payload = signedPayload.substr(0, signedPayload.size() - HmacTagLength);
+    const std::string tag = hmacSha256(payload, key);
+    if (CRYPTO_memcmp(tag.data(), signedPayload.data() + payload.size(), HmacTagLength) != 0) {
+        return {false, "signature does not match"};
+    }
+    return {true, payload};
+}
+
 inline BoolStr aes256Encrypt(const std::string &plaintext,
                              const std::string &token) {
     return aes256EncryptWithKey(plaintext, deriveAesKey(token));
@@ -567,8 +593,8 @@ inline BoolStr validateConfigFile(const std::string &mode, const std::string &pa
             result.message = "agent.token is required\n";
             return result;
         }
-        if (aesEnable && token.size() < MinTokenLength) {
-            result.message = "agent.token must be at least 32 bytes when aesEnable is true\n";
+        if (token.size() < MinTokenLength) {
+            result.message = "agent.token must be at least 32 bytes\n";
             return result;
         }
     } else if (serverUsers) {
@@ -578,11 +604,6 @@ inline BoolStr validateConfigFile(const std::string &mode, const std::string &pa
         }
         if (users.size() == 0) {
             result.message = "server.users must have at least one entry\n";
-            return result;
-        }
-        if (!aesEnable) {
-            result.message =
-                    "server.users require general.aesEnable: true; the server tells users apart by their AES key\n";
             return result;
         }
 
