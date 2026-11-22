@@ -40,7 +40,6 @@ test
 
 
 .git
-.github
 *.deb
 *.tar.gz
 *.log
