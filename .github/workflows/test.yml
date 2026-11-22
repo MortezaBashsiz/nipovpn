@@ -2,17 +2,6 @@ name: Tests
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - dev
-      - 'mori/**'
-    paths:
-      - 'core/**'
-      - 'CMakeLists.txt'
-      - 'nipovpn/etc/nipovpn/config.yaml'
-      - 'tests/**'
-      - '.github/workflows/test.yml'
   pull_request:
     branches:
       - main
@@ -28,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: tests-${{ github.ref }}
+  group: tests-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
