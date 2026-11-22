@@ -15,7 +15,7 @@ general:
   # tunnelEnable: bool
   # Defines the connection mode between agent and server. If enabled then the traffic
   #   will be TCP/TLS tunnel like.
-  tunnelEnable: false
+  tunnelEnable: true
   # tlsEnable: bool
   # It enables or disables tls between agent and server
   tlsEnable: true
@@ -75,7 +75,7 @@ server:
 # This block is to define agent directives
 agent:
   # threads: number of threads in agent
-  threads: 2
+  threads: 16
   # listenIp: which must be IPv4 which is used on agent
   listenIp: "0.0.0.0"
   # listenPort: the port number which will be used on agent
@@ -115,10 +115,11 @@ agent:
   # tlsCaFile: CA file used to verify the server's certificate
   tlsCaFile: ""
   # serverIp: IPv4 of the nipoServer
-  serverIp: "2.29.177.186"
+  serverIp: "127.0.0.1"
   # serverPort: port number of the nipoServer
   serverPort: 443
   # httpVersion: This version will be used between agent and server
+  # Supported values are 1.0 or 1.1
   httpVersion: "1.1"
   # userAgent: This is the http user agent which will be used between agent and server
   userAgent : "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0"
