@@ -30,6 +30,8 @@ public:
 
     static std::size_t revokeSessions(const std::vector<std::string> &users);
 
+    static void closeAllSessions();
+
     std::string userName() const { return user_ ? user_->name : std::string(); }
 
     ~ServerHandler();

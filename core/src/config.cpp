@@ -64,8 +64,10 @@ std::unique_ptr<Config::Settings> Config::load(RunMode mode, const std::string &
     }
 
     if (mode == RunMode::server) {
-        s->usageFile = yaml["server"]["usage"]["file"].as<std::string>("/var/lib/nipovpn/usage.yaml");
-        s->usageResetDay = yaml["server"]["usage"]["resetDay"].as<int>(1);
+        const YAML::Node usage = yaml["server"]["usage"];
+        s->usageFile = usage ? usage["file"].as<std::string>("/var/lib/nipovpn/usage.yaml")
+                             : "/var/lib/nipovpn/usage.yaml";
+        s->usageResetDay = usage ? usage["resetDay"].as<int>(1) : 1;
 
         const YAML::Node users = yaml["server"]["users"];
         if (users && users.IsSequence()) {
