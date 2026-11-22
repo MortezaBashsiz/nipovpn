@@ -135,6 +135,7 @@ Browser/app ──HTTP or SOCKS5──▶ Agent ──decoy HTTP(S)──▶ Ser
 | Platform | How |
 |---|---|
 | Debian / Ubuntu (amd64, arm64) | `.deb` from the [releases page](https://github.com/MortezaBashsiz/nipovpn/releases), tested on Ubuntu 24.04 |
+| Arch Linux | [AUR package](https://aur.archlinux.org/packages/nipovpn) |
 | Build from source on Linux | [Linux build guide](guides/BuildLinux.md) |
 | Docker | [Docker guide](guides/Docker.md) |
 | Nix / NixOS | [Nix guide](guides/Nix.md) |
@@ -158,6 +159,35 @@ The package installs:
 sudo systemctl enable --now nipovpn-server.service   # on the server
 sudo systemctl enable --now nipovpn-agent.service    # on the agent machine
 ```
+
+### Arch Linux
+
+Install NipoVPN from the AUR using your preferred AUR helper:
+
+```bash
+paru -S nipovpn
+```
+
+Or build and install it manually:
+
+```bash
+git clone https://aur.archlinux.org/nipovpn.git
+cd nipovpn
+makepkg -si
+```
+
+The package installs:
+
+- `/usr/bin/nipovpn`
+- `/etc/nipovpn/config.yaml`
+- `nipovpn-server.service` and `nipovpn-agent.service`
+
+```bash
+sudo systemctl enable --now nipovpn-server.service   # on the server
+sudo systemctl enable --now nipovpn-agent.service    # on the agent machine
+```
+
+See the [AUR package page](https://aur.archlinux.org/packages/nipovpn) for package details.
 
 ### From source
 
