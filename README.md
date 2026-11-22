@@ -24,7 +24,7 @@ It is written in C++20 on top of Boost.Asio, OpenSSL and yaml-cpp.
 
 ### Client side (agent)
 
-- **HTTP proxy and SOCKS5 proxy** for local applications (`general.protocol`).
+- **HTTP proxy and SOCKS5 proxy** for local applications (`agent.protocol`).
   - HTTP: plain HTTP requests and `CONNECT` tunnels (HTTPS).
   - SOCKS5: `CONNECT` command, no authentication, with IPv4, IPv6 and domain
     name targets.
@@ -48,7 +48,7 @@ It is written in C++20 on top of Boost.Asio, OpenSSL and yaml-cpp.
 ### Encryption
 
 - **AES-256-GCM payload encryption** (on by default). The key is the SHA-256 of
-  `general.token`; each message gets a random 12-byte nonce and a 16-byte
+  the user's token; each message gets a random 12-byte nonce and a 16-byte
   authentication tag, so tampered or wrongly keyed payloads are rejected.
 - **TLS between agent and server** (`tlsEnable`): TLS 1.2 minimum, TLS 1.3
   preferred, with AEAD-only cipher suites (AES-GCM, ChaCha20-Poly1305).
@@ -78,6 +78,12 @@ neither.
 ### Operations
 
 - **Config validation at startup** with clear error messages.
+- **Per-user monthly traffic limits** (e.g. 2 GB), with usage kept in an
+  editable file. See [Usage limits](#usage-limits).
+- **Multiple users** on one server, each with their own token. Users can be
+  added, disabled or removed without a restart. See [Multiple users](#multiple-users).
+- **Reload without restart** on `SIGHUP` (`systemctl reload`). See
+  [Reloading the configuration](#reloading-the-configuration).
 - **Warning when the public sample token is still in use.**
 - **Log levels** `INFO`, `TRACE` (per-request source/destination) and `DEBUG`;
   logs go to a file and to stdout.
@@ -110,7 +116,8 @@ Browser/app ──HTTP or SOCKS5──▶ Agent ──decoy HTTP(S)──▶ Ser
 1. A local application sends a request to the agent (HTTP proxy or SOCKS5).
    SOCKS5 requests are converted to an HTTP `CONNECT` internally.
 2. The agent builds an envelope `action + session ID + request bytes`, encrypts
-   it with AES-256-GCM (if `aesEnable`) and Base64-encodes it.
+   it with AES-256-GCM (if `aesEnable`; otherwise signs it with HMAC-SHA256)
+   and Base64-encodes it.
 3. The envelope is sent as the body of a decoy request such as
    `PUT /login` with `Host: cloudflare.com`, over TLS if `tlsEnable`.
 4. The server decodes and decrypts the body and performs the action:
@@ -178,13 +185,24 @@ sudo mkdir -p /var/log/nipovpn/
 sudo touch /var/log/nipovpn/nipovpn.log
 ```
 
-### 2. Pick a shared token
+### 2. Create a user
 
-`general.token` must be at least 32 bytes and identical on the agent and the
-server. Do not use the sample token from the shipped config.
+Generate a token of at least 32 bytes for each person. Do not use the sample
+tokens from the shipped config.
 
 ```bash
 openssl rand -hex 16   # prints 32 hex characters
+```
+
+On the server, list it in `server.users`. On that person's machine, put the
+same token in `agent.token`:
+
+```yaml
+# server config              # agent config
+server:                      agent:
+  users:                       token: "<alice's token>"
+    - name: alice
+      token: "<alice's token>"
 ```
 
 ### 3. TLS certificate (if `tlsEnable: true`)
@@ -209,8 +227,8 @@ sudo nipovpn server /etc/nipovpn/config.yaml
 ### 5. Run the agent
 
 On your machine, set `agent.serverIp`/`agent.serverPort` to the server's
-address and make sure `token`, `aesEnable`, `tlsEnable` and `tunnelEnable` match
-the server. Then:
+address, set `agent.token` to one of the server's users, and make sure
+`aesEnable`, `tlsEnable` and `tunnelEnable` match the server. Then:
 
 ```bash
 sudo nipovpn agent /etc/nipovpn/config.yaml
@@ -219,10 +237,10 @@ sudo nipovpn agent /etc/nipovpn/config.yaml
 ### 6. Point your applications at the agent
 
 ```bash
-# protocol: socks5
+# agent.protocol: socks5
 curl --socks5-hostname 127.0.0.1:8080 https://example.com
 
-# protocol: http
+# agent.protocol: http
 curl -x http://127.0.0.1:8080 https://example.com
 ```
 
@@ -236,24 +254,15 @@ Settings marked **must match** have to be the same on agent and server.
 
 ### `general`
 
+Settings both sides use. Old configs that still have one of the settings below
+in `general` keep working, with a warning naming the keys to move.
+
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `token` | string | — | Shared secret, ≥ 32 bytes when `aesEnable` is on. The AES key is derived from it. **Must match.** |
 | `aesEnable` | bool | `true` | AES-256-GCM payload encryption. **Must match.** |
-| `protocol` | `http` \| `socks5` | — | Protocol the agent accepts from local applications. |
-| `bufferSize` | 1–65536 | `65536` | Maximum bytes read per operation. |
-| `fakeUrls` | list | — | Hosts used at random for the decoy `Host` header and TLS SNI. |
-| `methods` | list | — | HTTP methods used at random for decoy requests. |
-| `endPoints` | list | — | URL paths used at random for decoy requests (`/api`, `/login`, ...). |
-| `timeout` | seconds | `10` | I/O timeout for stalled connections. `0` disables it. |
-| `pullTimeout` | milliseconds | `1` | Base polling interval in polling mode. |
 | `tunnelEnable` | bool | `false` | `true` = direct tunnel mode, `false` = polling mode. **Must match.** |
-| `connectionReuse` | bool | `false` | Reuse one keep-alive connection between agent and server. |
 | `tlsEnable` | bool | `false` | TLS between agent and server. **Must match.** |
-| `tlsVerifyPeer` | bool | `false` | Agent verifies the server certificate. |
-| `tlsCertFile` | path | — | Server certificate (PEM, chain allowed). |
-| `tlsKeyFile` | path | — | Server private key (PEM). |
-| `tlsCaFile` | path | — | CA file the agent uses when `tlsVerifyPeer` is on. |
+| `timeout` | seconds | `10` | I/O timeout for stalled connections. `0` disables it. Each side uses its own value. |
 
 ### `log`
 
@@ -269,6 +278,9 @@ Settings marked **must match** have to be the same on agent and server.
 | `threads` | `2` | Worker threads. |
 | `listenIp` | `127.0.0.1` | IPv4 address to listen on. |
 | `listenPort` | `8080` | Port to listen on (443 is a good choice to blend in). |
+| `bufferSize` | `65536` | Maximum bytes read from a destination at a time in polling mode, 1–65536. |
+| `tlsCertFile` | — | Server certificate (PEM, chain allowed), used when `tlsEnable` is on. |
+| `tlsKeyFile` | — | Server private key (PEM). |
 
 ### `agent`
 
@@ -277,10 +289,159 @@ Settings marked **must match** have to be the same on agent and server.
 | `threads` | `2` | Worker threads. |
 | `listenIp` | `127.0.0.1` | IPv4 address for local applications to connect to. |
 | `listenPort` | `8080` | Port for local applications. |
+| `protocol` | — | `http` or `socks5`: the protocol local applications use to connect to the agent. |
 | `serverIp` | `127.0.0.1` | IPv4 address of the NipoVPN server. |
 | `serverPort` | `8080` | Port of the NipoVPN server. |
 | `httpVersion` | `1.1` | HTTP version in decoy requests. |
 | `userAgent` | `NipoAgent` | `User-Agent` header in decoy requests. |
+| `fakeUrls` | — | Hosts used at random for the decoy `Host` header and TLS SNI. |
+| `methods` | `GET` | HTTP methods used at random for decoy requests. |
+| `endPoints` | `api` | URL paths used at random for decoy requests (`/api`, `/login`, ...). |
+| `pullTimeout` | `1` | Base polling interval in milliseconds in polling mode. |
+| `connectionReuse` | `false` | Reuse one keep-alive connection to the server. The server follows the agent's choice. |
+| `tlsVerifyPeer` | `false` | Verify the server certificate. |
+| `tlsCaFile` | — | CA file used when `tlsVerifyPeer` is on. |
+| `token` | — | This agent's token, ≥ 32 bytes. Must be the token of an enabled user on the server. The AES key (or, with `aesEnable: false`, the signing key) is derived from it; the token itself is never sent. |
+
+### `server.users`
+
+The users allowed to connect, each with their own token. Agents do not use
+this block.
+
+| Key | Default | Description |
+|---|---|---|
+| `name` | — | 1–64 characters of `A-Z a-z 0-9 . _ - @`. Unique. Shown in the server log. |
+| `token` | — | The user's token, ≥ 32 bytes. Unique. The user's agent puts it in `agent.token`. |
+| `enabled` | `true` | `false` rejects the user without deleting the entry. |
+| `limit` | none | Traffic allowed per month, e.g. `2GB`, `500MB`, `1.5GiB`. See [Usage limits](#usage-limits). |
+
+### `server.usage` (optional)
+
+| Key | Default | Description |
+|---|---|---|
+| `file` | `/var/lib/nipovpn/usage.yaml` | Where per-user usage is kept. Changing it needs a restart. |
+| `resetDay` | `1` | Day of the month (1–28) on which everyone's usage goes back to zero. |
+
+## Multiple users
+
+Every person gets their own token. The **server** lists them all in
+`server.users`:
+
+```yaml
+server:
+  users:
+    - name: alice
+      token: "4f3c9a...32 or more characters"
+    - name: bob
+      token: "b81e07...32 or more characters"
+      enabled: false        # bob is rejected until this is set back to true
+```
+
+Each user's agent puts their token in `agent.token`. All other settings that
+must match (such as `aesEnable`, `tlsEnable` and `tunnelEnable`) are shared by
+everyone.
+
+- The server identifies a request's user by which token decrypts it, or with
+  `aesEnable: false`, by which token's HMAC-SHA256 signature matches. Nothing on
+  the wire names the user, so this adds nothing for a censor to fingerprint.
+- With `aesEnable: false`, requests are signed but not encrypted: tampered
+  requests are rejected, but anyone on the path can read them unless
+  `tlsEnable` is on.
+- The server log shows the user on each connection: `[SRC ...] [USER alice]`.
+- A tunnel opened by one user cannot be used by another user.
+- **Upgrading from `general.token`:** older configs still work. An agent reads
+  `general.token` when `agent.token` is missing, and a server without a `server.users`
+  list accepts `general.token` as a single user named `default`. Both log a
+  deprecation warning at startup. To migrate, move the agent's token to
+  `agent.token` and add it to the server's `server.users` list. Agents of any version
+  keep working, since the token on the wire is the same.
+- Each new connection costs one decryption attempt per enabled user until a
+  token matches. A reused connection tries its last user first. This is fine
+  for dozens of users; with hundreds, prefer `connectionReuse: true`.
+
+To add, disable or remove a user, edit the config and [reload](#reloading-the-configuration).
+When a user is removed or disabled, or their token changes, the server closes
+their open connections and tunnels on reload.
+
+## Usage limits
+
+A server with a `server.users` list counts each user's traffic: the bytes they send to
+websites plus the bytes they receive from them. NipoVPN's own overhead (decoy
+HTTP framing, base64, encryption) is not counted. Give a user a monthly
+allowance with `limit`:
+
+```yaml
+server:
+  usage:
+    resetDay: 1            # everyone's usage resets on the 1st of each month
+  users:
+    - name: alice
+      token: "..."
+      limit: 2GB           # KB/MB/GB/TB = powers of 1000; KiB/MiB/GiB/TiB = powers of 1024
+    - name: bob
+      token: "..."         # no limit
+```
+
+When a user reaches their limit, the server closes their open connections and
+refuses new ones until the next period, and logs:
+
+```
+[Usage] user alice reached their limit of 2.00 GB; blocked until the next period
+```
+
+They regain access as soon as their usage drops below the limit: at the next
+`resetDay`, when you raise their limit (edit the config and reload), or when you
+reset them.
+
+**Seeing and changing usage.** The server writes usage to `server.usage.file`
+(default `/var/lib/nipovpn/usage.yaml`) every 30 seconds, on reload and on
+shutdown:
+
+```yaml
+period: "2026-11-01"
+users:
+  alice: {used: 2000123456}  # 2.00 GB of 2.00 GB (100%), blocked
+  bob: {used: 734003200}  # 734.00 MB, no limit
+```
+
+To reset or change a user's usage, edit their `used` number (for example set it
+to `0`) and save. The server applies the edit within 30 seconds, or right away
+on reload. Traffic counted in the meantime is kept on top of your value. Do not
+edit `period`.
+
+Notes:
+
+- The file is the only record of usage, so it survives restarts. With Docker,
+  keep `/var/lib/nipovpn` on a volume (the compose file does).
+- If the file cannot be parsed, the server logs an error and stops saving until
+  you fix it, rather than overwriting your edit.
+- A user who is removed and later added back keeps their usage for the period.
+- Usage is not tracked on a server without a `server.users` list.
+
+## Reloading the configuration
+
+Send `SIGHUP` to apply config changes without dropping other users' connections:
+
+```bash
+sudo systemctl reload nipovpn-server.service    # or nipovpn-agent.service
+docker kill -s HUP nipovpn                      # Docker
+kill -HUP "$(pidof nipovpn)"                    # anything else
+```
+
+The file is validated first. If it is invalid, the running configuration is
+kept and the error is logged at `ERROR` level, so a typo never takes the server
+down. A successful reload logs a summary, for example:
+
+```
+[Runner reload] config reloaded; 2 of 3 users enabled; access revoked for: bob
+[Runner reload] closed 1 connections and 0 tunnel sessions of revoked users
+```
+
+New requests use the new settings at once. These settings only change on
+restart: `listenIp`, `listenPort`, `threads`, `tlsEnable` and `server.usage.file`. If you change
+them, the reload logs `... changed but needs a restart`. Certificate files are
+read for every new connection, so a renewed certificate needs no reload at
+all. Reload is not available on Windows.
 
 ## Security notes
 
@@ -307,7 +468,11 @@ Log lines look like:
 
 ```
 2026-01-01_12:00:00 [AGENT] [INFO] [<session-uuid>] [CONNECT] [SRC 127.0.0.1:51234] [ORIGIN example.com:443]
+2026-01-01_12:00:00 [SERVER] [INFO] [<session-uuid>] [CONNECT] [SRC 203.0.113.7:40112] [USER alice] [ORIGIN example.com:443]
 ```
+
+On the server, `[USER ...]` is the user from the `server.users` list, or `default`
+when the server still uses the deprecated `general.token`.
 
 - `INFO`: startup, effective configuration (token hidden), connections opened.
 - `TRACE`: adds the destination of every forwarded request.
@@ -324,11 +489,41 @@ journalctl -u nipovpn-server.service -f
 | Symptom | Likely cause |
 |---|---|
 | `Configuration validation failed: ...` | A required key is missing or invalid; the message names the block. |
-| `token must be at least 32 bytes when aesEnable is true` | Use a longer token (`openssl rand -hex 16`). |
+| `agent.token must be at least 32 bytes` | Use a longer token (`openssl rand -hex 16`). |
 | `Error opening log file` | Create the log directory and file (see Quick start). |
-| Server logs `Decryption Failed` / `Invalid Envelope` | `token`, `aesEnable` or NipoVPN versions differ between agent and server. |
+| Server logs `Decryption Failed` / `Invalid Envelope` | `token`, `aesEnable` or NipoVPN versions differ between agent and server. With `server.users`: the agent's token is not an enabled user's token. |
+| `agent.token is required` | Set the agent's token in the `agent` block (it used to be `general.token`). |
+| `the server needs a server.users list with at least one user` | Add a `users` list under `server` in the server config. |
+| `users belongs under the server block` | Configs from before this change had `users`/`usage` at the top level; indent them under `server:`. |
+| `[WARNING] general.token is deprecated` | Move the token to `agent.token` (agent) or a `server.users` entry (server). |
+| `[WARNING] these settings moved out of general: ...` | Move the listed keys from `general` to the block the warning names (`agent` or `server`). |
+| `limit must be a size with a unit` | Write the limit with a unit: `2GB`, `500MB`, `1.5GiB`, or `1024B` for bytes. |
+| `[Usage] cannot read .../usage.yaml` | The usage file has a syntax error, probably from a manual edit. Fix it; usage is not saved until then. |
+| `[Usage] cannot save usage` | The server cannot write `server.usage.file`; check the directory and permissions. |
+| `[Runner reload] config not reloaded: ...` | The edited file is invalid; the old configuration is still running. Fix the file and reload again. |
+| Agent logs `[Tunnel closed] recv refused or failed` | The server rejected the agent's token (e.g. the user was disabled) or became unreachable. |
 | Agent logs `[TLS] [ERROR]` | `tlsEnable` differs between the two sides, or the certificate/key path is wrong. |
 | `[CONNECT] [ERROR] [To Server]` | Agent cannot reach `serverIp:serverPort` (firewall, wrong address, server not running). |
+
+## Tests
+
+[tests/e2e.py](tests/e2e.py) runs end-to-end tests: for each test it starts a real
+server and agent on localhost, sends traffic through them with `curl`, and checks
+every byte with SHA-256. It covers every combination of `tlsEnable`,
+`tunnelEnable`, `connectionReuse`, `aesEnable` and `protocol`, plus multiple users,
+unknown and disabled users, reload, usage limits, the 1.1.x config layout and
+config validation. Every test config is built from the sample `config.yaml`.
+
+```bash
+cmake -S . -B build && cmake --build build -j
+python3 tests/e2e.py --binary build/core/nipovpn            # all tests
+python3 tests/e2e.py --binary build/core/nipovpn -k reload  # names containing "reload"
+python3 tests/e2e.py --list
+```
+
+It needs Python 3 with PyYAML, `curl` and `openssl`. GitHub Actions runs it on every
+push and pull request ([.github/workflows/test.yml](.github/workflows/test.yml)),
+once on a release build and once with AddressSanitizer and UndefinedBehaviorSanitizer.
 
 ## Contribution
 

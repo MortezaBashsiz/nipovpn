@@ -1,74 +1,24 @@
 ---
-# This block contains general and global configuration which is in both modes
+# This block holds settings both the agent and the server use.
+#   aesEnable, tunnelEnable and tlsEnable must be the same on both.
 general:
-  # token: at least 32 bytes of string. The AES-256-GCM key is derived from it. Must match on agent and server.
-  #   This sample value is public: replace it, e.g. with the output of `openssl rand -hex 16`
-  token: "af445adb-2434-4975-9445-2c1b2231"
   # aesEnable: bool (default: true)
   # Enables AES-256-GCM payload encryption (confidentiality and integrity). Must match on the agent and server.
+  #   When false, requests are signed (HMAC-SHA256) instead, so users still work,
+  #   but traffic is readable on the path unless tlsEnable is true.
   # Independent of tlsEnable; request encoding remains enabled.
-  aesEnable: true
-  # protocol:
-  # Defines the protocol between client and agent
-  #   Choose http or socks5
-  protocol: socks5
-  # bufferSize: unsigned short
-  # Defines the maximum buffer size for each request in Bytes. Default is 65536
-  #   Do not use less than 1 and more than 65536
-  bufferSize: 65536
-  # fakeUrls:
-  # Defines the list of fake urls between agent and server
-  fakeUrls:
-    - nipo.ciron.net
-    - sudoer.ir
-    - sudoer.net
-    - google.com
-    - cloudflare.com
-  # methods:
-  # Defines the list of using methods
-  #   you like to send requests from agent to server
-  # Program will choose randomly from this list
-  methods:
-    - GET
-    - POST
-    - PUT
-    - DELETE
-  # endPoints:
-  # Defines the list of using endpoints
-  #   you like to send requests from agent to server
-  # Program will choose randomly from this list
-  endPoints:
-    - api
-    - login
-    - user
-    - update
+  aesEnable: false
   # timeout: unsigned short
   # Defines the timeout for I/O Operation in seconds. 0 indicates no timeout.
   #   Useful to automatically close stalled connections.
   timeout: 10
-  # pullTimeout: unsigned short
-  # Defines the timeout for I/O Operation in milliseconds.
-  #   Useful to expire serverside read timer.
-  pullTimeout: 1
   # tunnelEnable: bool
   # Defines the connection mode between agent and server. If enabled then the traffic
   #   will be TCP/TLS tunnel like.
-  tunnelEnable: false
-  # connectionReuse: bool
-  # If true then it will use same connection between agent and server to handle client request
-  #   If false then it will create new connection for each request between agent and server
-  connectionReuse: true
+  tunnelEnable: true
   # tlsEnable: bool
   # It enables or disables tls between agent and server
   tlsEnable: true
-  # tlsVerifyPeer: bool
-  # Use it to controll if the certificate should be validated or not
-  tlsVerifyPeer: false
-  # Use following configurations to specify the key and cert which will be used between agent and server
-  tlsCertFile: "/etc/nipovpn/server.crt"
-  tlsKeyFile: "/etc/nipovpn/server.key"
-  tlsCaFile: ""
-
 
 # This block is to define log directives
 log:
@@ -86,21 +36,94 @@ server:
   listenIp: "0.0.0.0"
   # listenPort: the port number which will be used on server
   listenPort: 443
+  # bufferSize: maximum bytes read from a destination at a time in polling mode,
+  #   1-65536 (default: 65536)
+  bufferSize: 65536
+  # tlsCertFile, tlsKeyFile: the server's certificate (PEM, chain allowed) and
+  #   private key, used when tlsEnable is true
+  tlsCertFile: "/etc/nipovpn/server.crt"
+  tlsKeyFile: "/etc/nipovpn/server.key"
+
+  # usage: optional per-user usage tracking.
+  # Usage (bytes each user sends and receives) is kept in the usage file, which
+  # you can also edit to change or reset a user's usage (e.g. set "used" to 0).
+  usage:
+    # file: where usage is kept (default: /var/lib/nipovpn/usage.yaml)
+    file: "/var/lib/nipovpn/usage.yaml"
+    # resetDay: day of the month (1-28) on which everyone's usage resets (default: 1)
+    resetDay: 1
+
+  # users: the users allowed to connect.
+  # Each user has their own token, and that user's agent puts the same token in
+  # agent.token. Add, disable or remove users without a
+  # restart: edit this file and run `systemctl reload nipovpn-server`.
+  users:
+    - name: adas
+      # token: at least 32 bytes, unique per user, e.g. `openssl rand -hex 16`
+      token: "b354d990-1d1e-4956-94dd-75adfc692668"
+      # enabled: bool (default: true). false rejects the user and, on reload,
+      #   closes their open connections.
+      # limit: optional traffic allowance per month (upload + download), e.g. 2GB,
+      #   500MB or 1.5GiB. When reached, the user is blocked until the next period.
+      enabled: true
+    - name: nokhod
+      token: "4bc22ec2-b29b-4279-acc2-bfa1702e8dec"
+      enabled: true
+      limit: 1GB
 
 
 # This block is to define agent directives
 agent:
   # threads: number of threads in agent
-  threads: 8
+  threads: 16
   # listenIp: which must be IPv4 which is used on agent
   listenIp: "0.0.0.0"
   # listenPort: the port number which will be used on agent
   listenPort: 8080
+  # protocol: the protocol local applications use to connect to the agent
+  #   Choose http or socks5
+  protocol: socks5
+  # fakeUrls: hosts used at random for the Host header and TLS SNI of
+  #   the requests the agent sends to the server
+  fakeUrls:
+    - nipo.sudoer.net
+    - sudoer.ir
+    - sudoer.net
+    - google.com
+    - cloudflare.com
+  # methods: HTTP methods used at random for those requests
+  methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+  # endPoints: URL paths used at random for those requests
+  endPoints:
+    - api
+    - login
+    - user
+    - update
+  # pullTimeout: base interval in milliseconds between polls in polling mode
+  pullTimeout: 1
+  # connectionReuse: bool
+  #   true: send requests to the server over one kept-alive connection
+  #   false: open a new connection to the server for each request
+  #   The server follows the agent's choice.
+  connectionReuse: true
+  # tlsVerifyPeer: bool. Verify the server's certificate when tlsEnable is true
+  tlsVerifyPeer: false
+  # tlsCaFile: CA file used to verify the server's certificate
+  tlsCaFile: ""
   # serverIp: IPv4 of the nipoServer
-  serverIp: "127.0.0.10"
+  serverIp: "127.0.0.1"
   # serverPort: port number of the nipoServer
   serverPort: 443
   # httpVersion: This version will be used between agent and server
+  # Supported values are 1.0 or 1.1
   httpVersion: "1.1"
   # userAgent: This is the http user agent which will be used between agent and server
   userAgent : "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0"
+  # token: the token this agent sends; it must be the token of an enabled user
+  #   in the server's users list. At least 32 bytes. The AES-256-GCM key is derived from it.
+  #   Generate one with `openssl rand -hex 16`
+  token: "4bc22ec2-b29b-4279-acc2-bfa1702e8dec"

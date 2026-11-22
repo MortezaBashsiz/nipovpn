@@ -12,11 +12,15 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "agenthandler.hpp"
 #include "general.hpp"
 #include "serverhandler.hpp"
+#include "usage.hpp"
 
 class TCPConnection : public std::enable_shared_from_this<TCPConnection> {
 public:
@@ -54,6 +58,8 @@ public:
     void handleReadServer(const boost::system::error_code &error, size_t bytes_transferred);
 
     void socketShutdown();
+
+    static std::size_t revokeUsers(const std::vector<std::string> &users);
 
     void enableDirectTunnelMode();
 
@@ -120,9 +126,12 @@ private:
 
     void startTunnelReadFromClient();
     void startTunnelPollServer();
-    std::string postTunnelAction(const std::string &action, const std::string &rawBody);
+    std::optional<std::string> postTunnelAction(const std::string &action, const std::string &rawBody);
+    void abortTunnel(const std::string &reason);
     std::string makeRelayHostHeader() const;
     void closeTunnelSession();
+
+    void trackUser(const std::string &user);
 
     boost::asio::ip::tcp::socket socket_;
     boost::asio::ssl::context sslContext_;
@@ -150,6 +159,13 @@ private:
     bool pollInProgress_;
     unsigned int pollDelayMs_;
     std::atomic_bool closed_{false};
+
+    std::string userHint_;
+    std::string trackedUser_;
+    std::shared_ptr<Usage::Counter> usage_;
+
+    static std::mutex registryMutex_;
+    static std::unordered_map<std::string, std::vector<std::weak_ptr<TCPConnection>>> byUser_;
 
     std::array<char, BufferSize> downstreamBuf_;
     std::array<char, BufferSize> upstreamBuf_;

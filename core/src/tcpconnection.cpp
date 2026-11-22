@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "http_utils.hpp"
+#include "usage.hpp"
 
 TCPConnection::TCPConnection(boost::asio::io_context &io_context,
                              const std::shared_ptr<Config> &config,
@@ -36,6 +37,41 @@ namespace {
     constexpr unsigned int MaxPollDelayMs = 50;
 }
 
+std::mutex TCPConnection::registryMutex_;
+std::unordered_map<std::string, std::vector<std::weak_ptr<TCPConnection>>> TCPConnection::byUser_;
+
+void TCPConnection::trackUser(const std::string &user) {
+    if (user.empty() || user == trackedUser_) return;
+    trackedUser_ = user;
+    usage_ = Usage::instance().counter(user);
+
+    std::lock_guard<std::mutex> lock(registryMutex_);
+    auto &list = byUser_[user];
+    list.erase(std::remove_if(list.begin(), list.end(),
+                              [](const std::weak_ptr<TCPConnection> &w) { return w.expired(); }),
+               list.end());
+    list.push_back(weak_from_this());
+}
+
+std::size_t TCPConnection::revokeUsers(const std::vector<std::string> &users) {
+    std::vector<pointer> open;
+    {
+        std::lock_guard<std::mutex> lock(registryMutex_);
+        for (const auto &name: users) {
+            auto it = byUser_.find(name);
+            if (it == byUser_.end()) continue;
+            for (const auto &w: it->second) {
+                if (auto conn = w.lock()) open.push_back(conn);
+            }
+            byUser_.erase(it);
+        }
+    }
+    for (const auto &conn: open) {
+        boost::asio::post(conn->strand_, [conn] { conn->socketShutdown(); });
+    }
+    return open.size();
+}
+
 boost::asio::ip::tcp::socket &TCPConnection::socket() { return socket_; }
 
 TCPConnection::ssl_stream &TCPConnection::tlsSocket() { return *tlsSocket_; }
@@ -52,9 +88,9 @@ bool TCPConnection::initTlsServerContext() {
 
         SSL_CTX_set_min_proto_version(sslContext_.native_handle(), TLS1_2_VERSION);
 
-        sslContext_.use_certificate_chain_file(config_->general().tlsCertFile);
+        sslContext_.use_certificate_chain_file(config_->server().tlsCertFile);
         sslContext_.use_private_key_file(
-                config_->general().tlsKeyFile,
+                config_->server().tlsKeyFile,
                 boost::asio::ssl::context::pem);
 
         if (!SSL_CTX_check_private_key(sslContext_.native_handle())) {
@@ -195,7 +231,7 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
 
         boost::system::error_code errorIn;
 
-        if (config_->general().protocol == "socks5") {
+        if (config_->agent().protocol == "socks5") {
             if (!handleSocks5Handshake()) {
                 socketShutdown();
                 return;
@@ -260,7 +296,7 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
         end_ = agentHandler_->end_;
         connect_ = agentHandler_->connect_;
 
-        if (config_->general().protocol == "socks5" && connect_) {
+        if (config_->agent().protocol == "socks5" && connect_) {
             writeBuffer_.consume(writeBuffer_.size());
 
             const unsigned char ok[10] = {
@@ -300,11 +336,11 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
                                     self->relayClientToServer();
                                     self->relayServerToClient();
                                 } else {
-                                    if (!self->config_->general().connectionReuse) {
+                                    if (!self->config_->agent().connectionReuse) {
                                         self->client_->socketShutdown();
                                     }
 
-                                    self->pollDelayMs_ = self->config_->general().pullTimeout;
+                                    self->pollDelayMs_ = self->config_->agent().pullTimeout;
                                     self->startTunnelReadFromClient();
                                     self->startTunnelPollServer();
                                 }
@@ -370,9 +406,11 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
                 log_,
                 client_,
                 remotePeer,
-                uuid_);
+                uuid_,
+                userHint_);
 
         serverHandler_->handle();
+        trackUser(serverHandler_->userName());
 
         end_ = serverHandler_->end_;
         connect_ = serverHandler_->connect_;
@@ -385,7 +423,7 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
         resetTimeout();
 
         auto writeHandler =
-                [self = shared_from_this()](
+                [self = shared_from_this(), keepAlive = serverHandler_->keepAlive_](
                         const boost::system::error_code &ec,
                         std::size_t) {
                     self->cancelTimeout();
@@ -402,7 +440,7 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
                         return;
                     }
 
-                    if (self->config_->general().connectionReuse) {
+                    if (keepAlive) {
                         self->doReadServer();
                     } else {
                         self->socketShutdown();
@@ -443,8 +481,8 @@ std::string TCPConnection::makeRelayHostHeader() const {
     return hostHeader;
 }
 
-std::string TCPConnection::postTunnelAction(const std::string &action,
-                                            const std::string &rawBody) {
+std::optional<std::string> TCPConnection::postTunnelAction(const std::string &action,
+                                                           const std::string &rawBody) {
     std::lock_guard<std::mutex> relayLock(relayMutex_);
 
     client_->uuid_ = uuid_;
@@ -472,15 +510,15 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
                 hexArrToStr(reinterpret_cast<const unsigned char *>(rawBody.data()),
                             rawBody.size()));
         BoolStr enc = config_->general().aesEnable
-                              ? aes256Encrypt(payload, config_->general().token)
-                              : BoolStr{true, payload};
+                              ? aes256Encrypt(payload, config_->agent().token)
+                              : BoolStr{true, signWithKey(payload, deriveAesKey(config_->agent().token))};
 
         if (!enc.ok) return "";
 
         const std::string encodedBody = encode64(enc.message);
 
         const bool keepAlive =
-                config_->general().connectionReuse && action != "close";
+                config_->agent().connectionReuse && action != "close";
 
         std::ostringstream req;
         req << config_->randomMethod() + " /" + config_->randomEndPoint()
@@ -533,22 +571,27 @@ std::string TCPConnection::postTunnelAction(const std::string &action,
     std::string response = sendOnce();
 
     if (response.empty() &&
-        config_->general().connectionReuse &&
+        config_->agent().connectionReuse &&
         action != "close") {
         client_->socketShutdown();
         response = sendOnce();
     }
 
     const auto pos = response.find("\r\n\r\n");
-    if (pos == std::string::npos) return "";
+    if (pos == std::string::npos) return std::nullopt;
+
+    const auto space = response.find(' ');
+    if (space == std::string::npos || response.compare(space + 1, 3, "200") != 0) {
+        return std::nullopt;
+    }
 
     const std::string responseBody = response.substr(pos + 4);
-    if (responseBody.empty()) return "";
+    if (responseBody.empty()) return std::string();
 
     BoolStr dec = config_->general().aesEnable
-                          ? aes256Decrypt(responseBody, config_->general().token)
+                          ? aes256Decrypt(responseBody, config_->agent().token)
                           : BoolStr{true, responseBody};
-    if (!dec.ok) return "";
+    if (!dec.ok) return std::nullopt;
 
     return dec.message;
 }
@@ -612,7 +655,6 @@ bool TCPConnection::handleSocks5Handshake() {
             "[" + to_string(uuid_) + "] [TCPConnection handleSocks5Handshake] auth reply sent" +
                     std::to_string(header[0]),
             Log::Level::DEBUG);
-
 
     unsigned char req[4];
     if (!readExactFromClient(req, 4)) return false;
@@ -680,7 +722,6 @@ bool TCPConnection::handleSocks5Handshake() {
     return true;
 }
 
-
 void TCPConnection::startTunnelReadFromClient() {
     if (tunnelClosed_ || !socket_.is_open()) return;
 
@@ -697,9 +738,12 @@ void TCPConnection::startTunnelReadFromClient() {
 
                         std::string raw(self->downstreamBuf_.data(), bytes);
 
-                        self->postTunnelAction("send", raw);
+                        if (!self->postTunnelAction("send", raw)) {
+                            self->abortTunnel("send refused or failed");
+                            return;
+                        }
 
-                        self->pollDelayMs_ = self->config_->general().pullTimeout;
+                        self->pollDelayMs_ = self->config_->agent().pullTimeout;
                         if (self->pollInProgress_) self->pollTimer_.cancel();
 
                         self->startTunnelReadFromClient();
@@ -727,9 +771,14 @@ void TCPConnection::startTunnelPollServer() {
 
                         if (ec) return;
 
-                        std::string data = self->postTunnelAction("recv", "");
+                        std::optional<std::string> reply = self->postTunnelAction("recv", "");
+                        if (!reply) {
+                            self->abortTunnel("recv refused or failed");
+                            return;
+                        }
+                        std::string data = std::move(*reply);
 
-                        const unsigned int baseDelay = self->config_->general().pullTimeout;
+                        const unsigned int baseDelay = self->config_->agent().pullTimeout;
                         self->pollDelayMs_ =
                                 data.empty()
                                         ? std::min(std::max(self->pollDelayMs_ * 2, 1u), std::max(MaxPollDelayMs, baseDelay))
@@ -755,6 +804,17 @@ void TCPConnection::startTunnelPollServer() {
 
                         self->startTunnelPollServer();
                     }));
+}
+
+void TCPConnection::abortTunnel(const std::string &reason) {
+    if (tunnelClosed_) return;
+
+    log_->write("[" + to_string(uuid_) + "] [TCPConnection] [Tunnel closed] " + reason,
+                Log::Level::INFO);
+
+    tunnelClosed_ = true;
+    pollTimer_.cancel();
+    socketShutdown();
 }
 
 void TCPConnection::closeTunnelSession() {
@@ -1029,6 +1089,8 @@ void TCPConnection::relayAgentToTarget() {
                     return;
                 }
 
+                Usage::instance().add(self->usage_, bytes);
+
                 boost::asio::async_write(
                         self->client_->socket(),
                         boost::asio::buffer(self->downstreamBuf_.data(), bytes),
@@ -1062,6 +1124,8 @@ void TCPConnection::relayTargetToAgent() {
                             self->socketShutdown();
                             return;
                         }
+
+                        Usage::instance().add(self->usage_, bytes);
 
                         self->asyncWriteToAgentConnection(
                                 self->upstreamBuf_.data(),

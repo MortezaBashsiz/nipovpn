@@ -22,9 +22,7 @@ HTTP::HTTP(const HTTP &http)
       uuid_(http.uuid_) {
 }
 
-
 HTTP::~HTTP() {}
-
 
 bool HTTP::detectType() {
     std::string requestStr{hexStreambufToStr(buffer_)};
@@ -155,29 +153,6 @@ bool HTTP::parseTls() {
         return false;
 }
 
-std::string HTTP::genHttpPostReqString(const std::string &body) const {
-    auto fakeUrl = config_->randomFakeUrl();
-    return std::string(config_->randomMethod() + " " +
-                       fakeUrl + " HTTP/" +
-                       config_->agent().httpVersion + "\r\n") +
-           "Host: " + fakeUrl + "\r\n" +
-           "User-Agent: " + config_->agent().userAgent + "\r\n" +
-           "Accept: */*\r\n" + "Connection: keep-alive\r\n" +
-           "Content-Length: " + std::to_string(body.length()) + "\r\n" +
-           "Content-Type: application/x-www-form-urlencoded\r\n" + "\r\n" + body + "COMP\r\n\r\n";
-}
-
-std::string HTTP::genHttpRestPostReqString() const {
-    auto fakeUrl = config_->randomFakeUrl();
-    return std::string(config_->randomMethod() + " " +
-                       fakeUrl + " HTTP/" +
-                       config_->agent().httpVersion + "\r\n") +
-           "Host: " + fakeUrl + "\r\n" +
-           "User-Agent: " + config_->agent().userAgent + "\r\n" +
-           "Accept: */*\r\n" + "Connection: keep-alive\r\n" +
-           "Rest: yes\r\n" + "COMP\r\n\r\n";
-}
-
 std::string HTTP::genHttpOkResString(const std::string &body) const {
     return std::string("HTTP/1.1 200 OK\r\n") +
            "Content-Type: application/x-www-form-urlencoded\r\n" +
@@ -185,7 +160,6 @@ std::string HTTP::genHttpOkResString(const std::string &body) const {
            "Connection: keep-alive\r\n" + "Cache-Control: no-cache\r\n" +
            "Pragma: no-cache\r\n" + "\r\n" + body + "COMP\r\n\r\n";
 }
-
 
 bool HTTP::parseHostPort(const std::string &input,
                          std::string &host,

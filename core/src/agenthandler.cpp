@@ -83,8 +83,8 @@ void AgentHandler::handle() {
     const std::string payload =
             makeEnvelope(action, to_string(uuid_), hexStreambufToStr(readBuffer_));
     encryption = config_->general().aesEnable
-                         ? aes256Encrypt(payload, config_->general().token)
-                         : BoolStr{true, payload};
+                         ? aes256Encrypt(payload, config_->agent().token)
+                         : BoolStr{true, signWithKey(payload, deriveAesKey(config_->agent().token))};
     if (!encryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Encryption Failed] : [ " +
                             encryption.message + "] ",
@@ -107,7 +107,7 @@ void AgentHandler::handle() {
           << "Content-Type: text/plain; charset=utf-8\r\n"
           << "Content-Length: " << innerRequest.size() << "\r\n"
           << "Connection: "
-          << ((config_->general().connectionReuse || directTunnelOpen) ? "keep-alive" : "close")
+          << ((config_->agent().connectionReuse || directTunnelOpen) ? "keep-alive" : "close")
           << "\r\n"
           << "\r\n"
           << innerRequest;
@@ -117,7 +117,7 @@ void AgentHandler::handle() {
     client_->doWrite(readBuffer_);
     client_->doReadAgent();
 
-    if (client_->readBuffer().size() == 0 && !config_->general().connectionReuse) {
+    if (client_->readBuffer().size() == 0 && !config_->agent().connectionReuse) {
         client_->socketShutdown();
         return;
     }
@@ -140,7 +140,7 @@ void AgentHandler::handle() {
 
     BoolStr decryption{false, std::string("FAILED")};
     decryption = config_->general().aesEnable
-                         ? aes256Decrypt(responseBody, config_->general().token)
+                         ? aes256Decrypt(responseBody, config_->agent().token)
                          : BoolStr{true, responseBody};
     if (!decryption.ok) {
         log_->write("[" + to_string(uuid_) + "] [AgentHandler handle] [Decryption Failed] : [ " +

@@ -40,7 +40,8 @@ test
 
 
 .git
-.github
 *.deb
 *.tar.gz
 *.log
+__pycache__/
+*.pyc

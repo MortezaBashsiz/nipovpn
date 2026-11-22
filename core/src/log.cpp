@@ -14,14 +14,27 @@ Log::Log(const std::shared_ptr<Config> &config)
                   << ". Make sure the directory and file exist.\n";
     }
 
-    const auto &logLevel = config_->log().level;
+    applyConfigLevel();
+}
 
-    if (logLevel == "INFO") {
-        level_ = Level::INFO;
-    } else if (logLevel == "TRACE") {
-        level_ = Level::TRACE;
-    } else if (logLevel == "DEBUG") {
-        level_ = Level::DEBUG;
+bool Log::parseLevel(const std::string &name, Level &out) {
+    if (name == "INFO") {
+        out = Level::INFO;
+    } else if (name == "TRACE") {
+        out = Level::TRACE;
+    } else if (name == "DEBUG") {
+        out = Level::DEBUG;
+    } else {
+        return false;
+    }
+    return true;
+}
+
+void Log::applyConfigLevel() {
+    const std::string logLevel = config_->log().level;
+    Level parsed;
+    if (parseLevel(logLevel, parsed)) {
+        level_.store(parsed);
     } else {
         std::cerr << "Invalid log level: " << logLevel
                   << ". It should be one of [INFO|TRACE|DEBUG].\n";
@@ -29,19 +42,18 @@ Log::Log(const std::shared_ptr<Config> &config)
 }
 
 Log::Log(const std::shared_ptr<Log> &log)
-    : config_(log->config_), level_(log->level_) {}
+    : config_(log->config_), level_(log->level_.load()) {}
 
 Log::~Log() {}
 
 void Log::write(const std::string &message, Level level) const {
     std::lock_guard<std::mutex> lock(logMutex_);
 
-    if (level <= level_ || level == Level::ERROR) {
+    if (level <= level_.load() || level == Level::ERROR) {
 
         std::ofstream logFile(config_->log().file, std::ios::out | std::ios::app);
 
         if (logFile.is_open()) {
-
 
             auto now = std::time(nullptr);
             auto localTime = *std::localtime(&now);

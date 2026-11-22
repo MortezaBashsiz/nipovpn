@@ -27,23 +27,29 @@ def build_payload(cfg, name=None, server_ip=None):
     general = cfg.get("general", {}) or {}
     log = cfg.get("log", {}) or {}
     agent = cfg.get("agent", {}) or {}
+    server = cfg.get("server", {}) or {}
+
+    def moved(block, key, default=None):
+        # Settings used by one side moved out of general; general is the deprecated location.
+        return block.get(key, general.get(key, default))
 
     server_ip = server_ip or to_str(agent.get("serverIp"))
     config = {
-        "token": to_str(general.get("token")),
-        "protocol": to_str(general.get("protocol")),
-        "fakeUrls": to_lines(general.get("fakeUrls")),
-        "methods": to_lines(general.get("methods")),
-        "endPoints": to_lines(general.get("endPoints")),
+        # agent.token; general.token is the deprecated location.
+        "token": to_str(agent.get("token") or general.get("token")),
+        "protocol": to_str(moved(agent, "protocol")),
+        "fakeUrls": to_lines(moved(agent, "fakeUrls")),
+        "methods": to_lines(moved(agent, "methods")),
+        "endPoints": to_lines(moved(agent, "endPoints")),
         "timeout": to_str(general.get("timeout")),
-        "pullTimeout": to_str(general.get("pullTimeout")),
+        "pullTimeout": to_str(moved(agent, "pullTimeout")),
         "tunnelEnable": bool(general.get("tunnelEnable", False)),
-        "connectionReuse": bool(general.get("connectionReuse", False)),
+        "connectionReuse": bool(moved(agent, "connectionReuse", False)),
         "tlsEnable": bool(general.get("tlsEnable", False)),
-        "tlsVerifyPeer": bool(general.get("tlsVerifyPeer", False)),
-        "tlsCertFile": to_str(general.get("tlsCertFile")),
-        "tlsKeyFile": to_str(general.get("tlsKeyFile")),
-        "tlsCaFile": to_str(general.get("tlsCaFile")),
+        "tlsVerifyPeer": bool(moved(agent, "tlsVerifyPeer", False)),
+        "tlsCertFile": to_str(moved(server, "tlsCertFile")),
+        "tlsKeyFile": to_str(moved(server, "tlsKeyFile")),
+        "tlsCaFile": to_str(moved(agent, "tlsCaFile")),
         "logLevel": to_str(log.get("logLevel")),
         "listenIp": to_str(agent.get("listenIp")),
         "listenPort": to_str(agent.get("listenPort")),
