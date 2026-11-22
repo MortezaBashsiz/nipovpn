@@ -32,6 +32,15 @@ std::size_t ServerHandler::revokeSessions(const std::vector<std::string> &users)
     return closed;
 }
 
+void ServerHandler::closeAllSessions() {
+    std::unordered_map<std::string, Session> sessions;
+    {
+        std::lock_guard<std::mutex> lock(sessionsMutex_);
+        sessions.swap(sessions_);
+    }
+    for (auto &[key, session]: sessions) session.client->socketShutdown();
+}
+
 std::string ServerHandler::HttpUtils::lowerCopy(std::string s) {
     return http_utils::toLowerCopy(std::move(s));
 }

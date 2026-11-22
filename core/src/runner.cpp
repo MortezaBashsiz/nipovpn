@@ -23,6 +23,8 @@ Runner::~Runner() {
             thread.join();
         }
     }
+
+    ServerHandler::closeAllSessions();
 }
 
 void Runner::run() {

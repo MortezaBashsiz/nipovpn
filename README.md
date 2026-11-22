@@ -505,6 +505,26 @@ journalctl -u nipovpn-server.service -f
 | Agent logs `[TLS] [ERROR]` | `tlsEnable` differs between the two sides, or the certificate/key path is wrong. |
 | `[CONNECT] [ERROR] [To Server]` | Agent cannot reach `serverIp:serverPort` (firewall, wrong address, server not running). |
 
+## Tests
+
+[tests/e2e.py](tests/e2e.py) runs end-to-end tests: for each test it starts a real
+server and agent on localhost, sends traffic through them with `curl`, and checks
+every byte with SHA-256. It covers every combination of `tlsEnable`,
+`tunnelEnable`, `connectionReuse`, `aesEnable` and `protocol`, plus multiple users,
+unknown and disabled users, reload, usage limits, the 1.1.x config layout and
+config validation. Every test config is built from the sample `config.yaml`.
+
+```bash
+cmake -S . -B build && cmake --build build -j
+python3 tests/e2e.py --binary build/core/nipovpn            # all tests
+python3 tests/e2e.py --binary build/core/nipovpn -k reload  # names containing "reload"
+python3 tests/e2e.py --list
+```
+
+It needs Python 3 with PyYAML, `curl` and `openssl`. GitHub Actions runs it on every
+push and pull request ([.github/workflows/test.yml](.github/workflows/test.yml)),
+once on a release build and once with AddressSanitizer and UndefinedBehaviorSanitizer.
+
 ## Contribution
 
 See the [contribution guide](CONTRIBUTING.md). In short: branch from `dev`,
