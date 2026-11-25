@@ -84,6 +84,9 @@ neither.
   added, disabled or removed without a restart. See [Multiple users](#multiple-users).
 - **Reload without restart** on `SIGHUP` (`systemctl reload`). See
   [Reloading the configuration](#reloading-the-configuration).
+- **Web dashboard** to manage users and server settings, watch usage and
+  activity, and share agent configs and `nipovpn://` links with QR codes. See
+  [Dashboard](#dashboard).
 - **Warning when the public sample token is still in use.**
 - **Log levels** `INFO`, `TRACE` (per-request source/destination) and `DEBUG`;
   logs go to a file and to stdout.
@@ -140,6 +143,7 @@ Browser/app ──HTTP or SOCKS5──▶ Agent ──decoy HTTP(S)──▶ Ser
 | Docker | [Docker guide](guides/Docker.md) |
 | Nix / NixOS | [Nix guide](guides/Nix.md) |
 | Termux | [Termux guide](guides/InstallTermux.md) |
+| Dashboard (web page to manage the server) | [nipovpn-dashboard](https://github.com/MortezaBashsiz/nipovpn-dashboard) |
 | Windows (x86_64) | zip from the [releases page](https://github.com/MortezaBashsiz/nipovpn/releases) (`windows-v*` tags) |
 | Android | [nipovpn-android](https://github.com/MortezaBashsiz/nipovpn-android) |
 
@@ -472,6 +476,16 @@ restart: `listenIp`, `listenPort`, `threads`, `tlsEnable` and `server.usage.file
 them, the reload logs `... changed but needs a restart`. Certificate files are
 read for every new connection, so a renewed certificate needs no reload at
 all. Reload is not available on Windows.
+
+## Dashboard
+
+[NipoVPN Dashboard](https://github.com/MortezaBashsiz/nipovpn-dashboard) is a
+separate web dashboard that runs beside the server. It adds, edits, disables
+and deletes users, changes server settings, shows usage and activity, and shares
+agent configs and `nipovpn://` links with QR codes. It works by editing
+`config.yaml` and reloading the server, so it needs nothing from the server
+beyond what is described above. It has its own Debian package,
+`nipovpn-dashboard`; see its README for setup.
 
 ## Security notes
 
