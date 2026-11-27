@@ -545,10 +545,26 @@ inline BoolStr validateConfigFile(const std::string &mode, const std::string &pa
         return result;
     }
 
+    std::string traffic;
+    try {
+        traffic = configYaml["general"]["traffic"].as<std::string>("both");
+    } catch (const std::exception &e) {
+        result.message = std::string("Error in general.traffic: ") + e.what() + "\n";
+        return result;
+    }
+    if (traffic != "tcp" && traffic != "udp" && traffic != "both") {
+        result.message = "general.traffic must be one of [tcp|udp|both]\n";
+        return result;
+    }
+
     if (mode == "agent") {
         const std::string protocol = movedSetting(configYaml, "agent", "protocol").as<std::string>("");
         if (protocol != "http" && protocol != "socks5") {
             result.message = "agent.protocol must be one of [http|socks5]\n";
+            return result;
+        }
+        if (protocol == "http" && traffic == "udp") {
+            result.message = "general.traffic: udp needs agent.protocol: socks5 (HTTP proxies carry only TCP)\n";
             return result;
         }
     } else {

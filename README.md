@@ -26,8 +26,10 @@ It is written in C++20 on top of Boost.Asio, OpenSSL and yaml-cpp.
 
 - **HTTP proxy and SOCKS5 proxy** for local applications (`agent.protocol`).
   - HTTP: plain HTTP requests and `CONNECT` tunnels (HTTPS).
-  - SOCKS5: `CONNECT` command, no authentication, with IPv4, IPv6 and domain
-    name targets.
+  - SOCKS5: `CONNECT` and `UDP ASSOCIATE` commands, no authentication, with
+    IPv4, IPv6 and domain name targets. UDP makes DNS, QUIC, VoIP and games
+    work, so the agent can back a full-device VPN through tun2socks (see
+    [Full VPN mode](#full-vpn-mode-tun2socks)).
 - **Multiple agents per server.** Each agent session is identified by a UUID, so
   many agents (and many clients behind each agent) can share one server.
 - **Multi-threaded.** The number of worker threads is configurable for the agent
@@ -70,6 +72,15 @@ neither.
     request, the agent–server connection becomes a raw byte pipe to the
     destination. Faster, but only the opening request is disguised and
     encrypted. Use it together with `tlsEnable`.
+- **TCP, UDP or both** (`general.traffic`, the same on agent and server):
+  choose which kinds of traffic are relayed. Default `both`.
+- **UDP** (SOCKS5 `UDP ASSOCIATE`) works in both modes. In polling mode,
+  datagrams are batched into `udpsend` requests and fetched with `udprecv`
+  polls; in direct tunnel mode they flow as length-prefixed frames on the
+  agent–server connection. An association lives as long as its SOCKS5 control
+  connection; on the server, an unused polling-mode association is dropped
+  after 120 seconds. IP fragments of SOCKS5 UDP (`FRAG` ≠ 0) are not supported
+  and are dropped.
 - **Connection reuse** (`connectionReuse`): keep one keep-alive connection
   between agent and server instead of opening a new one per request.
 - **Timeouts**: an I/O timeout that closes stalled connections (`timeout`) and
@@ -127,7 +138,9 @@ Browser/app ──HTTP or SOCKS5──▶ Agent ──decoy HTTP(S)──▶ Ser
    - `request` — forward a plain HTTP request and return the response.
    - `open` — open a TCP connection to the `CONNECT` target.
    - `send` / `recv` — write to / read from that connection (polling mode).
-   - `close` — close the connection.
+   - `udpopen` — open a UDP association (SOCKS5 `UDP ASSOCIATE`).
+   - `udpsend` / `udprecv` — send / fetch a batch of datagrams (polling mode).
+   - `close` — close the connection or association.
 5. The server's reply is encrypted and returned as the body of an HTTP
    `200 OK` response; the agent decrypts it and hands it to the application.
 
@@ -281,6 +294,25 @@ curl -x http://127.0.0.1:8080 https://example.com
 Or configure the agent's address as the SOCKS5/HTTP proxy in your browser or
 operating system.
 
+### Full VPN mode (tun2socks)
+
+To send all of a device's traffic through NipoVPN (for example an Android
+`VpnService`), put a tun2socks layer such as
+[hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel) or
+[tun2socks](https://github.com/xjasonlyu/tun2socks) between the TUN interface
+and the agent, and run the agent with `protocol: socks5` and `general.traffic: both`
+(the default; `tcp` gives a TCP-only VPN where apps fall back from QUIC to TCP,
+but DNS must then go over TCP and calls and games stop working). tun2socks turns TCP
+connections into SOCKS5 `CONNECT` and UDP flows into SOCKS5 `UDP ASSOCIATE`.
+Use the standard SOCKS5 UDP relay mode of tun2socks; non-standard UDP-over-TCP
+extensions are not supported.
+
+Keep the agent's own connection to the server out of the VPN, or its traffic
+loops back into the TUN interface. On Android, exclude the app with
+`VpnService.Builder.addDisallowedApplication()`, or call
+`VpnService.protect()` on the agent's socket, or exclude the server's address
+from the routes.
+
 ## Configuration reference
 
 The sample config lives at [nipovpn/etc/nipovpn/config.yaml](nipovpn/etc/nipovpn/config.yaml).
@@ -296,6 +328,7 @@ in `general` keep working, with a warning naming the keys to move.
 | `aesEnable` | bool | `true` | AES-256-GCM payload encryption. **Must match.** |
 | `tunnelEnable` | bool | `false` | `true` = direct tunnel mode, `false` = polling mode. **Must match.** |
 | `tlsEnable` | bool | `false` | TLS between agent and server. **Must match.** |
+| `traffic` | string | `both` | `tcp` (HTTP, `CONNECT`, SOCKS5 `CONNECT`), `udp` (SOCKS5 `UDP ASSOCIATE`, needs `agent.protocol: socks5`) or `both`. **Must match.** The agent answers a refused SOCKS5 `CONNECT` with `0x02` (not allowed) and a refused `UDP ASSOCIATE` with `0x07` (command not supported); the server answers a mismatched agent with `403 Forbidden`. |
 | `timeout` | seconds | `10` | I/O timeout for stalled connections. `0` disables it. Each side uses its own value. |
 
 ### `log`
