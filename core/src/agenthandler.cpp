@@ -166,3 +166,99 @@ std::string AgentHandler::relayHostHeader(const std::shared_ptr<Config> &config)
     if (pos != std::string::npos) hostHeader = hostHeader.substr(0, pos);
     return hostHeader;
 }
+
+std::optional<std::string> postRelayAction(TCPClient &client,
+                                           const std::shared_ptr<Config> &config,
+                                           const std::shared_ptr<Log> &log,
+                                           const boost::uuids::uuid &uuid,
+                                           const std::string &action,
+                                           const std::string &rawBody,
+                                           bool keepOpen) {
+    const bool keepAlive = keepOpen || (config->agent().connectionReuse && action != "close");
+
+    auto sendOnce = [&]() -> std::string {
+        if (!client.isOpen()) {
+            if (config->general().tlsEnable && !client.enableTlsClient()) return "";
+            if (!client.doConnect(config->agent().serverIp, config->agent().serverPort)) return "";
+            if (client.tlsEnabled() && !client.doHandshakeClient()) return "";
+        }
+
+        const std::string payload = makeEnvelope(
+                action, to_string(uuid),
+                hexArrToStr(reinterpret_cast<const unsigned char *>(rawBody.data()), rawBody.size()));
+        BoolStr enc = config->general().aesEnable
+                              ? aes256Encrypt(payload, config->agent().token)
+                              : BoolStr{true, signWithKey(payload, deriveAesKey(config->agent().token))};
+        if (!enc.ok) return "";
+
+        const std::string encodedBody = encode64(enc.message);
+
+        std::string hostHeader = config->randomFakeUrl();
+        auto pos = hostHeader.find("://");
+        if (pos != std::string::npos) hostHeader = hostHeader.substr(pos + 3);
+        pos = hostHeader.find('/');
+        if (pos != std::string::npos) hostHeader = hostHeader.substr(0, pos);
+
+        std::ostringstream req;
+        req << config->randomMethod() + " /" + config->randomEndPoint()
+            << " HTTP/" << config->agent().httpVersion << "\r\n"
+            << "Host: " << hostHeader << "\r\n"
+            << "User-Agent: " << config->agent().userAgent << "\r\n"
+            << "Accept: */*\r\n"
+            << "Content-Type: text/plain; charset=utf-8\r\n"
+            << "Content-Length: " << encodedBody.size() << "\r\n"
+            << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
+            << "\r\n"
+            << encodedBody;
+
+        boost::asio::streambuf out;
+        copyStringToStreambuf(req.str(), out);
+
+        if (!client.doWrite(out)) {
+            log->write("[" + to_string(uuid) + "] [postRelayAction] doWrite failed", Log::Level::DEBUG);
+            client.socketShutdown();
+            return "";
+        }
+
+        if (!client.doReadAgent()) {
+            log->write("[" + to_string(uuid) + "] [postRelayAction] doReadAgent failed", Log::Level::DEBUG);
+            client.socketShutdown();
+            return "";
+        }
+
+        std::string response = streambufToString(client.readBuffer());
+        if (response.empty()) {
+            log->write("[" + to_string(uuid) + "] [postRelayAction] empty response", Log::Level::DEBUG);
+            client.socketShutdown();
+            return "";
+        }
+
+        if (!keepAlive) client.socketShutdown();
+        return response;
+    };
+
+    std::string response = sendOnce();
+
+    if (response.empty() && !keepOpen && config->agent().connectionReuse && action != "close") {
+        client.socketShutdown();
+        response = sendOnce();
+    }
+
+    const auto pos = response.find("\r\n\r\n");
+    if (pos == std::string::npos) return std::nullopt;
+
+    const auto space = response.find(' ');
+    if (space == std::string::npos || response.compare(space + 1, 3, "200") != 0) {
+        return std::nullopt;
+    }
+
+    const std::string responseBody = response.substr(pos + 4);
+    if (responseBody.empty()) return std::string();
+
+    BoolStr dec = config->general().aesEnable
+                          ? aes256Decrypt(responseBody, config->agent().token)
+                          : BoolStr{true, responseBody};
+    if (!dec.ok) return std::nullopt;
+
+    return dec.message;
+}

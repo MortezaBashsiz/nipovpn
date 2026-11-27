@@ -33,6 +33,11 @@ public:
         bool tunnelEnable;
         bool aesEnable;
         bool tlsEnable;
+        // tcp, udp or both: which traffic is relayed. Must match on both sides.
+        std::string traffic;
+
+        bool allowsTcp() const { return traffic != "udp"; }
+        bool allowsUdp() const { return traffic != "tcp"; }
     };
 
     struct Log {

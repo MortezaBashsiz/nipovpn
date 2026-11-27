@@ -25,7 +25,8 @@ std::unique_ptr<Config::Settings> Config::load(RunMode mode, const std::string &
     s->general = {yaml["general"]["timeout"].as<unsigned short>(10),
                   yaml["general"]["tunnelEnable"].as<bool>(false),
                   yaml["general"]["aesEnable"].as<bool>(true),
-                  yaml["general"]["tlsEnable"].as<bool>(false)};
+                  yaml["general"]["tlsEnable"].as<bool>(false),
+                  yaml["general"]["traffic"].as<std::string>("both")};
     s->log = {yaml["log"]["logLevel"].as<std::string>("INFO"),
               yaml["log"]["logFile"].as<std::string>()};
     s->server = {yaml["server"]["threads"].as<unsigned short>(2),
@@ -214,6 +215,7 @@ std::string Config::toString() const {
        << "   tunnelEnable: " << std::boolalpha << general_.tunnelEnable << "\n"
        << "   aesEnable: " << std::boolalpha << general_.aesEnable << "\n"
        << "   tlsEnable: " << std::boolalpha << general_.tlsEnable << "\n"
+       << "   traffic: " << general_.traffic << "\n"
 
        << " Log :\n"
        << "   logLevel: " << log_.level << "\n"

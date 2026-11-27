@@ -12,6 +12,7 @@ set(CORE_TARGET_HEADERS
         src/tcpclient.hpp
         src/tcpconnection.hpp
         src/tcpserver.hpp
+        src/udprelay.hpp
         src/usage.hpp
 )
 
@@ -25,6 +26,7 @@ set(CORE_TARGET_SOURCES
         src/tcpclient.cpp
         src/tcpconnection.cpp
         src/tcpserver.cpp
+        src/udprelay.cpp
         src/usage.cpp
 )
 
