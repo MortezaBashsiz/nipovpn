@@ -131,7 +131,6 @@ class Origin:
         self.port = self.server.server_address[1]
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
-        # UDP echo: every datagram is sent back to its sender unchanged.
         self.udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 << 20)
         self.udp.bind(("127.0.0.1", 0))
@@ -379,7 +378,6 @@ class Env:
             t.join()
         check(not errors, f"{len(errors)} of {count} parallel downloads failed: {errors[0] if errors else ''}")
 
-    # -- UDP (SOCKS5 UDP ASSOCIATE)
 
     @staticmethod
     def _recv_exact(sock, n):
@@ -392,7 +390,6 @@ class Env:
         return data
 
     def udp_associate(self, agent):
-        """Opens a UDP association; returns (control socket, UDP socket, relay address)."""
         ctrl = socket.create_connection(("127.0.0.1", agent.port), timeout=10)
         ctrl.sendall(b"\x05\x01\x00")
         check(self._recv_exact(ctrl, 2) == b"\x05\x00", "SOCKS5 greeting refused")
@@ -413,7 +410,6 @@ class Env:
         return ctrl, udp, (host, port)
 
     def udp_associate_refused(self, agent, reply):
-        """UDP ASSOCIATE must fail with this SOCKS5 reply code."""
         ctrl = socket.create_connection(("127.0.0.1", agent.port), timeout=10)
         try:
             ctrl.sendall(b"\x05\x01\x00")
@@ -425,7 +421,6 @@ class Env:
             ctrl.close()
 
     def udp_echo_ok(self, agent, sizes=(1, 100, 1400, 9000, 60000), count=40, domain=False):
-        """Sends datagrams to the UDP echo origin through the agent and checks every echo."""
         ctrl, udp, relay = self.udp_associate(agent)
         try:
             if domain:
@@ -602,24 +597,18 @@ for _tunnel in (False, True):
             env.server(server_cfg, name=f"server_{traffic}_{server_traffic}")
             return env.agent(cfg, name=f"agent_{traffic}_{server_traffic}")
 
-        # tcp only: TCP works; the agent refuses UDP ASSOCIATE with
-        # "command not supported" (7).
         agent = pair("tcp")
         env.download_ok(agent, "small")
         env.udp_associate_refused(agent, 7)
 
-        # udp only: UDP works, TCP is refused.
         agent = pair("udp")
         env.udp_echo_ok(agent, count=10)
         env.download_fails(agent, "small")
 
-        # both (the default) allows both.
         agent = pair("both")
         env.download_ok(agent, "small")
         env.udp_echo_ok(agent, count=10)
 
-        # Mismatch: the server refuses what it does not relay, and the client
-        # gets "general failure" (1) for UDP.
         agent = pair("both", "tcp")
         env.download_ok(agent, "small")
         env.udp_associate_refused(agent, 1)

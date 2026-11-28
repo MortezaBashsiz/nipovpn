@@ -46,6 +46,7 @@ def build_payload(cfg, name=None, server_ip=None):
         "tunnelEnable": bool(general.get("tunnelEnable", False)),
         "connectionReuse": bool(moved(agent, "connectionReuse", False)),
         "tlsEnable": bool(general.get("tlsEnable", False)),
+        "traffic": to_str(general.get("traffic", "both")),
         "tlsVerifyPeer": bool(moved(agent, "tlsVerifyPeer", False)),
         "tlsCertFile": to_str(moved(server, "tlsCertFile")),
         "tlsKeyFile": to_str(moved(server, "tlsKeyFile")),

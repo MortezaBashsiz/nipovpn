@@ -58,10 +58,6 @@ private:
     std::mutex mutex_;
 };
 
-// Sends one envelope action to the server as a decoy HTTP request on client
-// and returns the decrypted response body, or nullopt when the server refused
-// it or the exchange failed. keepOpen forces a keep-alive request and leaves
-// the connection open (used before switching it to a raw tunnel).
 std::optional<std::string> postRelayAction(TCPClient &client,
                                            const std::shared_ptr<Config> &config,
                                            const std::shared_ptr<Log> &log,

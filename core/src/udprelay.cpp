@@ -5,26 +5,20 @@
 #include "agenthandler.hpp"
 
 namespace {
-    // A polling-mode session nobody asked about for this long is dropped.
     constexpr auto UdpIdleTimeout = std::chrono::seconds(120);
     constexpr auto UdpIdleCheck = std::chrono::seconds(30);
 
-    // Replies waiting for the next udprecv (polling mode).
     constexpr std::size_t MaxQueuedDatagrams = 1024;
     constexpr std::size_t MaxQueuedBytes = 4 * 1024 * 1024;
 
-    // Datagrams waiting to be written to the tunnel (direct tunnel mode).
     constexpr std::size_t MaxWriteQueueBytes = 4 * 1024 * 1024;
 
-    // Raw bytes of datagrams put into one udpsend request.
     constexpr std::size_t MaxSendBatch = 32 * 1024;
 
     constexpr std::size_t MaxResolvedCache = 256;
 
     constexpr unsigned int MaxPollDelayMs = 50;
 
-    // Bursts of large datagrams overflow the default socket buffers (about
-    // 200 KB on Linux); the kernel caps this at net.core.rmem_max / wmem_max.
     constexpr int UdpSocketBuffer = 4 * 1024 * 1024;
 
     void enlargeBuffers(boost::asio::ip::udp::socket &socket) {
@@ -38,7 +32,6 @@ namespace {
     }
 }// namespace
 
-// ---------------------------------------------------------------- framing
 
 namespace udp_relay {
     std::size_t socksAddressLength(const std::string &data, std::size_t offset) {
@@ -125,7 +118,6 @@ namespace udp_relay {
     }
 
     std::optional<std::string> socksPacketToBody(const std::string &packet) {
-        // RSV(2) FRAG(1); fragments are not supported (RFC 1928 lets us drop them).
         if (packet.size() < 3 || packet[2] != '\0') return std::nullopt;
 
         std::string body = packet.substr(3);
@@ -134,7 +126,6 @@ namespace udp_relay {
     }
 }// namespace udp_relay
 
-// ---------------------------------------------------------------- server side
 
 std::mutex UdpSession::registryMutex_;
 std::unordered_map<std::string, UdpSession::pointer> UdpSession::registry_;
@@ -305,7 +296,6 @@ void UdpSession::receive(Socket &s) {
                         if (self->closed_ || !s.socket.is_open()) return;
 
                         if (ec) {
-                            // ICMP errors surface here on some systems; the socket is still usable.
                             if (ec == boost::asio::error::connection_refused ||
                                 ec == boost::asio::error::connection_reset) {
                                 self->receive(s);
@@ -431,7 +421,6 @@ void UdpSession::closeAll() {
     for (auto &[key, session]: sessions) session->close();
 }
 
-// ---------------------------------------------------------------- agent side
 
 UdpAssociation::UdpAssociation(boost::asio::io_context &io_context,
                                const std::shared_ptr<Config> &config,
@@ -508,7 +497,6 @@ void UdpAssociation::start() {
 }
 
 std::optional<std::string> UdpAssociation::acceptClientPacket(std::size_t bytes) {
-    // Only the client that asked for the association may use it (RFC 1928 §7).
     if (sender_.address() != clientAddress_) return std::nullopt;
     if (bytes > udp_relay::MaxDatagram) return std::nullopt;
 
@@ -541,7 +529,6 @@ void UdpAssociation::receiveFromClient() {
                             udp_relay::appendFrame(batch, *body);
                         }
 
-                        // Pick up whatever else is already waiting, so one request carries it all.
                         boost::system::error_code aec;
                         while (batch.size() < MaxSendBatch && self->socket_.available(aec) > 0 && !aec) {
                             const std::size_t n = self->socket_.receive_from(
@@ -562,7 +549,6 @@ void UdpAssociation::receiveFromClient() {
                                     self->close();
                                     return;
                                 }
-                                // A reply is likely on its way: poll for it right away.
                                 self->pollDelayMs_ = self->config_->agent().pullTimeout;
                                 if (self->pollInProgress_) self->pollTimer_.cancel();
                             }
@@ -650,7 +636,6 @@ void UdpAssociation::readFromServer() {
 }
 
 void UdpAssociation::writeToServer(std::string frames) {
-    // UDP may be lossy: drop rather than buffer without bound.
     if (writeQueuedBytes_ + frames.size() > MaxWriteQueueBytes) return;
 
     writeQueuedBytes_ += frames.size();

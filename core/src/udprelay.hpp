@@ -21,40 +21,18 @@
 #include "tcpclient.hpp"
 #include "usage.hpp"
 
-/*
- * UDP relay (SOCKS5 UDP ASSOCIATE).
- *
- * A datagram travels between agent and server as a frame:
- *
- *     [u16 big-endian length] [ATYP] [address] [u16 port] [payload]
- *
- * The part after the length is exactly the SOCKS5 UDP request header without
- * its RSV and FRAG bytes, so the agent turns a SOCKS5 UDP packet into a frame
- * by dropping three bytes, and back by adding them. Several frames are simply
- * concatenated: in polling mode a batch is the data of one udpsend / udprecv
- * action, in direct tunnel mode frames flow back to back on the connection.
- */
 namespace udp_relay {
     static constexpr std::size_t MaxDatagram = 65535;
     static constexpr std::size_t FrameHeader = 2;
 
-    // Bytes of the SOCKS5 address at data[offset] (ATYP .. port), or 0 when
-    // it is malformed or truncated.
     std::size_t socksAddressLength(const std::string &data, std::size_t offset);
 
-    // SOCKS5 address (ATYP .. port) of an endpoint.
     std::string encodeSocksAddress(const boost::asio::ip::udp::endpoint &endpoint);
 
-    // Appends one frame. False when the body does not fit in a frame.
     bool appendFrame(std::string &out, const std::string &body);
 
-    // Removes every complete frame from the front of buffer and returns their
-    // bodies; a trailing partial frame stays in buffer. ok is set to false
-    // when a frame is malformed.
     std::vector<std::string> takeFrames(std::string &buffer, bool &ok);
 
-    // SOCKS5 UDP packet (RSV RSV FRAG ATYP ...) to frame body; nullopt for
-    // fragments and malformed packets.
     std::optional<std::string> socksPacketToBody(const std::string &packet);
 
     inline std::string bodyToSocksPacket(const std::string &body) {
@@ -62,11 +40,9 @@ namespace udp_relay {
     }
 }// namespace udp_relay
 
-// Server side of one association: owns the UDP sockets that talk to targets.
 class UdpSession : public std::enable_shared_from_this<UdpSession> {
 public:
     using pointer = std::shared_ptr<UdpSession>;
-    // Receives each datagram from a target as a frame body.
     using Sink = std::function<void(std::string body)>;
 
     static pointer create(boost::asio::io_context &io_context,
@@ -78,14 +54,10 @@ public:
         return pointer(new UdpSession(io_context, config, log, uuid, std::move(user), std::move(usage)));
     }
 
-    // With a sink, replies go to it; without, they are queued for drain().
     void start(Sink sink = nullptr);
 
-    // Sends a frame body (address + payload) to its target.
     void send(std::string body);
 
-    // Queued replies as concatenated frames, at most maxBytes (but always at
-    // least one frame when any is queued).
     std::string drain(std::size_t maxBytes);
 
     void close();
@@ -94,8 +66,6 @@ public:
     bool idle(std::chrono::steady_clock::time_point now) const;
     const std::string &user() const { return user_; }
 
-    // Registry of polling-mode sessions, keyed by agent session id.
-    // False when key already belongs to another user.
     static bool add(const std::string &key, const pointer &session);
     static pointer find(const std::string &key, const std::string &user);
     static void remove(const std::string &key, const std::string &user);
@@ -154,8 +124,6 @@ private:
     static std::unordered_map<std::string, pointer> registry_;
 };
 
-// Agent side of one SOCKS5 UDP ASSOCIATE: the UDP socket the local client
-// talks to, and the relay of its datagrams to the server.
 class UdpAssociation : public std::enable_shared_from_this<UdpAssociation> {
 public:
     using pointer = std::shared_ptr<UdpAssociation>;
@@ -172,7 +140,6 @@ public:
                                           clientAddress, bindAddress));
     }
 
-    // Binds the local UDP socket and opens the association on the server.
     bool open();
 
     udp::endpoint localEndpoint() const;
@@ -194,14 +161,11 @@ private:
                                     bool keepOpen = false);
 
     void receiveFromClient();
-    // Frame body of a datagram from the local client, or nullopt to drop it.
     std::optional<std::string> acceptClientPacket(std::size_t bytes);
     void sendToClient(const std::string &body);
 
-    // Polling mode.
     void pollServer();
 
-    // Direct tunnel mode.
     void readFromServer();
     void writeToServer(std::string frames);
     void writeNext();
