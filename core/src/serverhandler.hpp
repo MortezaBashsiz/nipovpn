@@ -11,6 +11,7 @@
 #include "http.hpp"
 #include "log.hpp"
 #include "tcpclient.hpp"
+#include "udprelay.hpp"
 #include "usage.hpp"
 
 class ServerHandler : private Uncopyable {
@@ -43,6 +44,9 @@ public:
     bool end_;
     bool connect_;
     bool keepAlive_ = false;
+    bool udp_ = false;
+
+    std::shared_ptr<Usage::Counter> usage() const { return usage_; }
 
 private:
     struct HttpUtils {

@@ -33,6 +33,10 @@ public:
         bool tunnelEnable;
         bool aesEnable;
         bool tlsEnable;
+        std::string traffic;
+
+        bool allowsTcp() const { return traffic != "udp"; }
+        bool allowsUdp() const { return traffic != "tcp"; }
     };
 
     struct Log {

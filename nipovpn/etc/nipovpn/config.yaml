@@ -1,6 +1,6 @@
 ---
 # This block holds settings both the agent and the server use.
-#   aesEnable, tunnelEnable and tlsEnable must be the same on both.
+#   aesEnable, tunnelEnable, tlsEnable and traffic must be the same on both.
 general:
   # aesEnable: bool (default: true)
   # Enables AES-256-GCM payload encryption (confidentiality and integrity). Must match on the agent and server.
@@ -19,6 +19,12 @@ general:
   # tlsEnable: bool
   # It enables or disables tls between agent and server
   tlsEnable: true
+  # traffic: which traffic is relayed (default: both). Must match on the agent and server.
+  #   tcp:  TCP only (HTTP, CONNECT and SOCKS5 CONNECT); SOCKS5 UDP ASSOCIATE
+  #         is answered with "command not supported"
+  #   udp:  UDP only (SOCKS5 UDP ASSOCIATE); needs agent.protocol: socks5
+  #   both: TCP and UDP. For a full-device VPN through tun2socks, use both.
+  traffic: both
 
 # This block is to define log directives
 log:

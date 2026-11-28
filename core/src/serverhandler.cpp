@@ -29,7 +29,7 @@ std::size_t ServerHandler::revokeSessions(const std::vector<std::string> &users)
             ++it;
         }
     }
-    return closed;
+    return closed + UdpSession::revoke(users);
 }
 
 void ServerHandler::closeAllSessions() {
@@ -39,6 +39,7 @@ void ServerHandler::closeAllSessions() {
         sessions.swap(sessions_);
     }
     for (auto &[key, session]: sessions) session.client->socketShutdown();
+    UdpSession::closeAll();
 }
 
 std::string ServerHandler::HttpUtils::lowerCopy(std::string s) {
@@ -255,6 +256,72 @@ void ServerHandler::handle() {
             "[" + to_string(uuid_) + "] [ServerHandler handle] [Payload Decoded]",
             Log::Level::DEBUG);
 
+    const bool udpAction = action == "udpopen" || action == "udpsend" || action == "udprecv";
+    if (action != "close" &&
+        !(udpAction ? config_->general().allowsUdp() : config_->general().allowsTcp())) {
+        log_->write("[" + to_string(uuid_) + "] [ServerHandler handle] [SRC " + srcTag() + "] " +
+                            (udpAction ? "UDP" : "TCP") + " refused: general.traffic is " +
+                            config_->general().traffic,
+                    Log::Level::INFO);
+        makePayloadHttpResponse("", "403 Forbidden", "close");
+        return;
+    }
+
+    if (action == "udpopen") {
+        if (session.empty()) {
+            makePayloadHttpResponse("", "400 Bad Request", "close");
+            return;
+        }
+
+        log_->write("[" + to_string(uuid_) + "] [UDP] [ASSOCIATE] [SRC " + srcTag() + "]",
+                    Log::Level::INFO);
+
+        if (config_->general().tunnelEnable) {
+            makePayloadHttpResponse("", "200 OK", "keep-alive");
+            udp_ = true;
+            return;
+        }
+
+        auto udpSession = UdpSession::create(
+                static_cast<boost::asio::io_context &>(client_->socket().get_executor().context()),
+                config_, log_, uuid_, userName(), usage_);
+        if (!UdpSession::add(session, udpSession)) {
+            udpSession->close();
+            makePayloadHttpResponse("", "403 Forbidden", "close");
+            return;
+        }
+        udpSession->start();
+
+        makePayloadHttpResponse("", "200 OK", connectionHeader());
+        return;
+    }
+
+    if (action == "udpsend" || action == "udprecv") {
+        UdpSession::pointer udpSession = UdpSession::find(session, userName());
+        if (!udpSession) {
+            makePayloadHttpResponse("", "404 Not Found", connectionHeader());
+            return;
+        }
+
+        if (action == "udprecv") {
+            makePayloadHttpResponse(udpSession->drain(config_->server().bufferSize), "200 OK",
+                                    connectionHeader());
+            return;
+        }
+
+        std::string data = hexToASCII(decryption.message);
+        bool ok = true;
+        auto frames = udp_relay::takeFrames(data, ok);
+        if (!ok || !data.empty()) {
+            makePayloadHttpResponse("", "400 Bad Request", connectionHeader());
+            return;
+        }
+        for (auto &body: frames) udpSession->send(std::move(body));
+
+        makePayloadHttpResponse("", "200 OK", connectionHeader());
+        return;
+    }
+
     if (action == "send") {
         TCPClient::pointer targetClient;
 
@@ -327,6 +394,8 @@ void ServerHandler::handle() {
     }
 
     if (action == "close") {
+        UdpSession::remove(session, userName());
+
         std::lock_guard<std::mutex> sessionLock(sessionsMutex_);
         auto it = sessions_.find(session);
 

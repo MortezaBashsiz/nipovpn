@@ -2,6 +2,8 @@
 
 #include <boost/beast/core/detail/base64.hpp>
 #include <memory>
+#include <optional>
+#include <string>
 
 #include "config.hpp"
 #include "general.hpp"
@@ -55,3 +57,11 @@ private:
 
     std::mutex mutex_;
 };
+
+std::optional<std::string> postRelayAction(TCPClient &client,
+                                           const std::shared_ptr<Config> &config,
+                                           const std::shared_ptr<Log> &log,
+                                           const boost::uuids::uuid &uuid,
+                                           const std::string &action,
+                                           const std::string &rawBody,
+                                           bool keepOpen = false);

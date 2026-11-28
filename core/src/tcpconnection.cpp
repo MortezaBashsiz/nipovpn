@@ -236,6 +236,11 @@ void TCPConnection::handleReadAgent(const boost::system::error_code &error, size
                 socketShutdown();
                 return;
             }
+
+            if (udpAssociate_) {
+                startUdpAssociate();
+                return;
+            }
         }
 
         std::string current = streambufToString(readBuffer_);
@@ -423,13 +428,19 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
         resetTimeout();
 
         auto writeHandler =
-                [self = shared_from_this(), keepAlive = serverHandler_->keepAlive_](
+                [self = shared_from_this(), keepAlive = serverHandler_->keepAlive_,
+                 udp = serverHandler_->udp_, user = serverHandler_->userName()](
                         const boost::system::error_code &ec,
                         std::size_t) {
                     self->cancelTimeout();
 
                     if (ec) {
                         self->socketShutdown();
+                        return;
+                    }
+
+                    if (udp) {
+                        self->startServerUdpStream(user);
                         return;
                     }
 
@@ -469,131 +480,11 @@ void TCPConnection::handleReadServer(const boost::system::error_code &error, siz
     }
 }
 
-std::string TCPConnection::makeRelayHostHeader() const {
-    std::string hostHeader = config_->randomFakeUrl();
-
-    auto pos = hostHeader.find("://");
-    if (pos != std::string::npos) hostHeader = hostHeader.substr(pos + 3);
-
-    pos = hostHeader.find('/');
-    if (pos != std::string::npos) hostHeader = hostHeader.substr(0, pos);
-
-    return hostHeader;
-}
-
 std::optional<std::string> TCPConnection::postTunnelAction(const std::string &action,
                                                            const std::string &rawBody) {
     std::lock_guard<std::mutex> relayLock(relayMutex_);
-
     client_->uuid_ = uuid_;
-
-    auto sendOnce = [&]() -> std::string {
-        const bool alreadyOpen = client_->isOpen();
-
-        if (!alreadyOpen) {
-            if (config_->general().tlsEnable) {
-                if (!client_->enableTlsClient()) return "";
-            }
-
-            if (!client_->doConnect(config_->agent().serverIp,
-                                    config_->agent().serverPort)) {
-                return "";
-            }
-
-            if (client_->tlsEnabled()) {
-                if (!client_->doHandshakeClient()) return "";
-            }
-        }
-
-        const std::string payload = makeEnvelope(
-                action, to_string(uuid_),
-                hexArrToStr(reinterpret_cast<const unsigned char *>(rawBody.data()),
-                            rawBody.size()));
-        BoolStr enc = config_->general().aesEnable
-                              ? aes256Encrypt(payload, config_->agent().token)
-                              : BoolStr{true, signWithKey(payload, deriveAesKey(config_->agent().token))};
-
-        if (!enc.ok) return "";
-
-        const std::string encodedBody = encode64(enc.message);
-
-        const bool keepAlive =
-                config_->agent().connectionReuse && action != "close";
-
-        std::ostringstream req;
-        req << config_->randomMethod() + " /" + config_->randomEndPoint()
-            << " HTTP/" << config_->agent().httpVersion << "\r\n"
-            << "Host: " << makeRelayHostHeader() << "\r\n"
-            << "User-Agent: " << config_->agent().userAgent << "\r\n"
-            << "Accept: */*\r\n"
-            << "Content-Type: text/plain; charset=utf-8\r\n"
-            << "Content-Length: " << encodedBody.size() << "\r\n"
-            << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
-            << "\r\n"
-            << encodedBody;
-
-        boost::asio::streambuf out;
-        copyStringToStreambuf(req.str(), out);
-
-        if (!client_->doWrite(out)) {
-            log_->write("[" + to_string(uuid_) +
-                                "] [TCPConnection postTunnelAction] doWrite failed",
-                        Log::Level::DEBUG);
-            client_->socketShutdown();
-            return "";
-        }
-
-        if (!client_->doReadAgent()) {
-            log_->write("[" + to_string(uuid_) +
-                                "] [TCPConnection postTunnelAction] doReadAgent failed",
-                        Log::Level::DEBUG);
-            client_->socketShutdown();
-            return "";
-        }
-
-        const std::string response = streambufToString(client_->readBuffer());
-
-        if (response.empty()) {
-            log_->write("[" + to_string(uuid_) +
-                                "] [TCPConnection postTunnelAction] empty response",
-                        Log::Level::DEBUG);
-            client_->socketShutdown();
-            return "";
-        }
-
-        if (!keepAlive) {
-            client_->socketShutdown();
-        }
-
-        return response;
-    };
-
-    std::string response = sendOnce();
-
-    if (response.empty() &&
-        config_->agent().connectionReuse &&
-        action != "close") {
-        client_->socketShutdown();
-        response = sendOnce();
-    }
-
-    const auto pos = response.find("\r\n\r\n");
-    if (pos == std::string::npos) return std::nullopt;
-
-    const auto space = response.find(' ');
-    if (space == std::string::npos || response.compare(space + 1, 3, "200") != 0) {
-        return std::nullopt;
-    }
-
-    const std::string responseBody = response.substr(pos + 4);
-    if (responseBody.empty()) return std::string();
-
-    BoolStr dec = config_->general().aesEnable
-                          ? aes256Decrypt(responseBody, config_->agent().token)
-                          : BoolStr{true, responseBody};
-    if (!dec.ok) return std::nullopt;
-
-    return dec.message;
+    return postRelayAction(*client_, config_, log_, uuid_, action, rawBody);
 }
 
 bool TCPConnection::readExactFromClient(void *data, std::size_t size) {
@@ -659,7 +550,22 @@ bool TCPConnection::handleSocks5Handshake() {
     unsigned char req[4];
     if (!readExactFromClient(req, 4)) return false;
 
-    if (req[0] != 0x05 || req[1] != 0x01) {
+    const auto &general = config_->general();
+    const bool commandAllowed = (req[1] == 0x01 && general.allowsTcp()) ||
+                                (req[1] == 0x03 && general.allowsUdp());
+    if (req[0] == 0x05 && (req[1] == 0x01 || req[1] == 0x03) && !commandAllowed) {
+        log_->write("[" + to_string(uuid_) + "] [SOCKS5] " +
+                            (req[1] == 0x01 ? "CONNECT" : "UDP ASSOCIATE") +
+                            " refused: general.traffic is " + general.traffic,
+                    Log::Level::INFO);
+        const unsigned char fail[10] = {0x05, static_cast<unsigned char>(req[1] == 0x01 ? 0x02 : 0x07),
+                                        0x00, 0x01, 0, 0, 0, 0, 0, 0};
+        boost::system::error_code ignored;
+        boost::asio::write(socket_, boost::asio::buffer(fail, 10), ignored);
+        return false;
+    }
+
+    if (req[0] != 0x05 || (req[1] != 0x01 && req[1] != 0x03)) {
         const unsigned char fail[10] = {0x05, 0x07, 0x00, 0x01, 0, 0, 0, 0, 0, 0};
         boost::asio::write(socket_, boost::asio::buffer(fail, 10));
         return false;
@@ -700,6 +606,11 @@ bool TCPConnection::handleSocks5Handshake() {
 
     unsigned short port =
             static_cast<unsigned short>((portBytes[0] << 8) | portBytes[1]);
+
+    if (req[1] == 0x03) {
+        udpAssociate_ = true;
+        return true;
+    }
 
     std::string target;
 
@@ -872,6 +783,9 @@ void TCPConnection::socketShutdown() {
     boost::system::error_code ignored;
 
     try {
+        if (udp_) udp_->close();
+        if (udpSession_) udpSession_->close();
+
         pollTimer_.cancel();
         ignored.clear();
 
@@ -1242,4 +1156,130 @@ bool TCPConnection::HttpUtils::readRemainingHttpBodyImpl(
     }
 
     return true;
+}
+void TCPConnection::startUdpAssociate() {
+    boost::system::error_code ec;
+    const auto local = socket_.local_endpoint(ec);
+    if (ec) {
+        socketShutdown();
+        return;
+    }
+    const auto peer = socket_.remote_endpoint(ec);
+    if (ec) {
+        socketShutdown();
+        return;
+    }
+
+    udp_ = UdpAssociation::create(io_context_, config_, log_,
+                                  TCPClient::create(io_context_, config_, log_),
+                                  uuid_, peer.address(), local.address());
+
+    if (!udp_->open()) {
+        const unsigned char fail[10] = {0x05, 0x01, 0x00, 0x01, 0, 0, 0, 0, 0, 0};
+        boost::asio::write(socket_, boost::asio::buffer(fail), ec);
+        udp_.reset();
+        socketShutdown();
+        return;
+    }
+
+    std::string reply("\x05\x00\x00", 3);
+    reply += udp_relay::encodeSocksAddress(udp_->localEndpoint());
+    boost::asio::write(socket_, boost::asio::buffer(reply), ec);
+    if (ec) {
+        socketShutdown();
+        return;
+    }
+
+    connect_ = true;
+    udp_->start();
+    watchUdpControl();
+}
+
+void TCPConnection::watchUdpControl() {
+    socket_.async_read_some(
+            boost::asio::buffer(downstreamBuf_),
+            boost::asio::bind_executor(
+                    strand_,
+                    [self = shared_from_this()](const boost::system::error_code &ec, std::size_t) {
+                        if (ec) {
+                            self->socketShutdown();
+                            return;
+                        }
+                        self->watchUdpControl();
+                    }));
+}
+
+void TCPConnection::startServerUdpStream(const std::string &user) {
+    connect_ = true;
+    tunnelMode_ = true;
+
+    udpSession_ = UdpSession::create(io_context_, config_, log_, uuid_, user, usage_);
+
+    std::weak_ptr<TCPConnection> weak = shared_from_this();
+    udpSession_->start([weak](std::string body) {
+        auto self = weak.lock();
+        if (!self) return;
+        boost::asio::post(self->strand_, [self, body = std::move(body)]() mutable {
+            self->queueUdpToAgent(std::move(body));
+        });
+    });
+
+    readUdpFromAgent();
+}
+
+void TCPConnection::readUdpFromAgent() {
+    if (closed_) return;
+
+    asyncReadFromAgentConnection(
+            downstreamBuf_,
+            [self = shared_from_this()](const boost::system::error_code &ec, std::size_t bytes) {
+                if (ec || bytes == 0) {
+                    self->socketShutdown();
+                    return;
+                }
+
+                self->udpPending_.append(self->downstreamBuf_.data(), bytes);
+                bool ok = true;
+                auto frames = udp_relay::takeFrames(self->udpPending_, ok);
+                if (!ok) {
+                    self->log_->write("[" + to_string(self->uuid_) + "] [UDP] [Closed] malformed frame from agent",
+                                      Log::Level::INFO);
+                    self->socketShutdown();
+                    return;
+                }
+                for (auto &body: frames) self->udpSession_->send(std::move(body));
+
+                self->readUdpFromAgent();
+            });
+}
+
+void TCPConnection::queueUdpToAgent(std::string body) {
+    if (closed_) return;
+
+    std::string frame;
+    if (!udp_relay::appendFrame(frame, body)) return;
+
+    constexpr std::size_t MaxUdpWriteBytes = 4 * 1024 * 1024;
+    if (udpWriteBytes_ + frame.size() > MaxUdpWriteBytes) return;
+
+    udpWriteBytes_ += frame.size();
+    udpWriteQueue_.push_back(std::move(frame));
+    if (udpWriteQueue_.size() == 1) writeUdpNext();
+}
+
+void TCPConnection::writeUdpNext() {
+    if (closed_ || udpWriteQueue_.empty()) return;
+
+    asyncWriteToAgentConnection(
+            udpWriteQueue_.front().data(),
+            udpWriteQueue_.front().size(),
+            [self = shared_from_this()](const boost::system::error_code &ec) {
+                if (ec) {
+                    self->socketShutdown();
+                    return;
+                }
+                self->udpWriteBytes_ -= self->udpWriteQueue_.front().size();
+                self->udpWriteQueue_.pop_front();
+                self->writeUdpNext();
+            });
 }

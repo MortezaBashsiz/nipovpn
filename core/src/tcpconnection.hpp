@@ -9,6 +9,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <chrono>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -20,6 +21,7 @@
 #include "agenthandler.hpp"
 #include "general.hpp"
 #include "serverhandler.hpp"
+#include "udprelay.hpp"
 #include "usage.hpp"
 
 class TCPConnection : public std::enable_shared_from_this<TCPConnection> {
@@ -128,10 +130,17 @@ private:
     void startTunnelPollServer();
     std::optional<std::string> postTunnelAction(const std::string &action, const std::string &rawBody);
     void abortTunnel(const std::string &reason);
-    std::string makeRelayHostHeader() const;
     void closeTunnelSession();
 
     void trackUser(const std::string &user);
+
+    void startUdpAssociate();
+    void watchUdpControl();
+
+    void startServerUdpStream(const std::string &user);
+    void readUdpFromAgent();
+    void queueUdpToAgent(std::string body);
+    void writeUdpNext();
 
     boost::asio::ip::tcp::socket socket_;
     boost::asio::ssl::context sslContext_;
@@ -166,6 +175,13 @@ private:
 
     static std::mutex registryMutex_;
     static std::unordered_map<std::string, std::vector<std::weak_ptr<TCPConnection>>> byUser_;
+
+    bool udpAssociate_ = false;
+    UdpAssociation::pointer udp_;
+    UdpSession::pointer udpSession_;
+    std::string udpPending_;
+    std::deque<std::string> udpWriteQueue_;
+    std::size_t udpWriteBytes_ = 0;
 
     std::array<char, BufferSize> downstreamBuf_;
     std::array<char, BufferSize> upstreamBuf_;

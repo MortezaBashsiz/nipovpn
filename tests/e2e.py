@@ -22,6 +22,7 @@ import secrets
 import shutil
 import signal
 import socket
+import struct
 import subprocess
 import sys
 import tempfile
@@ -130,12 +131,27 @@ class Origin:
         self.port = self.server.server_address[1]
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
+        self.udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.udp.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 << 20)
+        self.udp.bind(("127.0.0.1", 0))
+        self.udp_port = self.udp.getsockname()[1]
+        threading.Thread(target=self._udp_echo, daemon=True).start()
+
+    def _udp_echo(self):
+        while True:
+            try:
+                data, addr = self.udp.recvfrom(65535)
+                self.udp.sendto(data, addr)
+            except OSError:
+                return
+
     def url(self, name):
         return f"http://127.0.0.1:{self.port}/{name}"
 
     def close(self):
         self.server.shutdown()
         self.server.server_close()
+        self.udp.close()
 
 
 # ---------------------------------------------------------------- processes
@@ -362,6 +378,86 @@ class Env:
             t.join()
         check(not errors, f"{len(errors)} of {count} parallel downloads failed: {errors[0] if errors else ''}")
 
+
+    @staticmethod
+    def _recv_exact(sock, n):
+        data = b""
+        while len(data) < n:
+            chunk = sock.recv(n - len(data))
+            if not chunk:
+                raise TestFailure("agent closed the SOCKS5 control connection")
+            data += chunk
+        return data
+
+    def udp_associate(self, agent):
+        ctrl = socket.create_connection(("127.0.0.1", agent.port), timeout=10)
+        ctrl.sendall(b"\x05\x01\x00")
+        check(self._recv_exact(ctrl, 2) == b"\x05\x00", "SOCKS5 greeting refused")
+        ctrl.sendall(b"\x05\x03\x00\x01" + bytes(4) + bytes(2))
+        head = self._recv_exact(ctrl, 4)
+        check(head[1] == 0, f"UDP ASSOCIATE refused with SOCKS5 reply {head[1]}")
+        if head[3] == 1:
+            host = socket.inet_ntop(socket.AF_INET, self._recv_exact(ctrl, 4))
+        elif head[3] == 4:
+            host = socket.inet_ntop(socket.AF_INET6, self._recv_exact(ctrl, 16))
+        else:
+            raise TestFailure(f"unexpected BND.ADDR type {head[3]}")
+        port = struct.unpack("!H", self._recv_exact(ctrl, 2))[0]
+        check(port != 0, "UDP ASSOCIATE returned port 0")
+        udp = socket.socket(socket.AF_INET6 if ":" in host else socket.AF_INET, socket.SOCK_DGRAM)
+        udp.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 << 20)
+        udp.settimeout(10)
+        return ctrl, udp, (host, port)
+
+    def udp_associate_refused(self, agent, reply):
+        ctrl = socket.create_connection(("127.0.0.1", agent.port), timeout=10)
+        try:
+            ctrl.sendall(b"\x05\x01\x00")
+            check(self._recv_exact(ctrl, 2) == b"\x05\x00", "SOCKS5 greeting refused")
+            ctrl.sendall(b"\x05\x03\x00\x01" + bytes(6))
+            head = self._recv_exact(ctrl, 2)
+            check(head[1] == reply, f"UDP ASSOCIATE got SOCKS5 reply {head[1]}, expected {reply}")
+        finally:
+            ctrl.close()
+
+    def udp_echo_ok(self, agent, sizes=(1, 100, 1400, 9000, 60000), count=40, domain=False):
+        ctrl, udp, relay = self.udp_associate(agent)
+        try:
+            if domain:
+                name = b"localhost"
+                target = b"\x03" + bytes([len(name)]) + name
+            else:
+                target = b"\x01" + socket.inet_aton("127.0.0.1")
+            target += struct.pack("!H", self.origin.udp_port)
+
+            sent = {}
+            for i in range(count):
+                payload = struct.pack("!I", i) + os.urandom(max(sizes[i % len(sizes)] - 4, 0))
+                sent[i] = payload
+                udp.sendto(b"\x00\x00\x00" + target + payload, relay)
+                if i % 8 == 7:
+                    time.sleep(0.01)
+
+            got = {}
+            deadline = time.time() + 20
+            while len(got) < count and time.time() < deadline:
+                try:
+                    packet, _ = udp.recvfrom(65535)
+                except socket.timeout:
+                    break
+                check(packet[:3] == b"\x00\x00\x00", "reply without a SOCKS5 UDP header")
+                check(packet[3] == 1, f"reply address type {packet[3]}, expected IPv4")
+                src = (socket.inet_ntoa(packet[4:8]), struct.unpack("!H", packet[8:10])[0])
+                check(src == ("127.0.0.1", self.origin.udp_port), f"reply from {src}, expected the origin")
+                payload = packet[10:]
+                i = struct.unpack("!I", payload[:4])[0]
+                check(sent.get(i) == payload, f"datagram {i} came back corrupted ({len(payload)} bytes)")
+                got[i] = True
+            check(len(got) == count, f"{count - len(got)} of {count} datagrams never came back")
+        finally:
+            udp.close()
+            ctrl.close()
+
     def usage(self):
         path = os.path.join(self.dir, "usage.yaml")
         check(os.path.exists(path), "usage file was not written")
@@ -424,6 +520,103 @@ for _tls, _tunnel, _reuse, _aes, _protocol in itertools.product(
         f"aes={onoff(_aes)} protocol={_protocol}",
         make_matrix_test(_tls, _tunnel, _reuse, _aes, _protocol),
     ))
+
+
+for _tls, _tunnel, _reuse, _aes in itertools.product(
+        (True, False), (False, True), (True, False), (True, False)):
+    def _udp_test(env, tls=_tls, tunnel=_tunnel, reuse=_reuse, aes=_aes):
+        cfg = env.base(tls=tls, tunnel=tunnel, reuse=reuse, aes=aes)
+        env.server(cfg)
+        agent = env.agent(cfg)
+        env.udp_echo_ok(agent)
+
+    TESTS.append((f"udp tls={onoff(_tls)} tunnel={onoff(_tunnel)} reuse={onoff(_reuse)} aes={onoff(_aes)}",
+                  _udp_test))
+
+
+for _tunnel in (False, True):
+    def _udp_mixed_test(env, tunnel=_tunnel):
+        cfg = env.base(tunnel=tunnel)
+        env.server(cfg)
+        agent = env.agent(cfg)
+        env.udp_echo_ok(agent, domain=True, count=10)
+
+        errors = []
+
+        def udp_worker():
+            try:
+                env.udp_echo_ok(agent, count=20)
+            except Exception as e:
+                errors.append(str(e))
+
+        workers = [threading.Thread(target=udp_worker) for _ in range(3)]
+        for w in workers:
+            w.start()
+        env.parallel_downloads_ok(agent)
+        for w in workers:
+            w.join()
+        check(not errors, f"parallel UDP association failed: {errors[0] if errors else ''}")
+
+    TESTS.append((f"udp domain target and parallel associations with tcp tunnel={onoff(_tunnel)}",
+                  _udp_mixed_test))
+
+
+for _tunnel in (False, True):
+    def _udp_close_test(env, tunnel=_tunnel):
+        cfg = env.base(tunnel=tunnel)
+        env.server(cfg)
+        agent = env.agent(cfg)
+        ctrl, udp, relay = env.udp_associate(agent)
+        target = b"\x01" + socket.inet_aton("127.0.0.1") + struct.pack("!H", env.origin.udp_port)
+        udp.sendto(b"\x00\x00\x00" + target + b"before", relay)
+        check(udp.recvfrom(65535)[0].endswith(b"before"), "no echo before closing")
+        ctrl.close()
+        time.sleep(1)
+        udp.settimeout(2)
+        udp.sendto(b"\x00\x00\x00" + target + b"after", relay)
+        try:
+            data, _ = udp.recvfrom(65535)
+            raise TestFailure(f"association still relayed after its control connection closed: {data!r}")
+        except (socket.timeout, ConnectionRefusedError):
+            pass
+        finally:
+            udp.close()
+        env.download_ok(agent, "small")
+
+    TESTS.append((f"udp association ends with its control connection tunnel={onoff(_tunnel)}",
+                  _udp_close_test))
+
+
+for _tunnel in (False, True):
+    def _traffic_test(env, tunnel=_tunnel):
+        def pair(traffic, server_traffic=None):
+            cfg = env.base(tunnel=tunnel)
+            cfg["general"]["traffic"] = traffic
+            server_cfg = copy.deepcopy(cfg)
+            server_cfg["general"]["traffic"] = server_traffic or traffic
+            env.server(server_cfg, name=f"server_{traffic}_{server_traffic}")
+            return env.agent(cfg, name=f"agent_{traffic}_{server_traffic}")
+
+        agent = pair("tcp")
+        env.download_ok(agent, "small")
+        env.udp_associate_refused(agent, 7)
+
+        agent = pair("udp")
+        env.udp_echo_ok(agent, count=10)
+        env.download_fails(agent, "small")
+
+        agent = pair("both")
+        env.download_ok(agent, "small")
+        env.udp_echo_ok(agent, count=10)
+
+        agent = pair("both", "tcp")
+        env.download_ok(agent, "small")
+        env.udp_associate_refused(agent, 1)
+        agent = pair("both", "udp")
+        env.download_fails(agent, "small")
+        env.udp_echo_ok(agent, count=10)
+
+    TESTS.append((f"traffic setting tunnel={onoff(_tunnel)}", _traffic_test))
 
 
 KNOWN_BUG_PLAIN_HTTP = (
@@ -691,6 +884,10 @@ VALIDATION_CASES = [
     ("server", mutate(("server", "bufferSize"), 70000), "server.bufferSize must be between 1 and 65536"),
     ("server", mutate(("server", "bufferSize"), 0), "server.bufferSize must be between 1 and 65536"),
     ("agent", mutate(("agent", "protocol"), "ftp"), "agent.protocol must be one of"),
+    ("agent", mutate(("general", "traffic"), "icmp"), "general.traffic must be one of [tcp|udp|both]"),
+    ("server", mutate(("general", "traffic"), "all"), "general.traffic must be one of [tcp|udp|both]"),
+    ("agent", lambda cfg: (mutate(("general", "traffic"), "udp")(cfg), mutate(("agent", "protocol"), "http")(cfg)),
+     "general.traffic: udp needs agent.protocol: socks5"),
     ("agent", mutate(("agent", "fakeUrls"), {"a": 1}), "Error in agent.fakeUrls"),
     ("agent", mutate(("agent", "token"), "short"), "agent.token must be at least 32 bytes"),
     ("agent", mutate(("agent", "token"), DELETE), "agent.token is required"),
