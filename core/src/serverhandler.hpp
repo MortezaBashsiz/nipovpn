@@ -44,8 +44,6 @@ public:
     bool end_;
     bool connect_;
     bool keepAlive_ = false;
-    // The agent opened a UDP association in direct tunnel mode: after the
-    // response the connection carries datagram frames.
     bool udp_ = false;
 
     std::shared_ptr<Usage::Counter> usage() const { return usage_; }

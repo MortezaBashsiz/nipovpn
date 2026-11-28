@@ -558,8 +558,6 @@ bool TCPConnection::handleSocks5Handshake() {
                             (req[1] == 0x01 ? "CONNECT" : "UDP ASSOCIATE") +
                             " refused: general.traffic is " + general.traffic,
                     Log::Level::INFO);
-        // 0x02: not allowed by ruleset (TCP); 0x07: command not supported (UDP),
-        // which tells tun2socks-style clients to go on without UDP.
         const unsigned char fail[10] = {0x05, static_cast<unsigned char>(req[1] == 0x01 ? 0x02 : 0x07),
                                         0x00, 0x01, 0, 0, 0, 0, 0, 0};
         boost::system::error_code ignored;
@@ -610,8 +608,6 @@ bool TCPConnection::handleSocks5Handshake() {
             static_cast<unsigned short>((portBytes[0] << 8) | portBytes[1]);
 
     if (req[1] == 0x03) {
-        // UDP ASSOCIATE: DST.ADDR/PORT only hint where the client will send
-        // from, and most clients leave them zero; the TCP peer address is used.
         udpAssociate_ = true;
         return true;
     }
@@ -1174,7 +1170,6 @@ void TCPConnection::startUdpAssociate() {
         return;
     }
 
-    // Its own server connection: client_ belongs to this TCP connection.
     udp_ = UdpAssociation::create(io_context_, config_, log_,
                                   TCPClient::create(io_context_, config_, log_),
                                   uuid_, peer.address(), local.address());
@@ -1195,7 +1190,6 @@ void TCPConnection::startUdpAssociate() {
         return;
     }
 
-    // The association lives as long as this TCP connection; no idle timeout.
     connect_ = true;
     udp_->start();
     watchUdpControl();
@@ -1265,7 +1259,6 @@ void TCPConnection::queueUdpToAgent(std::string body) {
     std::string frame;
     if (!udp_relay::appendFrame(frame, body)) return;
 
-    // Datagrams may be dropped; a slow agent must not make us buffer forever.
     constexpr std::size_t MaxUdpWriteBytes = 4 * 1024 * 1024;
     if (udpWriteBytes_ + frame.size() > MaxUdpWriteBytes) return;
 

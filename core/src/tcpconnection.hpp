@@ -134,11 +134,9 @@ private:
 
     void trackUser(const std::string &user);
 
-    // Agent: SOCKS5 UDP ASSOCIATE.
     void startUdpAssociate();
     void watchUdpControl();
 
-    // Server: datagram frames over the agent connection (direct tunnel mode).
     void startServerUdpStream(const std::string &user);
     void readUdpFromAgent();
     void queueUdpToAgent(std::string body);

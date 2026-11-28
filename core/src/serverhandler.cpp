@@ -299,7 +299,6 @@ void ServerHandler::handle() {
     if (action == "udpsend" || action == "udprecv") {
         UdpSession::pointer udpSession = UdpSession::find(session, userName());
         if (!udpSession) {
-            // Tells the agent to drop the association; the client can open a new one.
             makePayloadHttpResponse("", "404 Not Found", connectionHeader());
             return;
         }
